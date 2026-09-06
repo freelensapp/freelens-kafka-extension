@@ -1,0 +1,24 @@
+# Minimal fake Strimzi CRD for discovery testing on kind (NOT the real operator).
+# No `status` subresource is declared, so the CR's status.listeners can be set
+# with a plain `kubectl apply` (that is what discovery reads).
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  name: kafkas.kafka.strimzi.io
+spec:
+  group: kafka.strimzi.io
+  scope: Namespaced
+  names:
+    plural: kafkas
+    singular: kafka
+    kind: Kafka
+    shortNames:
+      - k
+  versions:
+    - name: v1beta2
+      served: true
+      storage: true
+      schema:
+        openAPIV3Schema:
+          type: object
+          x-kubernetes-preserve-unknown-fields: true

@@ -1,0 +1,31 @@
+# Direct-connect fixture (P3.2 g): a workload that references an EXTERNAL, PC-reachable Kafka
+# (the docker broker from docker-compose.direct.yml, advertised at 127.0.0.1:19092). Discovery
+# surfaces it as an external row; the machine can reach it, so it connects via the Direct strategy
+# (no port-forward). The pod need not run — discovery reads the spec only.
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: ext-demo
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: consumer
+  namespace: ext-demo
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: consumer
+  template:
+    metadata:
+      labels:
+        app: consumer
+    spec:
+      containers:
+        - name: app
+          image: busybox:1.36
+          command: [sh, -c, sleep 3600]
+          env:
+            - name: KAFKA_BOOTSTRAP_SERVERS
+              value: 127.0.0.1:19092

@@ -1,0 +1,1482 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Freelens Kafka UX v2</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+      href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap"
+      rel="stylesheet"
+    >
+    <style>
+    :root {
+      color-scheme: dark;
+      --shell: #171a1d;
+      --sidebar: #202428;
+      --surface: #262b30;
+      --surface-2: #2d3339;
+      --line: #3b4249;
+      --line-soft: #31373d;
+      --text: #f1f4f5;
+      --muted: #a3adb5;
+      --faint: #75818a;
+      --accent: #55b7a8;
+      --accent-soft: rgba(85, 183, 168, 0.14);
+      --good: #70c48f;
+      --warning: #e5b567;
+      --bad: #e47b76;
+      --focus: #6ec9bc;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    [hidden] {
+      display: none !important;
+    }
+
+    html,
+    body {
+      width: 100%;
+      min-width: 320px;
+      height: 100%;
+      margin: 0;
+      overflow: hidden;
+      background: #111416;
+      color: var(--text);
+      font-family: "IBM Plex Sans", sans-serif;
+      letter-spacing: 0;
+    }
+
+    button,
+    input,
+    select {
+      font: inherit;
+      letter-spacing: 0;
+    }
+
+    button {
+      color: inherit;
+    }
+
+    .review-bar {
+      display: flex;
+      height: 42px;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      padding: 0 14px;
+      border-bottom: 1px solid #2e3439;
+      background: #121517;
+    }
+
+    .review-title {
+      display: flex;
+      min-width: 0;
+      align-items: center;
+      gap: 9px;
+      color: #dbe0e3;
+      font-size: 12px;
+      font-weight: 600;
+    }
+
+    .review-mark {
+      display: grid;
+      width: 22px;
+      height: 22px;
+      place-items: center;
+      border: 1px solid #3a8d81;
+      color: var(--accent);
+      font-family: "IBM Plex Mono", monospace;
+      font-size: 10px;
+    }
+
+    .review-switcher {
+      display: flex;
+      align-items: center;
+      gap: 3px;
+      overflow-x: auto;
+    }
+
+    .review-switcher button {
+      height: 28px;
+      padding: 0 10px;
+      border: 1px solid transparent;
+      border-radius: 4px;
+      background: transparent;
+      color: var(--muted);
+      font-size: 11px;
+      white-space: nowrap;
+      cursor: pointer;
+    }
+
+    .review-switcher button.active {
+      border-color: #407d75;
+      background: var(--accent-soft);
+      color: #c9f1ea;
+    }
+
+    .app-shell {
+      display: grid;
+      grid-template-columns: 64px 190px minmax(0, 1fr);
+      height: calc(100% - 42px);
+      overflow: hidden;
+    }
+
+    .rail {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 14px;
+      padding-top: 12px;
+      border-right: 1px solid #292f34;
+      background: #16191c;
+    }
+
+    .rail-button {
+      display: grid;
+      width: 38px;
+      height: 38px;
+      place-items: center;
+      border: 0;
+      border-radius: 4px;
+      background: transparent;
+      color: #87939b;
+      font-family: "IBM Plex Mono", monospace;
+      font-size: 11px;
+    }
+
+    .rail-button.active {
+      background: #2a3136;
+      color: var(--accent);
+      box-shadow: inset 2px 0 var(--accent);
+    }
+
+    .cluster-sidebar {
+      min-width: 0;
+      border-right: 1px solid #353b41;
+      background: var(--sidebar);
+    }
+
+    .cluster-context {
+      display: flex;
+      height: 58px;
+      align-items: center;
+      gap: 10px;
+      padding: 0 12px;
+      border-bottom: 1px solid #343a40;
+    }
+
+    .cluster-avatar {
+      display: grid;
+      width: 30px;
+      height: 30px;
+      flex: 0 0 auto;
+      place-items: center;
+      border-radius: 4px;
+      background: #347a58;
+      font-size: 11px;
+      font-weight: 600;
+    }
+
+    .cluster-context strong,
+    .cluster-context small {
+      display: block;
+      min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .cluster-context strong {
+      font-size: 12px;
+    }
+
+    .cluster-context small {
+      margin-top: 2px;
+      color: var(--muted);
+      font-size: 10px;
+    }
+
+    .side-nav {
+      padding: 10px 0;
+    }
+
+    .nav-section {
+      padding: 10px 13px 6px;
+      color: #748088;
+      font-size: 9px;
+      font-weight: 600;
+      text-transform: uppercase;
+    }
+
+    .nav-item {
+      display: flex;
+      width: 100%;
+      height: 34px;
+      align-items: center;
+      gap: 10px;
+      padding: 0 13px;
+      border: 0;
+      background: transparent;
+      color: #aab3b9;
+      font-size: 12px;
+      text-align: left;
+    }
+
+    .nav-item.active {
+      background: #2b3237;
+      color: #f1f5f5;
+      box-shadow: inset 2px 0 var(--accent);
+    }
+
+    .nav-icon {
+      display: grid;
+      width: 18px;
+      height: 18px;
+      place-items: center;
+      color: #839098;
+      font-family: "IBM Plex Mono", monospace;
+      font-size: 9px;
+    }
+
+    .nav-item.active .nav-icon {
+      color: var(--accent);
+    }
+
+    .workspace {
+      position: relative;
+      min-width: 0;
+      height: 100%;
+      overflow: hidden;
+      background: var(--shell);
+    }
+
+    .screen {
+      display: none;
+      min-width: 0;
+      height: 100%;
+      overflow: auto;
+    }
+
+    .screen.active {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .page-header {
+      display: flex;
+      min-height: 76px;
+      flex: 0 0 auto;
+      align-items: center;
+      justify-content: space-between;
+      gap: 20px;
+      padding: 13px 24px;
+      border-bottom: 1px solid var(--line-soft);
+      background: #1b1f22;
+    }
+
+    .title-block {
+      min-width: 0;
+    }
+
+    .back-link {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      margin-bottom: 5px;
+      border: 0;
+      background: transparent;
+      color: var(--muted);
+      font-size: 11px;
+      cursor: pointer;
+    }
+
+    .back-link:hover {
+      color: var(--text);
+    }
+
+    h1 {
+      margin: 0;
+      overflow: hidden;
+      font-size: 21px;
+      font-weight: 600;
+      line-height: 1.2;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .subtitle {
+      margin-top: 4px;
+      color: var(--muted);
+      font-size: 11px;
+    }
+
+    .header-actions,
+    .inline-actions,
+    .badges {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+    }
+
+    .button {
+      display: inline-flex;
+      height: 32px;
+      align-items: center;
+      justify-content: center;
+      gap: 7px;
+      padding: 0 12px;
+      border: 1px solid #4a535a;
+      border-radius: 4px;
+      background: #262c31;
+      color: #e6eaec;
+      font-size: 11px;
+      font-weight: 500;
+      cursor: pointer;
+    }
+
+    .button:hover {
+      border-color: #69747c;
+      background: #30373c;
+    }
+
+    .button.primary {
+      border-color: #4b9a8e;
+      background: #337e73;
+      color: white;
+    }
+
+    .button.icon-only {
+      width: 32px;
+      padding: 0;
+    }
+
+    .badge {
+      display: inline-flex;
+      min-height: 22px;
+      align-items: center;
+      gap: 5px;
+      padding: 2px 7px;
+      border: 1px solid #485158;
+      border-radius: 3px;
+      color: #c1c8cc;
+      font-size: 10px;
+      line-height: 1;
+      white-space: nowrap;
+    }
+
+    .badge.good {
+      border-color: rgba(112, 196, 143, 0.48);
+      color: var(--good);
+    }
+
+    .badge.accent {
+      border-color: rgba(85, 183, 168, 0.55);
+      color: #8bd3c8;
+    }
+
+    .badge.warning {
+      border-color: rgba(229, 181, 103, 0.55);
+      color: var(--warning);
+    }
+
+    .page-tabs {
+      display: flex;
+      min-height: 40px;
+      flex: 0 0 auto;
+      align-items: flex-end;
+      gap: 3px;
+      padding: 0 24px;
+      border-bottom: 1px solid var(--line);
+      background: #1c2023;
+      overflow-x: auto;
+    }
+
+    .page-tab {
+      display: flex;
+      height: 40px;
+      align-items: center;
+      padding: 0 13px;
+      border: 0;
+      border-bottom: 2px solid transparent;
+      background: transparent;
+      color: var(--muted);
+      font-size: 11px;
+      white-space: nowrap;
+      cursor: pointer;
+    }
+
+    .page-tab.active {
+      border-bottom-color: var(--accent);
+      color: var(--text);
+    }
+
+    .metric-strip {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      flex: 0 0 auto;
+      border-bottom: 1px solid var(--line-soft);
+      background: #1d2124;
+    }
+
+    .metric {
+      min-width: 0;
+      padding: 12px 18px;
+    }
+
+    .metric + .metric {
+      border-left: 1px solid var(--line-soft);
+    }
+
+    .metric strong,
+    .metric span {
+      display: block;
+    }
+
+    .metric strong {
+      font-size: 17px;
+      font-weight: 600;
+    }
+
+    .metric span {
+      margin-top: 2px;
+      color: var(--muted);
+      font-size: 9px;
+      text-transform: uppercase;
+    }
+
+    .content {
+      display: flex;
+      min-height: 0;
+      flex: 1 1 auto;
+      flex-direction: column;
+      padding: 16px 24px 22px;
+      overflow: auto;
+    }
+
+    .toolbar {
+      display: flex;
+      min-height: 42px;
+      flex: 0 0 auto;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 10px;
+    }
+
+    .toolbar-left,
+    .toolbar-right {
+      display: flex;
+      min-width: 0;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .search {
+      width: min(420px, 46vw);
+      height: 32px;
+      padding: 0 10px;
+      border: 1px solid #475057;
+      border-radius: 4px;
+      outline: 0;
+      background: #20252a;
+      color: var(--text);
+      font-size: 11px;
+    }
+
+    .search:focus {
+      border-color: var(--focus);
+      box-shadow: 0 0 0 1px var(--focus);
+    }
+
+    .select {
+      height: 32px;
+      padding: 0 28px 0 9px;
+      border: 1px solid #475057;
+      border-radius: 4px;
+      outline: 0;
+      background: #20252a;
+      color: var(--text);
+      font-size: 11px;
+    }
+
+    .segments {
+      display: flex;
+      height: 32px;
+      align-items: center;
+      padding: 2px;
+      border: 1px solid #424a51;
+      border-radius: 4px;
+      background: #20252a;
+    }
+
+    .segment {
+      height: 26px;
+      padding: 0 9px;
+      border: 0;
+      border-radius: 3px;
+      background: transparent;
+      color: var(--muted);
+      font-size: 10px;
+    }
+
+    .segment.active {
+      background: #374046;
+      color: white;
+    }
+
+    .table-wrap {
+      min-height: 0;
+      flex: 1 1 auto;
+      overflow: auto;
+      border-top: 1px solid var(--line);
+      border-bottom: 1px solid var(--line);
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      table-layout: fixed;
+    }
+
+    th,
+    td {
+      height: 40px;
+      padding: 0 10px;
+      overflow: hidden;
+      border-bottom: 1px solid var(--line-soft);
+      font-size: 11px;
+      text-align: left;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    th {
+      position: sticky;
+      z-index: 2;
+      top: 0;
+      height: 36px;
+      background: #24292e;
+      color: #aab3b9;
+      font-size: 9px;
+      font-weight: 600;
+      text-transform: uppercase;
+    }
+
+    tbody tr {
+      background: #1b1f22;
+      cursor: pointer;
+    }
+
+    tbody tr:nth-child(even) {
+      background: #1d2226;
+    }
+
+    tbody tr:hover,
+    tbody tr.selected {
+      background: #283035;
+    }
+
+    tbody tr:focus-visible {
+      outline: 2px solid var(--focus);
+      outline-offset: -2px;
+    }
+
+    .entity {
+      display: flex;
+      min-width: 0;
+      align-items: center;
+      gap: 9px;
+    }
+
+    .entity-icon {
+      display: grid;
+      width: 24px;
+      height: 24px;
+      flex: 0 0 auto;
+      place-items: center;
+      border: 1px solid #4c575e;
+      border-radius: 3px;
+      color: var(--accent);
+      font-family: "IBM Plex Mono", monospace;
+      font-size: 9px;
+    }
+
+    .entity-copy {
+      min-width: 0;
+    }
+
+    .entity-copy strong,
+    .entity-copy small {
+      display: block;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .entity-copy strong {
+      font-size: 11px;
+      font-weight: 500;
+    }
+
+    .entity-copy small {
+      margin-top: 2px;
+      color: var(--faint);
+      font-family: "IBM Plex Mono", monospace;
+      font-size: 9px;
+    }
+
+    code,
+    .mono {
+      font-family: "IBM Plex Mono", monospace;
+    }
+
+    .health {
+      color: var(--good);
+    }
+
+    .warn {
+      color: var(--warning);
+    }
+
+    .muted {
+      color: var(--muted);
+    }
+
+    .footer-status {
+      display: flex;
+      min-height: 34px;
+      flex: 0 0 auto;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 0 10px;
+      color: var(--muted);
+      font-size: 10px;
+    }
+
+    .cluster-overview-grid {
+      display: grid;
+      grid-template-columns: minmax(0, 1.45fr) minmax(260px, 0.75fr);
+      gap: 22px;
+    }
+
+    .section-title {
+      margin: 0 0 9px;
+      color: #dce2e4;
+      font-size: 12px;
+      font-weight: 600;
+    }
+
+    .kv-list {
+      border-top: 1px solid var(--line);
+    }
+
+    .kv-row {
+      display: grid;
+      grid-template-columns: 150px minmax(0, 1fr);
+      gap: 16px;
+      padding: 9px 4px;
+      border-bottom: 1px solid var(--line-soft);
+      font-size: 11px;
+    }
+
+    .kv-row span:first-child {
+      color: var(--muted);
+    }
+
+    .usage-list {
+      border-top: 1px solid var(--line);
+    }
+
+    .usage-item {
+      padding: 9px 4px;
+      border-bottom: 1px solid var(--line-soft);
+    }
+
+    .usage-item strong,
+    .usage-item small {
+      display: block;
+    }
+
+    .usage-item strong {
+      font-size: 11px;
+      font-weight: 500;
+    }
+
+    .usage-item small {
+      margin-top: 3px;
+      color: var(--muted);
+      font-family: "IBM Plex Mono", monospace;
+      font-size: 9px;
+    }
+
+    .message-layout {
+      display: grid;
+      min-height: 0;
+      flex: 1 1 auto;
+      grid-template-columns: minmax(0, 1fr) minmax(300px, 36%);
+      border-top: 1px solid var(--line);
+      border-bottom: 1px solid var(--line);
+    }
+
+    .messages-list {
+      min-width: 0;
+      overflow: auto;
+      border-right: 1px solid var(--line);
+    }
+
+    .message-inspector {
+      min-width: 0;
+      overflow: auto;
+      background: #1c2024;
+    }
+
+    .inspector-header {
+      display: flex;
+      height: 42px;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 13px;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .inspector-header strong {
+      font-size: 11px;
+    }
+
+    .inspector-section {
+      padding: 11px 13px;
+      border-bottom: 1px solid var(--line-soft);
+    }
+
+    .inspector-label {
+      margin-bottom: 6px;
+      color: var(--muted);
+      font-size: 9px;
+      font-weight: 600;
+      text-transform: uppercase;
+    }
+
+    pre {
+      margin: 0;
+      overflow: auto;
+      color: #dce7e5;
+      font-family: "IBM Plex Mono", monospace;
+      font-size: 10px;
+      line-height: 1.55;
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+
+    .message-controls {
+      display: flex;
+      min-height: 50px;
+      flex: 0 0 auto;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      margin-bottom: 10px;
+    }
+
+    .message-controls .toolbar-left,
+    .message-controls .toolbar-right {
+      flex-wrap: wrap;
+    }
+
+    .offset-cell {
+      color: #d4dade;
+      font-family: "IBM Plex Mono", monospace;
+      font-size: 10px;
+    }
+
+    .key-cell {
+      color: #9fd7cf;
+      font-family: "IBM Plex Mono", monospace;
+      font-size: 10px;
+    }
+
+    .empty-inline {
+      padding: 28px 12px;
+      color: var(--muted);
+      font-size: 11px;
+      text-align: center;
+    }
+
+    @media (max-width: 980px) {
+      .app-shell {
+        grid-template-columns: 56px 168px minmax(0, 1fr);
+      }
+
+      .page-header,
+      .content {
+        padding-right: 16px;
+        padding-left: 16px;
+      }
+
+      .page-tabs {
+        padding: 0 16px;
+      }
+
+      .metric-strip {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      .metric:nth-child(3) {
+        border-top: 1px solid var(--line-soft);
+        border-left: 0;
+      }
+
+      .metric:nth-child(4) {
+        border-top: 1px solid var(--line-soft);
+      }
+
+      .message-layout {
+        grid-template-columns: minmax(0, 1fr) 320px;
+      }
+    }
+
+    @media (max-width: 760px) {
+      .review-title span:last-child,
+      .cluster-sidebar {
+        display: none;
+      }
+
+      .app-shell {
+        grid-template-columns: 50px minmax(0, 1fr);
+      }
+
+      .rail {
+        grid-column: 1;
+      }
+
+      .workspace {
+        grid-column: 2;
+      }
+
+      .page-header {
+        min-height: 84px;
+        align-items: flex-start;
+        padding: 11px 12px;
+      }
+
+      .header-actions .button:not(.primary),
+      .optional-col {
+        display: none;
+      }
+
+      .page-tabs,
+      .content {
+        padding-right: 12px;
+        padding-left: 12px;
+      }
+
+      .toolbar,
+      .message-controls {
+        align-items: stretch;
+        flex-direction: column;
+      }
+
+      .toolbar-left,
+      .toolbar-right {
+        width: 100%;
+      }
+
+      .search {
+        width: 100%;
+      }
+
+      .cluster-overview-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .message-layout {
+        display: flex;
+        flex-direction: column;
+        overflow: auto;
+      }
+
+      .messages-list {
+        min-height: 260px;
+        border-right: 0;
+        border-bottom: 1px solid var(--line);
+      }
+
+      .message-inspector {
+        min-height: 260px;
+      }
+    }
+    </style>
+  </head>
+  <body>
+    <header class="review-bar">
+      <div class="review-title">
+        <span class="review-mark">K2</span>
+        <span>Kafka UX v2 · design review</span>
+      </div>
+      <nav class="review-switcher" aria-label="Mockup views">
+        <button class="active" data-screen="targets">1. Kafka targets</button>
+        <button data-screen="cluster">2. Cluster workspace</button>
+        <button data-screen="topic">3. Topic & messages</button>
+        <button data-screen="groups">4. Consumer groups</button>
+      </nav>
+    </header>
+
+    <div class="app-shell">
+      <aside class="rail" aria-label="Freelens application rail">
+        <button class="rail-button">HM</button>
+        <button class="rail-button active">CL</button>
+        <button class="rail-button">EX</button>
+      </aside>
+
+      <aside class="cluster-sidebar" aria-label="Cluster navigation">
+        <div class="cluster-context">
+          <div class="cluster-avatar">KK</div>
+          <div>
+            <strong>kind-kind</strong>
+            <small>Connected</small>
+          </div>
+        </div>
+        <nav class="side-nav">
+          <div class="nav-section">Cluster</div>
+          <button class="nav-item"><span class="nav-icon">OV</span>Overview</button>
+          <button class="nav-item"><span class="nav-icon">WK</span>Workloads</button>
+          <button class="nav-item"><span class="nav-icon">NW</span>Network</button>
+          <button class="nav-item"><span class="nav-icon">ST</span>Storage</button>
+          <div class="nav-section">Extensions</div>
+          <button class="nav-item active" data-screen="targets"><span class="nav-icon">KF</span>Kafka</button>
+        </nav>
+      </aside>
+
+      <main class="workspace">
+        <section class="screen active" id="targets" aria-label="Kafka targets">
+          <header class="page-header">
+            <div class="title-block">
+              <h1>Kafka</h1>
+              <div class="subtitle">Kafka targets discovered from kind-kind</div>
+            </div>
+            <div class="header-actions">
+              <button class="button">＋ Add endpoint</button>
+              <button class="button icon-only" title="Refresh">↻</button>
+            </div>
+          </header>
+          <div class="content">
+            <div class="toolbar">
+              <div class="toolbar-left">
+                <input
+                  class="search"
+                  aria-label="Filter Kafka targets"
+                  placeholder="Filter name, bootstrap or workload"
+                >
+                <div class="segments" aria-label="Reachability filter">
+                  <button class="segment active">All 3</button>
+                  <button class="segment">Reachable 2</button>
+                  <button class="segment">Pod only 1</button>
+                </div>
+              </div>
+              <div class="toolbar-right">
+                <span class="muted" style="font-size: 10px">3 targets</span>
+              </div>
+            </div>
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th style="width: 22%">Kafka target</th>
+                    <th style="width: 17%">Kubernetes usage</th>
+                    <th style="width: 12%">Source</th>
+                    <th>Bootstrap</th>
+                    <th style="width: 11%">Security</th>
+                    <th style="width: 10%">Reachability</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr tabindex="0" data-screen="cluster">
+                    <td>
+                      <div class="entity">
+                        <span class="entity-icon">K</span>
+                        <span class="entity-copy"><strong>orders-msk</strong><small>managed Kafka</small></span>
+                      </div>
+                    </td>
+                    <td><strong>14 workloads</strong><br><span class="muted">3 namespaces</span></td>
+                    <td><span class="badge">MSK</span></td>
+                    <td><code>b-1.orders.kafka.us-west-2.amazonaws.com:9094</code></td>
+                    <td><span class="badge accent">TLS</span></td>
+                    <td><span class="badge good">● Reachable</span></td>
+                  </tr>
+                  <tr tabindex="0" data-screen="cluster">
+                    <td>
+                      <div class="entity">
+                        <span class="entity-icon">K</span>
+                        <span class="entity-copy"><strong>payments-kafka</strong><small>Strimzi</small></span>
+                      </div>
+                    </td>
+                    <td><strong>streaming</strong><br><span class="muted">resource namespace</span></td>
+                    <td><span class="badge">Strimzi</span></td>
+                    <td><code>payments-kafka-bootstrap.streaming.svc:9092</code></td>
+                    <td><span class="badge">PLAINTEXT</span></td>
+                    <td><span class="badge accent">↔ Port-forward</span></td>
+                  </tr>
+                  <tr tabindex="0">
+                    <td>
+                      <div class="entity">
+                        <span class="entity-icon">K</span>
+                        <span class="entity-copy"
+                          ><strong>analytics-kafka</strong><small>workload reference</small></span
+                        >
+                      </div>
+                    </td>
+                    <td><strong>2 workloads</strong><br><span class="muted">1 namespace</span></td>
+                    <td><span class="badge">External</span></td>
+                    <td><code>analytics.kafka.example.test:9092</code></td>
+                    <td><span class="badge">PLAINTEXT</span></td>
+                    <td><span class="badge warning">● Pod only</span></td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <div class="footer-status">
+              <span>Enter opens the selected Kafka workspace</span><span>Read-only metadata</span>
+            </div>
+          </div>
+        </section>
+
+        <section class="screen" id="cluster" aria-label="Kafka cluster workspace">
+          <header class="page-header">
+            <div class="title-block">
+              <button class="back-link" data-screen="targets">← Kafka targets</button>
+              <div class="inline-actions">
+                <h1>orders-msk</h1>
+                <span class="badge">MSK</span>
+                <span class="badge good">● Connected</span>
+              </div>
+              <div class="subtitle mono">b-1.orders.kafka.us-west-2.amazonaws.com:9094</div>
+            </div>
+            <div class="header-actions">
+              <button class="button">Connection settings</button>
+              <button class="button icon-only" title="Refresh">↻</button>
+            </div>
+          </header>
+          <nav class="page-tabs" aria-label="Kafka cluster sections">
+            <button class="page-tab" data-cluster-view="overview">Overview</button>
+            <button class="page-tab active" data-cluster-view="topics">Topics</button>
+            <button class="page-tab" data-screen="groups">Consumer Groups</button>
+            <button class="page-tab" data-cluster-view="brokers">Brokers</button>
+          </nav>
+          <div class="metric-strip">
+            <div class="metric"><strong>3</strong><span>Brokers</span></div>
+            <div class="metric"><strong>184</strong><span>Topics</span></div>
+            <div class="metric"><strong>552</strong><span>Partitions</span></div>
+            <div class="metric"><strong class="health">Healthy</strong><span>Replica health</span></div>
+          </div>
+          <div class="content cluster-panel" data-panel="topics">
+            <div class="toolbar">
+              <div class="toolbar-left">
+                <input class="search" placeholder="Filter topics" aria-label="Filter topics">
+                <div class="segments">
+                  <button class="segment active">All 184</button>
+                  <button class="segment">Application 172</button>
+                  <button class="segment">Internal 12</button>
+                </div>
+              </div>
+              <div class="toolbar-right"><span class="badge good">0 unavailable</span></div>
+            </div>
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Topic</th>
+                    <th style="width: 11%">Partitions</th>
+                    <th style="width: 12%">Replication</th>
+                    <th style="width: 13%">Consumers</th>
+                    <th style="width: 14%">Health</th>
+                    <th class="optional-col" style="width: 16%">Retention</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr tabindex="0" data-screen="topic">
+                    <td>
+                      <div class="entity">
+                        <span class="entity-icon">T</span
+                        ><span class="entity-copy"
+                          ><strong>orders.events.v2</strong><small>application topic</small></span
+                        >
+                      </div>
+                    </td>
+                    <td>12</td>
+                    <td>3</td>
+                    <td>4 groups</td>
+                    <td><span class="badge good">● Healthy</span></td>
+                    <td class="optional-col">7 days</td>
+                  </tr>
+                  <tr tabindex="0" data-screen="topic">
+                    <td>
+                      <div class="entity">
+                        <span class="entity-icon">T</span
+                        ><span class="entity-copy"
+                          ><strong>orders.commands.v1</strong><small>application topic</small></span
+                        >
+                      </div>
+                    </td>
+                    <td>6</td>
+                    <td>3</td>
+                    <td>2 groups</td>
+                    <td><span class="badge good">● Healthy</span></td>
+                    <td class="optional-col">24 hours</td>
+                  </tr>
+                  <tr tabindex="0">
+                    <td>
+                      <div class="entity">
+                        <span class="entity-icon">T</span
+                        ><span class="entity-copy"
+                          ><strong>orders.retry.v1</strong><small>application topic</small></span
+                        >
+                      </div>
+                    </td>
+                    <td>6</td>
+                    <td>3</td>
+                    <td>1 group</td>
+                    <td><span class="badge warning">● 1 under-replicated</span></td>
+                    <td class="optional-col">3 days</td>
+                  </tr>
+                  <tr tabindex="0">
+                    <td>
+                      <div class="entity">
+                        <span class="entity-icon">T</span
+                        ><span class="entity-copy"><strong>__consumer_offsets</strong><small>internal</small></span>
+                      </div>
+                    </td>
+                    <td>50</td>
+                    <td>3</td>
+                    <td>—</td>
+                    <td><span class="badge good">● Healthy</span></td>
+                    <td class="optional-col">internal</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <div class="footer-status">
+              <span>184 topics · sorted by name</span><span>Row click opens topic workspace</span>
+            </div>
+          </div>
+          <div class="content cluster-panel" data-panel="overview" hidden>
+            <div class="cluster-overview-grid">
+              <section>
+                <h2 class="section-title">Connection</h2>
+                <div class="kv-list">
+                  <div class="kv-row"><span>Strategy</span><strong>Direct over VPN</strong></div>
+                  <div class="kv-row"><span>Security</span><strong>TLS · no authentication</strong></div>
+                  <div class="kv-row"><span>Controller</span><strong>Broker 2</strong></div>
+                  <div class="kv-row"><span>Last metadata read</span><strong>12 seconds ago</strong></div>
+                </div>
+              </section>
+              <section>
+                <h2 class="section-title">Kubernetes usage</h2>
+                <div class="usage-list">
+                  <div class="usage-item"><strong>orders-api</strong><small>commerce / Deployment</small></div>
+                  <div class="usage-item"><strong>orders-worker</strong><small>commerce / Deployment</small></div>
+                  <div class="usage-item"><strong>billing-events</strong><small>payments / StatefulSet</small></div>
+                </div>
+              </section>
+            </div>
+          </div>
+          <div class="content cluster-panel" data-panel="brokers" hidden>
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Broker</th>
+                    <th>Host</th>
+                    <th>Rack</th>
+                    <th>Role</th>
+                    <th>Health</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td>1</td>
+                    <td class="mono">b-1.orders.kafka…</td>
+                    <td>usw2-az1</td>
+                    <td>Broker</td>
+                    <td><span class="badge good">Healthy</span></td>
+                  </tr>
+                  <tr>
+                    <td>2</td>
+                    <td class="mono">b-2.orders.kafka…</td>
+                    <td>usw2-az2</td>
+                    <td>Controller</td>
+                    <td><span class="badge good">Healthy</span></td>
+                  </tr>
+                  <tr>
+                    <td>3</td>
+                    <td class="mono">b-3.orders.kafka…</td>
+                    <td>usw2-az3</td>
+                    <td>Broker</td>
+                    <td><span class="badge good">Healthy</span></td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <section class="screen" id="topic" aria-label="Kafka topic workspace">
+          <header class="page-header">
+            <div class="title-block">
+              <button class="back-link" data-screen="cluster">← orders-msk / Topics</button>
+              <div class="inline-actions">
+                <h1>orders.events.v2</h1>
+                <span class="badge good">● Healthy</span>
+              </div>
+              <div class="subtitle">12 partitions · replication factor 3 · application topic</div>
+            </div>
+            <div class="header-actions">
+              <button class="button icon-only" title="Refresh">↻</button>
+            </div>
+          </header>
+          <nav class="page-tabs" aria-label="Topic sections">
+            <button class="page-tab">Overview</button>
+            <button class="page-tab active">Messages</button>
+            <button class="page-tab">Partitions</button>
+            <button class="page-tab">Consumers</button>
+            <button class="page-tab">Configuration</button>
+          </nav>
+          <div class="content">
+            <div class="message-controls">
+              <div class="toolbar-left">
+                <div class="segments" aria-label="Read mode">
+                  <button class="segment active">Browse</button><button class="segment">Tail</button>
+                </div>
+                <select class="select" aria-label="Partition">
+                  <option>All partitions</option>
+                  <option>Partition 0</option>
+                  <option>Partition 1</option>
+                </select>
+                <select class="select" aria-label="Start position">
+                  <option>Newest</option>
+                  <option>Oldest</option>
+                  <option>Timestamp…</option>
+                  <option>Offset…</option>
+                </select>
+                <select class="select" aria-label="Limit">
+                  <option>100 messages</option>
+                  <option>250 messages</option>
+                  <option>500 messages</option>
+                </select>
+              </div>
+              <div class="toolbar-right">
+                <button class="button primary">Read messages</button>
+              </div>
+            </div>
+            <div class="message-layout">
+              <div class="messages-list">
+                <table>
+                  <thead>
+                    <tr>
+                      <th style="width: 15%">Partition</th>
+                      <th style="width: 18%">Offset</th>
+                      <th style="width: 25%">Timestamp</th>
+                      <th style="width: 18%">Key</th>
+                      <th>Value preview</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr class="selected">
+                      <td>4</td>
+                      <td class="offset-cell">1849201</td>
+                      <td>2026-07-24 09:41:22</td>
+                      <td class="key-cell">ORD-84291</td>
+                      <td>{ "event": "OrderPaid"… }</td>
+                    </tr>
+                    <tr>
+                      <td>8</td>
+                      <td class="offset-cell">1734410</td>
+                      <td>2026-07-24 09:41:21</td>
+                      <td class="key-cell">ORD-84290</td>
+                      <td>{ "event": "OrderCreated"… }</td>
+                    </tr>
+                    <tr>
+                      <td>2</td>
+                      <td class="offset-cell">1920053</td>
+                      <td>2026-07-24 09:41:20</td>
+                      <td class="key-cell">ORD-84289</td>
+                      <td>{ "event": "OrderShipped"… }</td>
+                    </tr>
+                    <tr>
+                      <td>4</td>
+                      <td class="offset-cell">1849200</td>
+                      <td>2026-07-24 09:41:19</td>
+                      <td class="key-cell">ORD-84288</td>
+                      <td>{ "event": "PaymentAuthorized"… }</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+              <aside class="message-inspector" aria-label="Selected message inspector">
+                <div class="inspector-header"><strong>Message 1849201</strong><span class="badge">JSON</span></div>
+                <div class="inspector-section">
+                  <div class="inspector-label">Key</div>
+                  <pre>ORD-84291</pre>
+                </div>
+                <div class="inspector-section">
+                  <div class="inspector-label">Metadata</div>
+                  <pre>partition  4
+offset     1849201
+timestamp  2026-07-24T09:41:22.183Z</pre>
+                </div>
+                <div class="inspector-section">
+                  <div class="inspector-label">Headers</div>
+                  <pre>trace-id: c9f38e21
+content-type: application/json</pre>
+                </div>
+                <div class="inspector-section">
+                  <div class="inspector-label">Value</div>
+                  <pre>{
+  "event": "OrderPaid",
+  "orderId": "ORD-84291",
+  "amount": 129.90,
+  "currency": "EUR"
+}</pre>
+                </div>
+              </aside>
+            </div>
+            <div class="footer-status">
+              <span>4 messages loaded · no offsets committed</span><span>Read-only session</span>
+            </div>
+          </div>
+        </section>
+
+        <section class="screen" id="groups" aria-label="Kafka consumer groups">
+          <header class="page-header">
+            <div class="title-block">
+              <button class="back-link" data-screen="targets">← Kafka targets</button>
+              <div class="inline-actions">
+                <h1>orders-msk</h1>
+                <span class="badge">MSK</span><span class="badge good">● Connected</span>
+              </div>
+              <div class="subtitle mono">Consumer group activity and lag</div>
+            </div>
+            <div class="header-actions"><button class="button icon-only" title="Refresh">↻</button></div>
+          </header>
+          <nav class="page-tabs" aria-label="Kafka cluster sections">
+            <button class="page-tab" data-cluster-view="overview" data-screen="cluster">Overview</button>
+            <button class="page-tab" data-screen="cluster">Topics</button>
+            <button class="page-tab active">Consumer Groups</button>
+            <button class="page-tab" data-screen="cluster">Brokers</button>
+          </nav>
+          <div class="metric-strip">
+            <div class="metric"><strong>18</strong><span>Groups</span></div>
+            <div class="metric"><strong>14</strong><span>Stable</span></div>
+            <div class="metric"><strong>4</strong><span>Empty</span></div>
+            <div class="metric"><strong class="warn">2,481</strong><span>Total lag</span></div>
+          </div>
+          <div class="content">
+            <div class="toolbar">
+              <div class="toolbar-left">
+                <input class="search" placeholder="Filter consumer groups">
+                <div class="segments">
+                  <button class="segment active">All 18</button><button class="segment">With lag 3</button
+                  ><button class="segment">Active 14</button>
+                </div>
+              </div>
+              <div class="toolbar-right"><span class="muted" style="font-size: 10px">Updated 8s ago</span></div>
+            </div>
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Consumer group</th>
+                    <th style="width: 13%">State</th>
+                    <th style="width: 12%">Members</th>
+                    <th style="width: 12%">Topics</th>
+                    <th style="width: 14%">Total lag</th>
+                    <th style="width: 16%">Coordinator</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr tabindex="0">
+                    <td>
+                      <div class="entity">
+                        <span class="entity-icon">CG</span
+                        ><span class="entity-copy"><strong>orders-projector-v2</strong><small>commerce</small></span>
+                      </div>
+                    </td>
+                    <td><span class="badge good">Stable</span></td>
+                    <td>6</td>
+                    <td>3</td>
+                    <td class="health">0</td>
+                    <td>Broker 2</td>
+                  </tr>
+                  <tr tabindex="0">
+                    <td>
+                      <div class="entity">
+                        <span class="entity-icon">CG</span
+                        ><span class="entity-copy"><strong>fraud-detector</strong><small>risk</small></span>
+                      </div>
+                    </td>
+                    <td><span class="badge good">Stable</span></td>
+                    <td>3</td>
+                    <td>2</td>
+                    <td class="warn">2,311</td>
+                    <td>Broker 1</td>
+                  </tr>
+                  <tr tabindex="0">
+                    <td>
+                      <div class="entity">
+                        <span class="entity-icon">CG</span
+                        ><span class="entity-copy"><strong>shipment-sync</strong><small>fulfilment</small></span>
+                      </div>
+                    </td>
+                    <td><span class="badge">Empty</span></td>
+                    <td>0</td>
+                    <td>1</td>
+                    <td>170</td>
+                    <td>Broker 3</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <div class="footer-status">
+              <span>Row click opens offsets and members</span><span>No offset mutation in this extension</span>
+            </div>
+          </div>
+        </section>
+      </main>
+    </div>
+
+    <script>
+    const showScreen = (id) => {
+      document.querySelectorAll(".screen").forEach((screen) => screen.classList.toggle("active", screen.id === id));
+      document
+        .querySelectorAll(".review-switcher button")
+        .forEach((button) => button.classList.toggle("active", button.dataset.screen === id));
+    };
+
+    document.querySelectorAll("[data-screen]").forEach((element) => {
+      element.addEventListener("click", () => showScreen(element.dataset.screen));
+      element.addEventListener("keydown", (event) => {
+        if (event.key === "Enter" || event.key === " ") {
+          event.preventDefault();
+          showScreen(element.dataset.screen);
+        }
+      });
+    });
+
+    document.querySelectorAll("[data-cluster-view]").forEach((button) => {
+      button.addEventListener("click", () => {
+        const panel = button.dataset.clusterView;
+        document
+          .querySelectorAll("#cluster .page-tab")
+          .forEach((tab) => tab.classList.toggle("active", tab === button));
+        document.querySelectorAll("#cluster .cluster-panel").forEach((content) => {
+          content.hidden = content.dataset.panel !== panel;
+        });
+      });
+    });
+    </script>
+  </body>
+</html>

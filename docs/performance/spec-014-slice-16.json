@@ -1,0 +1,329 @@
+{
+  "schemaVersion": 1,
+  "capturedAt": "2026-08-26T09:14:38.208Z",
+  "mode": "authorized-read-only",
+  "scale": {
+    "workloads": 235,
+    "targets": 5,
+    "brokers": 3,
+    "topics": 1096,
+    "consumerGroups": 1114
+  },
+  "extension": {
+    "discovery": {
+      "durationMs": 20515,
+      "p95DurationMs": 21933,
+      "sampleCount": 3
+    },
+    "reachability": {
+      "durationMs": 8,
+      "p95DurationMs": 131,
+      "sampleCount": 3
+    },
+    "credentialResolution": {
+      "durationMs": 17476,
+      "p95DurationMs": 18442,
+      "sampleCount": 3
+    },
+    "overview": {
+      "durationMs": 6128,
+      "p95DurationMs": 7180,
+      "sampleCount": 3
+    },
+    "topics": {
+      "durationMs": 1119,
+      "p95DurationMs": 1253,
+      "sampleCount": 3
+    },
+    "groups": {
+      "durationMs": 4470,
+      "p95DurationMs": 5249,
+      "sampleCount": 3
+    },
+    "groupDetail": {
+      "durationMs": 3961,
+      "p95DurationMs": 4265,
+      "sampleCount": 3
+    },
+    "topicConsumers": {
+      "durationMs": 36579,
+      "p95DurationMs": 38497,
+      "sampleCount": 3
+    },
+    "aggregateHealth": {
+      "durationMs": 10369,
+      "p95DurationMs": 10555,
+      "sampleCount": 3,
+      "requestCount": 18,
+      "protocolRequests": {
+        "fetchOffsetsFallback": 0,
+        "fetchTopicOffsetsFallback": 0,
+        "findCoordinator": 3,
+        "listOffsets": 3,
+        "lowOffsets": 0,
+        "offsetFetch": 12,
+        "offsetFetchGroups": 1113
+      },
+      "capabilities": {
+        "batchSupported": true,
+        "findCoordinator": {
+          "minVersion": 0,
+          "maxVersion": 6
+        },
+        "offsetFetch": {
+          "minVersion": 0,
+          "maxVersion": 9
+        }
+      },
+      "groupBatch": {
+        "findCoordinatorRequests": 3,
+        "offsetFetchGroups": 1113,
+        "offsetFetchRequests": 12,
+        "publicFallbacks": 0
+      },
+      "batch": {
+        "brokers": 3,
+        "partitions": 651,
+        "topics": 171
+      },
+      "coverage": {
+        "exact": true,
+        "unavailableGroups": 0,
+        "unavailableTopics": 0
+      },
+      "phases": {
+        "topology": {
+          "durationMs": 3360,
+          "p95DurationMs": 3360,
+          "sampleCount": 3
+        },
+        "groups": {
+          "durationMs": 6066,
+          "p95DurationMs": 6246,
+          "sampleCount": 3
+        },
+        "watermarks": {
+          "durationMs": 1042,
+          "p95DurationMs": 1058,
+          "sampleCount": 3
+        }
+      },
+      "warmCache": {
+        "durationMs": 0,
+        "p95DurationMs": 0,
+        "sampleCount": 3,
+        "requestCount": 0,
+        "loaderCalls": 0
+      },
+      "runs": [
+        {
+          "captureId": "48c63f5b-20a9-4e76-a839-1afae36b0758",
+          "capturedAt": "2026-08-26T08:08:16.077Z",
+          "sourceFileId": "0a6a72684482bcf5e6b1c4224cc0cd084753c8dde34dcfa589b1c453270d7de8",
+          "durationMs": 10369,
+          "operationsMs": {
+            "discovery": 20203,
+            "reachability": 131,
+            "credentialResolution": 18442,
+            "overview": 5402,
+            "topics": 1091,
+            "groups": 4349,
+            "groupDetail": 4265,
+            "topicConsumers": 36579
+          },
+          "phasesMs": {
+            "topology": 3360,
+            "groups": 6066,
+            "watermarks": 943
+          },
+          "protocolRequests": {
+            "fetchOffsetsFallback": 0,
+            "fetchTopicOffsetsFallback": 0,
+            "findCoordinator": 3,
+            "listOffsets": 3,
+            "lowOffsets": 0,
+            "offsetFetch": 12,
+            "offsetFetchGroups": 1110
+          },
+          "warmCache": {
+            "durationMs": 0,
+            "loaderCalls": 0,
+            "requestCount": 0
+          }
+        },
+        {
+          "captureId": "2a726025-0c69-4d56-b681-95018eeb93e7",
+          "capturedAt": "2026-08-26T08:12:35.080Z",
+          "sourceFileId": "3b4a55c1a258d0e43a53e296125d3a1672ea5bf4634c0c3cd4d24a30a0a92714",
+          "durationMs": 10555,
+          "operationsMs": {
+            "discovery": 20515,
+            "reachability": 8,
+            "credentialResolution": 17476,
+            "overview": 7180,
+            "topics": 1119,
+            "groups": 4470,
+            "groupDetail": 3961,
+            "topicConsumers": 38497
+          },
+          "phasesMs": {
+            "topology": 3266,
+            "groups": 6246,
+            "watermarks": 1042
+          },
+          "protocolRequests": {
+            "fetchOffsetsFallback": 0,
+            "fetchTopicOffsetsFallback": 0,
+            "findCoordinator": 3,
+            "listOffsets": 3,
+            "lowOffsets": 0,
+            "offsetFetch": 12,
+            "offsetFetchGroups": 1110
+          },
+          "warmCache": {
+            "durationMs": 0,
+            "loaderCalls": 0,
+            "requestCount": 0
+          }
+        },
+        {
+          "captureId": "5271f464-c4c1-4516-9f0f-376c13f8e19c",
+          "capturedAt": "2026-08-26T08:14:55.917Z",
+          "sourceFileId": "79b1403a5fd26b73ed003546f0b78dd47e3f06cd3e2462a7a2c55be5f8eafeaa",
+          "durationMs": 10277,
+          "operationsMs": {
+            "discovery": 21933,
+            "reachability": 7,
+            "credentialResolution": 17390,
+            "overview": 6128,
+            "topics": 1253,
+            "groups": 5249,
+            "groupDetail": 3942,
+            "topicConsumers": 35837
+          },
+          "phasesMs": {
+            "topology": 3360,
+            "groups": 5859,
+            "watermarks": 1058
+          },
+          "protocolRequests": {
+            "fetchOffsetsFallback": 0,
+            "fetchTopicOffsetsFallback": 0,
+            "findCoordinator": 3,
+            "listOffsets": 3,
+            "lowOffsets": 0,
+            "offsetFetch": 12,
+            "offsetFetchGroups": 1113
+          },
+          "warmCache": {
+            "durationMs": 0,
+            "loaderCalls": 0,
+            "requestCount": 0
+          }
+        }
+      ]
+    }
+  },
+  "comparison": {
+    "provider": "akhq",
+    "version": "0.28.0",
+    "digest": "sha256:c2824dc2ae442b7ec215581f7e60a9f4106ea9004057fa3a1f88a29464cd4e63",
+    "method": "GET",
+    "topics": {
+      "coldDurationMs": 7525,
+      "durationMs": 3780,
+      "p95DurationMs": 3854,
+      "sampleCount": 2,
+      "runs": [3854, 3706]
+    },
+    "consumerGroups": {
+      "coldDurationMs": 14747,
+      "durationMs": 15394,
+      "p95DurationMs": 15966,
+      "sampleCount": 2,
+      "runs": [15966, 14821]
+    },
+    "completeGlobalLagEquivalent": false,
+    "cleanup": {
+      "createdContainerRemoved": true,
+      "imageRemovedOrPreexisting": true,
+      "kubernetesReady": true,
+      "temporaryConfigurationRemoved": true
+    }
+  },
+  "packagedBrowser": {
+    "capturedAt": "2026-09-01T12:16:49.118Z",
+    "mode": "authorized-read-only",
+    "packageSha256": "ffd1fbdded95f0e408c7e6ad1c7eaf7ecde6677b97b223c636b1e75cf64664f5",
+    "authorizationPinsVerified": true,
+    "freelens": {
+      "firstUsefulPaint": {
+        "durationMs": 3879,
+        "p95DurationMs": 4762,
+        "sampleCount": 3
+      },
+      "metadataPaint": {
+        "durationMs": 7031,
+        "p95DurationMs": 7885,
+        "sampleCount": 3
+      },
+      "topologyPaint": {
+        "durationMs": 3879,
+        "p95DurationMs": 4762,
+        "sampleCount": 3
+      },
+      "aggregateStillRunning": true,
+      "interactiveWhileUpdating": true,
+      "progressContinued": true
+    },
+    "akhq": {
+      "provider": "akhq",
+      "version": "0.28.0",
+      "digest": "sha256:c2824dc2ae442b7ec215581f7e60a9f4106ea9004057fa3a1f88a29464cd4e63",
+      "method": "GET",
+      "topicPaint": {
+        "durationMs": 7081,
+        "p95DurationMs": 7673,
+        "sampleCount": 3
+      }
+    },
+    "runs": [
+      {
+        "akhqTopicPaintMs": 7081,
+        "freelens": {
+          "aggregateStillRunning": true,
+          "firstUsefulPaintMs": 4762,
+          "interactiveWhileUpdating": true,
+          "metadataPaintMs": 7885,
+          "progressContinued": true,
+          "topologyPaintMs": 4762
+        },
+        "preparationAttempts": 1
+      },
+      {
+        "akhqTopicPaintMs": 6887,
+        "freelens": {
+          "aggregateStillRunning": true,
+          "firstUsefulPaintMs": 3879,
+          "interactiveWhileUpdating": true,
+          "metadataPaintMs": 5514,
+          "progressContinued": true,
+          "topologyPaintMs": 3879
+        },
+        "preparationAttempts": 1
+      },
+      {
+        "akhqTopicPaintMs": 7673,
+        "freelens": {
+          "aggregateStillRunning": true,
+          "firstUsefulPaintMs": 3863,
+          "interactiveWhileUpdating": true,
+          "metadataPaintMs": 7031,
+          "progressContinued": true,
+          "topologyPaintMs": 3863
+        },
+        "preparationAttempts": 1
+      }
+    ]
+  }
+}

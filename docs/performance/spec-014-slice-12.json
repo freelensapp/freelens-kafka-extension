@@ -1,0 +1,87 @@
+{
+  "schemaVersion": 1,
+  "capturedAt": "2026-08-21",
+  "mode": "authorized-read-only",
+  "scale": {
+    "workloads": 236,
+    "targets": 5,
+    "brokers": 3,
+    "topics": 1096,
+    "consumerGroups": 1136
+  },
+  "extension": {
+    "aggregateHealth": {
+      "durationMs": 37643,
+      "p95DurationMs": 39055,
+      "sampleCount": 3,
+      "protocolRequests": {
+        "findCoordinator": 1133,
+        "offsetFetch": 1133,
+        "listOffsets": 3,
+        "lowOffsets": 0,
+        "fetchTopicOffsetsFallback": 0
+      },
+      "batch": {
+        "brokers": 3,
+        "topics": 170,
+        "partitions": 661
+      },
+      "coverage": {
+        "exact": true,
+        "unavailableTopics": 0
+      },
+      "phases": {
+        "topology": {
+          "durationMs": 3068,
+          "p95DurationMs": 3288,
+          "sampleCount": 3
+        },
+        "groups": {
+          "durationMs": 32556,
+          "p95DurationMs": 33747,
+          "sampleCount": 3
+        },
+        "watermarks": {
+          "durationMs": 2034,
+          "p95DurationMs": 2085,
+          "sampleCount": 3
+        }
+      },
+      "runs": [
+        {
+          "durationMs": 37643,
+          "phasesMs": { "topology": 3053, "groups": 32556, "watermarks": 2034 },
+          "protocolRequests": {
+            "findCoordinator": 1131,
+            "offsetFetch": 1131,
+            "listOffsets": 3,
+            "lowOffsets": 0,
+            "fetchTopicOffsetsFallback": 0
+          }
+        },
+        {
+          "durationMs": 39055,
+          "phasesMs": { "topology": 3288, "groups": 33747, "watermarks": 2020 },
+          "protocolRequests": {
+            "findCoordinator": 1133,
+            "offsetFetch": 1133,
+            "listOffsets": 3,
+            "lowOffsets": 0,
+            "fetchTopicOffsetsFallback": 0
+          }
+        },
+        {
+          "durationMs": 37002,
+          "phasesMs": { "topology": 3068, "groups": 31849, "watermarks": 2085 },
+          "protocolRequests": {
+            "findCoordinator": 1137,
+            "offsetFetch": 1137,
+            "listOffsets": 3,
+            "lowOffsets": 0,
+            "fetchTopicOffsetsFallback": 0
+          }
+        }
+      ]
+    }
+  }
+}
