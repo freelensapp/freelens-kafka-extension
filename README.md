@@ -30,6 +30,8 @@ the cluster sidebar under **Apache Kafka**: **Clusters**, **Overview**,
 **Topics**, **Consumer Groups**, **Brokers** and, once an endpoint is
 configured, **Schema Registry**, **Kafka Connect** and **ACLs**.
 
+![The Messages browser of a topic on the local Kafka fixture, dark theme](docs/screenshots/topic-messages-dark.png)
+
 The goal is feature parity with the standalone open-source Kafka consoles,
 embedded in the tool you already use for the cluster. The extension is a
 from-scratch MIT implementation: it does not reuse code or UI from any of
@@ -116,9 +118,8 @@ overrides in the Connection Settings panel. Passwords are never persisted.
 
 ## Installation
 
-The extension is not published to npm yet. Once published, install it from
-the Freelens **Extensions** page (`ctrl`+`shift`+`E` or `cmd`+`shift`+`E`)
-by npm name:
+Install the extension from the Freelens **Extensions** page
+(`ctrl`+`shift`+`E` or `cmd`+`shift`+`E`) by npm name:
 
 ```text
 @freelensapp/kafka-extension
@@ -129,9 +130,8 @@ Alternatively, download the `.tgz` from the
 page and drag it into the Freelens window, or provide its path on the
 Extensions page.
 
-Until then, build and pack the extension yourself, see
-[Build from the source](#build-from-the-source), and install the resulting
-tarball the same way.
+You can also build and pack the extension yourself, see
+[Build from the source](#build-from-the-source).
 
 ## Getting started
 
