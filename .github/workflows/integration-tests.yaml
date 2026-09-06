@@ -79,6 +79,12 @@ jobs:
       - name: Get extension path
         run: echo "EXTENSION_PATH=$(find $(pwd) -name '*.tgz')" >> ${GITHUB_ENV}
 
+      - name: Start disposable Kafka topic fixture
+        run: pnpm kafka:direct:up
+
+      - name: Start disposable authorized Kafka fixture for ACL tests
+        run: pnpm kafka:acl:up
+
       - name: Checkout app
         if: matrix.freelens_version != 'latest'
         uses: actions/checkout@v6
@@ -250,12 +256,6 @@ jobs:
           mv freelens/node_modules freelens/node_modules_prod
           mv freelens/node_modules_dev freelens/node_modules
 
-      - name: Start disposable Kafka topic fixture
-        run: pnpm kafka:direct:up
-
-      - name: Start disposable authorized Kafka fixture for ACL tests
-        run: pnpm kafka:acl:up
-
       - name: Publish Kafka bootstrap fixture to KinD discovery
         run: kubectl apply -f test/e2e/fixtures/workload-direct-kind.yaml
 
@@ -282,7 +282,7 @@ jobs:
 
       - name: Clean disposable Kafka and KinD fixtures
         if: always()
-        run: |
+        run: |-
           kubectl delete -f test/e2e/fixtures/workload-direct-kind.yaml --ignore-not-found
           pnpm kafka:direct:down
           pnpm kafka:acl:down
