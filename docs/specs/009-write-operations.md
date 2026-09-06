@@ -1,0 +1,185 @@
+# SPEC-009 — Write Operations: Policy, Produce Message and Offset Reset
+
+| Field | Value |
+| --- | --- |
+| Status | Verified |
+| Date | 2026-08-06 |
+| Source | v1.0.0 scope; write policy accepted by user 2026-08-06 |
+| Safety | **First write-capable spec.** Write policy defined here is normative for all subsequent write-capable SPEC (010, 011, 012). Governed by `TESTING-SAFETY.md`. |
+
+## Problem
+
+SPEC-001–008 are read-only. Users who need to send test messages or recover a stalled consumer group
+must leave the extension and use command-line tooling with no guardrails. Both operations need a
+write permission model that makes accidental production writes structurally impossible.
+
+## Write Policy (normative for SPEC-009 and all subsequent write-capable specs)
+
+The following rules apply to every write feature introduced in this extension, regardless of which
+spec introduces it.
+
+**Default state:** All write features are disabled by default for every cluster.
+
+**Enabling write mode:** The user must explicitly enable write mode per cluster in Extension
+Settings. Write mode is stored per `targetId`; enabling it for one cluster has no effect on others.
+No credential, password or Secret is stored as part of write-mode configuration.
+
+**Mandatory confirmation:** Every write operation must present a non-dismissible confirmation
+dialog before the call is made. The dialog must show: cluster identity (non-sensitive bootstrap
+reference or display name), resource (topic, group, subject…), operation name and expected
+consequence. There is no "remember this decision" option.
+
+**Reinforced confirmation for destructive operations:** Any operation that is irreversible or whose
+consequence is difficult to quantify — including offset reset to earliest, schema deletion, ACL
+deletion, connector deletion, and any operation that modifies or removes data that cannot be
+reconstructed from the current state — must additionally require the user to type the exact resource
+name (or a provided confirmation phrase) before the submit button becomes active.
+
+**Locked context:** The destination cluster and resource are locked at compose time. If the active
+Kafka cluster or page context changes before the user confirms, the pending operation is cancelled
+without execution and the user is notified.
+
+**No automatic retry:** After an ambiguous result (e.g. a produce call that timed out with unknown
+delivery status), the extension reports the ambiguity with the known facts and stops. It does not
+retry automatically.
+
+**Development and automated testing:** Write operations in tests are permitted only against local
+Docker or KinD Kafka instances created by the test harness for that test run. The test setup must
+assert that the bootstrap address resolves to a local address (127.0.0.1 or ::1) before executing
+any write. Any test that cannot verify a local bootstrap must abort rather than skip.
+
+## Scope
+
+- Write policy implementation as a shared infrastructure layer for all write-capable specs.
+- **Produce Message** — compose key, value, headers and optional partition; confirm and send once.
+- **Consumer Group offset reset** — reset a group's committed offset for a topic/partition to
+  earliest, latest, a specific offset or a timestamp.
+
+## Non-goals
+
+- Batch produce (multiple messages in one action).
+- Transactional produce.
+- Creating or deleting topics, groups or consumer instances (future spec).
+- Modifying topic or broker configuration (future spec).
+- Writing on clusters that do not have write mode explicitly enabled.
+
+## User Scenarios
+
+### US-032 — Write mode is invisible until explicitly enabled (P1)
+
+**Given** a cluster with write mode disabled (default), **when** the user browses Topics, Consumer
+Groups or any other page, **then** no produce button, reset control or other write element is
+visible.
+
+### US-033 — Enable write mode for one cluster only (P1)
+
+**Given** two configured Kafka clusters, **when** the user enables write mode for cluster A in
+Extension Settings, **then** cluster A shows write controls and cluster B does not.
+
+### US-034 — Produce a message to a test topic (P1)
+
+**Given** write mode enabled for a cluster, **when** the user opens a Topic Workspace and clicks
+Produce, **then** a compose view opens with the cluster and topic locked; the user fills in key and
+value, reviews the confirmation dialog and confirms; the resulting partition and offset are shown.
+
+### US-035 — Cancelling produce leaves the topic unchanged (P1)
+
+**Given** a compose view with a message ready to send, **when** the user dismisses the confirmation
+dialog, **then** no message is produced and the topic is unchanged.
+
+### US-036 — Reset a consumer group offset to earliest (P1)
+
+**Given** write mode enabled for a cluster and a selected consumer group, **when** the user chooses
+reset-to-earliest for a topic/partition, **then** a reinforced confirmation (type resource name) is
+shown; after confirmation the committed offset is updated.
+
+### US-037 — Context change during compose cancels the operation (P1)
+
+**Given** a compose view open for cluster A, **when** the user switches to cluster B before
+confirming, **then** the compose view closes and no message is produced.
+
+## Functional Requirements
+
+### Write policy infrastructure
+
+- **REQ-102** — Write features MUST be disabled by default. No write-capable UI element (button,
+  menu item, form) MUST be visible or reachable unless write mode has been explicitly enabled for
+  the current cluster.
+- **REQ-103** — Write mode is stored per `targetId` in extension settings. Enabling it for one
+  cluster MUST NOT affect the write-mode state of any other cluster.
+- **REQ-104** — Every write operation MUST present a confirmation dialog, shown before the IPC call
+  is made, displaying: cluster identity (non-sensitive), resource, operation and expected
+  consequence.
+- **REQ-105** — Destructive or hard-to-reverse operations MUST use a reinforced confirmation: the
+  submit button remains disabled until the user types the exact resource name or the provided
+  confirmation phrase into an input field within the dialog.
+- **REQ-106** — The destination cluster and resource MUST be locked at compose time. If the active
+  cluster or page context changes before confirmation, the pending operation MUST be cancelled
+  without execution and the user MUST be notified.
+- **REQ-107** — After an ambiguous result, the extension MUST surface the known facts (operation
+  attempted, cluster, resource, last known outcome) and stop. It MUST NOT retry automatically.
+
+### Produce Message
+
+- **REQ-108** — A Produce action MUST be accessible from the Topic Workspace header when write mode
+  is enabled for the cluster. It MUST NOT be visible when write mode is disabled.
+- **REQ-109** — The Produce compose view MUST allow editing key, value and headers using native
+  input controls. Partition selection MUST be optional; when unspecified, the producer uses the
+  default partitioner.
+- **REQ-110** — Produce MUST use an idempotent KafkaJS producer where supported by the broker
+  (enable.idempotence = true). This does not guarantee exactly-once to the user; REQ-107 applies.
+- **REQ-111** — After a confirmed produce, the extension MUST show the resulting partition and offset
+  on success, or the full error message on failure, without truncation.
+
+### Consumer Group offset reset
+
+- **REQ-112** — Offset reset controls MUST be accessible from the Offsets & Lag tab when write mode
+  is enabled. They MUST NOT be visible when write mode is disabled.
+- **REQ-113** — Offset reset MUST support: reset-to-earliest, reset-to-latest, reset-to-specific-
+  offset (numeric input) and reset-to-timestamp. Reset-to-timestamp uses `offsetsForTimes`.
+- **REQ-114** — The offset reset confirmation MUST show group ID, topic, partition and the resolved
+  new offset before execution. Reset-to-earliest and reset-to-timestamp before the earliest
+  available offset MUST use the reinforced confirmation gate (REQ-105).
+- **REQ-115** — Automated tests for all write features MUST assert that the bootstrap address is a
+  local loopback address (127.0.0.1 or ::1) before executing any write. Tests MUST abort with a
+  clear diagnostic if this assertion fails; they MUST NOT skip silently.
+
+## Success Criteria
+
+- **SC-058** — With write mode disabled (default), no Produce button and no offset-reset control is
+  visible on any page.
+- **SC-059** — Enabling write mode for cluster A shows write controls for cluster A only; cluster B
+  shows none.
+- **SC-060** — Produce to a local Docker Kafka topic (bootstrap 127.0.0.1) creates a message
+  retrievable via the message browser; the confirmation dialog was shown and the post-confirmation
+  view shows partition and offset.
+- **SC-061** — Dismissing the confirmation dialog before produce leaves the topic message count
+  unchanged.
+- **SC-062** — Switching Kafka cluster while the compose view is open cancels the produce without
+  sending and shows a cancellation notice.
+- **SC-063** — Offset reset to earliest (local Docker Kafka) requires typing the resource name;
+  after confirmation the committed offset for the selected group+topic+partition is at the earliest
+  available offset.
+- **SC-064** — The test setup for all write tests asserts `bootstrap.includes("127.0.0.1") ||
+  bootstrap.includes("::1")`; a test pointed at a non-local bootstrap fails at setup, not at the
+  write call.
+
+## Decision Log
+
+- **2026-08-06** — Spec accepted as part of v1.0.0 scope definition.
+- **2026-08-06** — Write policy normalised here as the single authoritative source; SPEC-010–012
+  reference this spec rather than repeating the rules.
+- **2026-08-06** — Idempotent producer preferred but delivery guarantee is explicitly documented as
+  at-least-once; no exactly-once claim is made in the UI.
+- **2026-08-06** — Reset-to-timestamp uses the same `offsetsForTimes` admin call introduced in
+  SPEC-008; no new API surface.
+
+## Verification Evidence
+
+| Requirement range | Evidence |
+| --- | --- |
+| REQ-102–REQ-105, REQ-108–REQ-109, REQ-112, REQ-115 | Packaged Electron Playwright E2E: write mode is default-off, controls appear only after target opt-in, Produce confirmation and typed Reset confirmation are enforced, and the test asserts the loopback bootstrap. |
+| REQ-103 | `src/renderer/kafka-write-settings.test.ts`: per-target isolation, persistence, and cross-instance synchronization. |
+| REQ-110–REQ-111 | `src/main/kafka/kafka-connection.ts` plus packaged E2E: idempotent KafkaJS producer returns and renders partition/offset. |
+| REQ-113–REQ-114 | `src/main/kafka/kafka-connection.ts` plus packaged E2E: earliest reset resolves and commits the selected partition after reinforced confirmation. |
+| SC-058–SC-064 | Packaged Electron Playwright suite: **7/7 tests passed** on 2026-08-18 using only `127.0.0.1:19092` and the local KinD fixture; typecheck, 122 unit tests and Prettier also passed. |

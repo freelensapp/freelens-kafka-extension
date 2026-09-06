@@ -1,0 +1,107 @@
+{
+  "schemaVersion": 1,
+  "capturedAt": "2026-08-21",
+  "mode": "authorized-read-only",
+  "scale": {
+    "workloads": 236,
+    "targets": 5,
+    "brokers": 3,
+    "topics": 1096,
+    "consumerGroups": 1132
+  },
+  "extension": {
+    "aggregateHealth": {
+      "durationMs": 10066,
+      "p95DurationMs": 10108,
+      "sampleCount": 3,
+      "protocolRequests": {
+        "findCoordinator": 3,
+        "offsetFetch": 12,
+        "offsetFetchGroups": 1128,
+        "fetchOffsetsFallback": 0,
+        "listOffsets": 3,
+        "lowOffsets": 0,
+        "fetchTopicOffsetsFallback": 0
+      },
+      "capabilities": {
+        "batchSupported": true,
+        "findCoordinator": { "minVersion": 0, "maxVersion": 6 },
+        "offsetFetch": { "minVersion": 0, "maxVersion": 9 }
+      },
+      "groupBatch": {
+        "findCoordinatorRequests": 3,
+        "offsetFetchRequests": 12,
+        "offsetFetchGroups": 1128,
+        "publicFallbacks": 0
+      },
+      "batch": {
+        "brokers": 3,
+        "topics": 170,
+        "partitions": 661
+      },
+      "coverage": {
+        "exact": true,
+        "unavailableGroups": 0,
+        "unavailableTopics": 0
+      },
+      "phases": {
+        "topology": {
+          "durationMs": 3169,
+          "p95DurationMs": 3178,
+          "sampleCount": 3
+        },
+        "groups": {
+          "durationMs": 5934,
+          "p95DurationMs": 6055,
+          "sampleCount": 3
+        },
+        "watermarks": {
+          "durationMs": 842,
+          "p95DurationMs": 996,
+          "sampleCount": 3
+        }
+      },
+      "runs": [
+        {
+          "durationMs": 10066,
+          "phasesMs": { "topology": 3169, "groups": 6055, "watermarks": 842 },
+          "protocolRequests": {
+            "findCoordinator": 3,
+            "offsetFetch": 12,
+            "offsetFetchGroups": 1127,
+            "fetchOffsetsFallback": 0,
+            "listOffsets": 3,
+            "lowOffsets": 0,
+            "fetchTopicOffsetsFallback": 0
+          }
+        },
+        {
+          "durationMs": 9612,
+          "phasesMs": { "topology": 3144, "groups": 5627, "watermarks": 841 },
+          "protocolRequests": {
+            "findCoordinator": 3,
+            "offsetFetch": 12,
+            "offsetFetchGroups": 1128,
+            "fetchOffsetsFallback": 0,
+            "listOffsets": 3,
+            "lowOffsets": 0,
+            "fetchTopicOffsetsFallback": 0
+          }
+        },
+        {
+          "durationMs": 10108,
+          "phasesMs": { "topology": 3178, "groups": 5934, "watermarks": 996 },
+          "protocolRequests": {
+            "findCoordinator": 3,
+            "offsetFetch": 12,
+            "offsetFetchGroups": 1128,
+            "fetchOffsetsFallback": 0,
+            "listOffsets": 3,
+            "lowOffsets": 0,
+            "fetchTopicOffsetsFallback": 0
+          }
+        }
+      ]
+    }
+  }
+}

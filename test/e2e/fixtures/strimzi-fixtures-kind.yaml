@@ -1,0 +1,140 @@
+# Discovery test fixtures for kind. Objects only — the pods do NOT need to run
+# (discovery just reads their metadata), so image/readiness are irrelevant.
+apiVersion: kafka.strimzi.io/v1beta2
+kind: Kafka
+metadata:
+  name: my-cluster
+  namespace: default
+  labels:
+    app: kafka-test-disc
+spec:
+  kafka:
+    listeners:
+      - { name: plain, port: 9092, type: internal, tls: false }
+      - { name: tls, port: 9093, type: internal, tls: true }
+status:
+  listeners:
+    - {
+        name: plain,
+        bootstrapServers: "my-cluster-kafka-bootstrap.default.svc:9092",
+      }
+    - {
+        name: tls,
+        bootstrapServers: "my-cluster-kafka-bootstrap.default.svc:9093",
+      }
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: my-cluster-kafka-0
+  namespace: default
+  labels:
+    {
+      app: kafka-test-disc,
+      "strimzi.io/cluster": my-cluster,
+      "strimzi.io/broker-role": "true",
+    }
+spec:
+  containers:
+    [
+      {
+        name: pause,
+        image: "registry.k8s.io/pause:3.10",
+        imagePullPolicy: IfNotPresent,
+      },
+    ]
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: my-cluster-kafka-1
+  namespace: default
+  labels:
+    {
+      app: kafka-test-disc,
+      "strimzi.io/cluster": my-cluster,
+      "strimzi.io/broker-role": "true",
+    }
+spec:
+  containers:
+    [
+      {
+        name: pause,
+        image: "registry.k8s.io/pause:3.10",
+        imagePullPolicy: IfNotPresent,
+      },
+    ]
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: my-cluster-kafka-2
+  namespace: default
+  labels:
+    {
+      app: kafka-test-disc,
+      "strimzi.io/cluster": my-cluster,
+      "strimzi.io/broker-role": "true",
+    }
+spec:
+  containers:
+    [
+      {
+        name: pause,
+        image: "registry.k8s.io/pause:3.10",
+        imagePullPolicy: IfNotPresent,
+      },
+    ]
+---
+# controller-only pod: discovery must EXCLUDE it (broker-role=false)
+apiVersion: v1
+kind: Pod
+metadata:
+  name: my-cluster-controller-0
+  namespace: default
+  labels:
+    {
+      app: kafka-test-disc,
+      "strimzi.io/cluster": my-cluster,
+      "strimzi.io/broker-role": "false",
+    }
+spec:
+  containers:
+    [
+      {
+        name: pause,
+        image: "registry.k8s.io/pause:3.10",
+        imagePullPolicy: IfNotPresent,
+      },
+    ]
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  {
+    name: my-cluster-cluster-ca-cert,
+    namespace: default,
+    labels: { app: kafka-test-disc },
+  }
+stringData: { ca.crt: "FAKE-CA-PEM" }
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  { name: my-user, namespace: default, labels: { app: kafka-test-disc } }
+stringData: { password: "s3cr3t" }
+---
+apiVersion: v1
+kind: Service
+metadata:
+  {
+    name: my-cluster-kafka-bootstrap,
+    namespace: default,
+    labels: { app: kafka-test-disc },
+  }
+spec:
+  clusterIP: None
+  selector: { "strimzi.io/cluster": my-cluster }
+  ports:
+    - { name: tcp-clients, port: 9092 }
+    - { name: tcp-clientstls, port: 9093 }

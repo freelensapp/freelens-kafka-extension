@@ -1,0 +1,2297 @@
+.KafkaOverviewPage {
+  --kafka-border: var(--borderColor, rgba(127, 127, 127, 0.22));
+  --kafka-muted: var(--textColorSecondary, rgba(127, 127, 127, 0.92));
+  --kafka-panel: var(--contentColor, rgba(127, 127, 127, 0.06));
+
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  height: 100%;
+  min-width: 0;
+  padding: 20px 24px;
+  color: var(--textColorPrimary);
+
+  * {
+    box-sizing: border-box;
+  }
+
+  .KafkaPageHeader {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    min-height: 44px;
+    gap: 16px;
+
+    h1 {
+      margin: 0;
+      font-size: 22px;
+      font-weight: 600;
+      letter-spacing: 0;
+      line-height: 1.2;
+    }
+
+    > div > span {
+      display: block;
+      margin-top: 3px;
+      color: var(--kafka-muted);
+      font-size: 12px;
+    }
+  }
+
+  .KafkaRefreshButton,
+  .KafkaHeaderActions .Button,
+  .KafkaManualEndpoint .Button,
+  .KafkaRemoveEndpoint,
+  .KafkaIconButton {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+  }
+
+  .KafkaHeaderActions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .KafkaCacheStatus {
+    display: inline-flex;
+    min-width: max-content;
+    align-items: center;
+    gap: 4px;
+    color: var(--kafka-muted);
+    font-size: 11px;
+
+    &.refreshing,
+    &.loading {
+      color: var(--primary);
+    }
+
+    .Icon {
+      font-size: 15px;
+    }
+  }
+
+  .KafkaClusterSelector {
+    display: grid;
+    min-width: 240px;
+    grid-template-columns: auto minmax(150px, 1fr);
+    align-items: center;
+    gap: 8px;
+
+    > span {
+      color: var(--kafka-muted);
+      font-size: 11px;
+      font-weight: 600;
+    }
+  }
+
+  .KafkaResourcePage {
+    display: flex;
+    min-width: 0;
+    flex: 1 1 auto;
+    flex-direction: column;
+    overflow: auto;
+  }
+
+  .KafkaMetrics {
+    display: grid !important;
+    width: 100%;
+    min-width: 0;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    flex: 0 0 auto;
+    margin: 16px 0 18px;
+    border-top: 1px solid var(--kafka-border);
+    border-bottom: 1px solid var(--kafka-border);
+
+    &[data-metric-count="4"] {
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+    }
+  }
+
+  .KafkaMetric {
+    display: flex;
+    min-width: 0;
+    min-height: 66px;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 10px 8px;
+
+    + .KafkaMetric {
+      border-left: 1px solid var(--kafka-border);
+    }
+
+    &.warning .KafkaMetricValue {
+      color: var(--colorWarning, #f9a825);
+    }
+
+    &.error .KafkaMetricValue {
+      color: var(--colorError, #ef5350);
+    }
+  }
+
+  .KafkaMetricValue,
+  .KafkaMetricLabel {
+    display: block;
+    max-width: 100%;
+    overflow: hidden;
+    text-align: center;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .KafkaMetricValue {
+    font-size: 18px;
+    font-weight: 600;
+    line-height: 1.2;
+  }
+
+  .KafkaMetricLabel {
+    margin-top: 4px;
+    color: var(--kafka-muted);
+    font-size: 10px;
+    font-weight: 500;
+    line-height: 1.25;
+    text-transform: uppercase;
+  }
+
+  .KafkaResourceMetricStrip {
+    margin-top: 0;
+  }
+
+  .KafkaTopicMetricStrip {
+    margin: 12px 0 14px;
+  }
+
+  .KafkaResourceDetails {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    border-top: 1px solid var(--kafka-border);
+
+    > div {
+      display: grid;
+      min-width: 0;
+      min-height: 54px;
+      grid-template-columns: 112px minmax(0, 1fr);
+      align-items: center;
+      gap: 12px;
+      padding: 10px 12px;
+      border-right: 1px solid var(--kafka-border);
+      border-bottom: 1px solid var(--kafka-border);
+
+      > span:first-child {
+        color: var(--kafka-muted);
+        font-size: 11px;
+        font-weight: 600;
+        text-transform: uppercase;
+      }
+
+      strong,
+      code {
+        min-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+    }
+
+    .KafkaProgressMeasure {
+      flex: 0 0 auto;
+      align-items: flex-end;
+      white-space: nowrap;
+
+      strong {
+        color: var(--primary);
+        font-size: 14px;
+      }
+    }
+  }
+
+  .KafkaBrokerPageTable {
+    width: 100%;
+    min-width: 0;
+    max-width: 100%;
+    flex: 1 1 auto;
+    overflow: hidden;
+    border-top: 1px solid var(--kafka-border);
+    border-bottom: 1px solid var(--kafka-border);
+
+    .TableHead,
+    .TableRow {
+      width: 100%;
+      min-width: 0;
+      min-height: 42px;
+    }
+
+    .brokerIdCell {
+      flex: 0 0 90px;
+    }
+
+    .brokerRoleCell {
+      flex: 0 0 130px;
+    }
+
+    .brokerHostCell {
+      flex: 1 1 0;
+      width: 0;
+      min-width: 0;
+    }
+
+    .brokerPortCell {
+      flex: 0 0 90px;
+    }
+
+    .KafkaEllipsis {
+      display: block;
+      min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+  }
+
+  .KafkaBrokerWorkspace {
+    display: flex;
+    min-width: 0;
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  .KafkaBrokerConfigSection {
+    display: flex;
+    min-width: 0;
+    flex: 1 1 auto;
+    flex-direction: column;
+    gap: 10px;
+
+    h2 {
+      margin: 0;
+      font-size: 15px;
+      font-weight: 600;
+      letter-spacing: 0;
+    }
+
+    > .KafkaOperationProgress {
+      margin-top: 4px;
+    }
+  }
+
+  .KafkaBrokerConfigTable {
+    height: 360px;
+
+    .configNameCell,
+    .configValueCell,
+    .configSourceCell,
+    .configFlagsCell {
+      box-sizing: border-box;
+    }
+  }
+
+  .KafkaControllerBadge {
+    color: var(--primary);
+    border: 1px solid currentColor;
+  }
+
+  .KafkaResourceFootnote {
+    padding: 10px 4px;
+    color: var(--kafka-muted);
+    font-size: 11px;
+  }
+
+  .KafkaTopicsPage {
+    .KafkaTopicSearch {
+      flex: 0 0 auto;
+    }
+
+    .KafkaTopicPageTable {
+      height: auto;
+      min-height: 220px;
+      flex: 1 1 auto;
+    }
+  }
+
+  .KafkaTopicWorkspace {
+    overflow: hidden;
+
+    .KafkaTopicMetadata {
+      display: flex;
+      min-height: 0;
+      flex: 1 1 auto;
+      flex-direction: column;
+      margin-top: 0;
+      padding-top: 14px;
+      overflow: auto;
+    }
+
+    .KafkaPartitionTable {
+      min-height: 220px;
+      flex: 1 1 auto;
+    }
+  }
+
+  .KafkaEntityTabs {
+    display: flex;
+    min-height: 42px;
+    flex: 0 0 auto;
+    align-items: flex-end;
+    gap: 4px;
+    border-bottom: 1px solid var(--kafka-border);
+
+    .Button {
+      min-width: 112px;
+      padding: 10px 14px;
+      border-bottom: 2px solid transparent;
+      border-radius: 0;
+
+      &[aria-selected="true"] {
+        border-bottom-color: var(--primary);
+        color: var(--primary);
+      }
+    }
+  }
+
+  .KafkaTopicInlineError {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 12px;
+    border: 1px solid var(--colorError);
+    color: var(--colorError);
+  }
+
+  .KafkaManualEndpoint {
+    display: grid;
+    grid-template-columns: minmax(260px, 1fr) auto auto auto;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 0;
+    border-top: 1px solid var(--kafka-border);
+    border-bottom: 1px solid var(--kafka-border);
+  }
+
+  .KafkaManualBootstrap {
+    min-width: 0;
+  }
+
+  .KafkaTlsSwitch {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-height: 32px;
+    color: var(--kafka-muted);
+    font-size: 12px;
+  }
+
+  .KafkaManualError {
+    grid-column: 1 / -1;
+    color: var(--colorError);
+    font-size: 12px;
+  }
+
+  .KafkaIconButton {
+    width: 32px;
+    min-width: 32px;
+    height: 32px;
+    padding: 0;
+  }
+
+  .KafkaToolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 10px 0;
+    border-top: 1px solid var(--kafka-border);
+    border-bottom: 1px solid var(--kafka-border);
+  }
+
+  .KafkaSearchInput {
+    flex: 1 1 420px;
+    max-width: 620px;
+    min-width: 220px;
+  }
+
+  .KafkaFilterGroup {
+    display: flex;
+    flex: 0 0 auto;
+    align-items: center;
+    gap: 2px;
+    padding: 3px;
+    background: var(--kafka-panel);
+    border: 1px solid var(--kafka-border);
+    border-radius: 6px;
+
+    .Button {
+      min-height: 28px;
+      padding: 4px 10px;
+      font-size: 12px;
+      white-space: nowrap;
+    }
+  }
+
+  .KafkaMessagesBrowser {
+    display: flex;
+    min-width: 0;
+    min-height: 0;
+    flex: 1 1 auto;
+    flex-direction: column;
+    padding-top: 14px;
+    overflow: hidden;
+  }
+
+  .KafkaMessageControls {
+    display: flex;
+    min-width: 0;
+    flex: 0 0 auto;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    gap: 10px;
+    padding: 12px 14px 14px;
+    margin-bottom: 10px;
+    border: 1px solid var(--kafka-border);
+    background: color-mix(
+      in srgb,
+      var(--contentColor, transparent) 70%,
+      transparent
+    );
+
+    > label {
+      display: grid;
+      min-width: 112px;
+      gap: 4px;
+
+      > span {
+        color: var(--kafka-muted);
+        font-size: 11px;
+        font-weight: 600;
+      }
+
+      &.KafkaMessagePartitionField {
+        min-width: 150px;
+        max-width: 150px;
+        flex: 0 0 150px;
+        width: 150px;
+
+        .Select {
+          width: 100%;
+          min-width: 0;
+          max-width: 100%;
+        }
+
+        .Select__control,
+        .Select__value-container {
+          min-width: 0;
+        }
+
+        // Keep the partition picker visually aligned with the 34px start-mode filter group.
+        .Select__control {
+          min-height: 34px;
+          height: 34px;
+        }
+
+        .Select__value-container {
+          height: 34px;
+          margin-top: 0;
+          margin-bottom: 0;
+          padding-top: 0;
+          padding-bottom: 0;
+        }
+
+        .Select__indicators {
+          height: 34px;
+        }
+      }
+
+      .Input {
+        width: 150px;
+      }
+    }
+
+    > .Button {
+      display: inline-flex;
+      min-width: 96px;
+      min-height: 34px;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+    }
+  }
+
+  .KafkaMessageFilters {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 10px;
+    margin: 0;
+    padding: 10px 12px;
+    border: 1px solid var(--kafka-border);
+    background: var(--kafka-panel);
+
+    legend {
+      padding: 0 4px;
+      color: var(--kafka-muted);
+      font-size: 11px;
+      font-weight: 600;
+    }
+
+    label {
+      display: flex;
+      min-width: 0;
+      flex-direction: column;
+      gap: 4px;
+
+      > span {
+        color: var(--kafka-muted);
+        font-size: 11px;
+      }
+    }
+  }
+
+  .KafkaMessageStartField {
+    display: grid;
+    min-width: 0;
+    max-width: 100%;
+    flex: 0 0 auto;
+    margin: 0;
+    padding: 0;
+    gap: 4px;
+    border: 0;
+
+    legend {
+      padding: 0;
+      color: var(--kafka-muted);
+      font-size: 11px;
+      font-weight: 600;
+    }
+
+    &:focus-within {
+      outline: 2px solid var(--primary);
+      outline-offset: 2px;
+    }
+  }
+
+  .KafkaMessageStartModes {
+    display: grid;
+    width: max-content;
+    max-width: 100%;
+    min-height: 34px;
+    grid-template-columns: repeat(4, max-content);
+    border: 1px solid var(--kafka-border);
+    overflow: visible;
+
+    .Button {
+      position: relative;
+      display: inline-flex;
+      min-width: max-content;
+      min-height: 32px;
+      align-items: center;
+      justify-content: center;
+      padding: 8px 10px;
+      border-right: 1px solid var(--kafka-border);
+      border-radius: 0;
+      line-height: 1.2;
+      white-space: nowrap;
+
+      &::before,
+      &::after {
+        display: none !important;
+        content: none !important;
+      }
+
+      &:last-child {
+        border-right: 0;
+      }
+
+      &[aria-pressed="true"] {
+        color: var(--primary);
+        background: color-mix(in srgb, var(--primary) 10%, transparent);
+      }
+
+      &:focus-visible {
+        outline: none;
+      }
+    }
+  }
+
+  .KafkaMessageError {
+    display: flex;
+    flex: 0 0 auto;
+    align-items: center;
+    gap: 8px;
+    padding: 11px 12px;
+    border: 1px solid color-mix(in srgb, var(--colorError) 35%, transparent);
+    background: color-mix(in srgb, var(--colorError) 8%, transparent);
+    color: var(--colorError);
+  }
+
+  .KafkaMessageTailStatus {
+    display: flex;
+    flex: 0 0 auto;
+    align-items: center;
+    gap: 10px;
+    padding: 11px 12px;
+    margin-bottom: 10px;
+    border: 1px solid color-mix(in srgb, var(--primary) 35%, transparent);
+    background: color-mix(in srgb, var(--primary) 8%, transparent);
+
+    > .Icon {
+      color: var(--primary);
+    }
+
+    > div {
+      display: grid;
+      gap: 2px;
+      min-width: 0;
+
+      span {
+        color: var(--kafka-muted);
+        font-family: monospace;
+        font-size: 11px;
+      }
+    }
+  }
+
+  .KafkaMessageIdle {
+    display: flex;
+    min-height: 150px;
+    flex: 1 1 auto;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    padding: 18px;
+    border: 1px dashed var(--kafka-border);
+    background: color-mix(
+      in srgb,
+      var(--contentColor, transparent) 55%,
+      transparent
+    );
+    color: var(--kafka-muted);
+
+    > div {
+      display: grid;
+      gap: 2px;
+    }
+  }
+
+  .KafkaMessageRange {
+    display: flex;
+    min-width: 0;
+    flex: 0 0 auto;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 12px 14px;
+    margin-bottom: 10px;
+    border: 1px solid var(--kafka-border);
+    background: color-mix(
+      in srgb,
+      var(--contentColor, transparent) 70%,
+      transparent
+    );
+
+    > div {
+      display: grid;
+      min-width: 0;
+      gap: 3px;
+
+      strong {
+        font-size: 13px;
+        font-weight: 600;
+      }
+
+      span {
+        overflow: hidden;
+        color: var(--kafka-muted);
+        font-family: monospace;
+        font-size: 11px;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+    }
+
+    > .Button {
+      display: inline-flex;
+      flex: 0 0 auto;
+      align-items: center;
+      gap: 5px;
+    }
+  }
+
+  .KafkaMessageWorkspace {
+    display: grid;
+    min-width: 0;
+    min-height: 280px;
+    flex: 1 1 auto;
+    grid-template-columns: minmax(360px, 0.9fr) minmax(320px, 1.1fr);
+    border-top: 1px solid var(--kafka-border);
+    overflow: hidden;
+  }
+
+  .KafkaInteractiveRow[role="button"] {
+    cursor: pointer;
+
+    &:hover {
+      background: var(--tableBgcSelected) !important;
+    }
+
+    &:focus-visible {
+      z-index: 1;
+      outline: 2px solid var(--primary);
+      outline-offset: -2px;
+    }
+  }
+
+  .KafkaMessageTable {
+    width: 100%;
+    min-width: 0;
+    min-height: 280px;
+    height: auto;
+    border-top: 1px solid var(--kafka-border);
+    border-bottom: 1px solid var(--kafka-border);
+    overflow: hidden;
+
+    .TableHead,
+    .TableRow {
+      width: 100%;
+      min-width: 0;
+      min-height: 38px;
+    }
+
+    .TableHead {
+      border-bottom: 1px solid var(--kafka-border);
+      background: color-mix(
+        in srgb,
+        var(--contentColor, transparent) 80%,
+        transparent
+      );
+    }
+
+    .TableCell {
+      min-width: 0;
+    }
+
+    .messageOffsetCell {
+      flex: 0 0 78px;
+      min-width: 78px;
+      font-family: monospace;
+    }
+
+    .messageTimeCell {
+      flex: 0 0 156px;
+      min-width: 156px;
+      color: var(--textColorSecondary);
+    }
+
+    .messageKeyCell,
+    .messageValueCell {
+      flex: 1 1 130px;
+      width: 0;
+      min-width: 92px;
+
+      .KafkaEllipsis {
+        font-family: monospace;
+        font-size: 11px;
+      }
+    }
+
+    .messageActionCell {
+      flex: 0 0 44px;
+      min-width: 44px;
+      text-align: right;
+
+      .Button {
+        width: 28px;
+        height: 28px;
+        padding: 0;
+
+        &:hover {
+          background: color-mix(in srgb, var(--primary) 10%, transparent);
+        }
+      }
+    }
+  }
+
+  .KafkaWorkspace {
+    display: block;
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow: hidden;
+  }
+
+  .KafkaListPane {
+    min-width: 0;
+    min-height: 0;
+    overflow: hidden;
+  }
+
+  .KafkaClusterTable {
+    height: 100%;
+    border-bottom: 1px solid var(--kafka-border);
+
+    .TableHead {
+      min-height: 38px;
+    }
+
+    .TableRow {
+      min-height: 46px;
+      border-bottom: 1px solid var(--kafka-border);
+
+      &:not(.disabled) {
+        cursor: pointer;
+      }
+
+      &[role="button"]:focus-visible {
+        z-index: 1;
+        outline: 2px solid var(--primary);
+        outline-offset: -2px;
+      }
+    }
+
+    .TableCell {
+      min-width: 0;
+    }
+
+    .nameCell {
+      flex: 1 1 190px;
+      min-width: 155px;
+    }
+
+    .usageCell {
+      flex: 0 1 165px;
+      min-width: 125px;
+    }
+
+    .sourceCell {
+      flex: 0 1 145px;
+      min-width: 110px;
+    }
+
+    .bootstrapCell {
+      flex: 1.6 1 270px;
+      min-width: 180px;
+    }
+
+    .securityCell {
+      flex: 0 0 128px;
+      gap: 5px;
+    }
+
+    .reachCell,
+    .podsCell {
+      flex: 0 0 108px;
+    }
+
+    .actionCell {
+      flex: 0 0 46px;
+      justify-content: center;
+    }
+  }
+
+  .KafkaClusterName {
+    display: flex;
+    align-items: center;
+    min-width: 0;
+    gap: 8px;
+    font-weight: 500;
+
+    .Icon {
+      flex: 0 0 auto;
+      color: var(--primary);
+    }
+
+    span {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+  }
+
+  .KafkaUsageCell {
+    display: flex;
+    min-width: 0;
+    flex-direction: column;
+    gap: 2px;
+
+    > span,
+    > small {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    > span {
+      font-weight: 500;
+    }
+
+    > small {
+      color: var(--kafka-muted);
+      font-size: 10px;
+    }
+  }
+
+  .KafkaEllipsis {
+    display: block;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .KafkaStatusBadge,
+  .KafkaSourceBadge,
+  .KafkaTlsBadge,
+  .KafkaStrategyBadge {
+    display: inline-flex;
+    align-items: center;
+    max-width: 100%;
+    gap: 4px;
+    border: 1px solid transparent;
+
+    .Icon {
+      font-size: 14px;
+    }
+
+    > span,
+    > .Icon,
+    > div {
+      flex: 0 0 auto;
+    }
+  }
+
+  .KafkaStatusBadge {
+    &.reachable {
+      color: var(--colorOk, #4caf50);
+      border-color: color-mix(in srgb, currentColor 35%, transparent);
+    }
+
+    &.unreachable {
+      color: var(--colorError, #ef5350);
+      border-color: color-mix(in srgb, currentColor 35%, transparent);
+    }
+
+    &.checking {
+      color: var(--kafka-muted);
+    }
+
+    &.unknown {
+      color: var(--kafka-muted);
+      border-color: var(--kafka-border);
+    }
+  }
+
+  .KafkaSourceBadge {
+    color: var(--textColorPrimary);
+
+    &.source-workload {
+      border-color: var(--primary);
+    }
+  }
+
+  .KafkaTlsBadge.enabled,
+  .KafkaStrategyBadge.strategy-direct {
+    color: var(--primary);
+    border-color: var(--primary);
+  }
+
+  .KafkaPageState,
+  .KafkaNoMatches {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 130px;
+    gap: 12px;
+    color: var(--kafka-muted);
+
+    &.error {
+      color: var(--colorError);
+    }
+
+    > div {
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+    }
+  }
+}
+
+.KafkaOperationProgress {
+  width: 100%;
+  padding: 16px 18px;
+  border: 1px solid var(--borderColor, rgba(127, 127, 127, 0.22));
+  border-radius: 6px;
+  background: var(--contentColor, rgba(127, 127, 127, 0.06));
+
+  &.error {
+    border-color: color-mix(in srgb, var(--colorError) 55%, transparent);
+  }
+
+  .KafkaProgressHeader {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 16px;
+    margin-bottom: 12px;
+
+    > div {
+      display: flex;
+      min-width: 0;
+      flex-direction: column;
+      gap: 3px;
+    }
+
+    span {
+      color: var(--textColorSecondary);
+      font-size: 11px;
+      line-height: 1.4;
+    }
+
+    > strong {
+      color: var(--primary);
+      font-size: 14px;
+    }
+  }
+
+  .KafkaProgressLine {
+    height: 6px;
+    color: var(--primary);
+
+    &.indeterminate {
+      overflow: hidden;
+
+      .line {
+        position: absolute;
+        left: -40%;
+        width: 40% !important;
+        animation: kafka-progress-indeterminate 1.2s ease-in-out infinite;
+      }
+    }
+  }
+
+  .KafkaProgressCount {
+    margin-top: 7px;
+    color: var(--textColorSecondary);
+    font-size: 11px;
+    text-align: right;
+  }
+
+  .KafkaProgressSteps {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 8px;
+    margin: 14px 0 0;
+    padding: 0;
+    list-style: none;
+
+    li {
+      display: flex;
+      min-width: 0;
+      align-items: center;
+      gap: 4px;
+      color: var(--textColorSecondary);
+      font-size: 10px;
+
+      .Icon {
+        flex: 0 0 auto;
+        font-size: 13px;
+      }
+
+      span {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      &.complete,
+      &.current {
+        color: var(--primary);
+      }
+
+      &.current {
+        font-weight: 600;
+      }
+    }
+  }
+
+  .KafkaProgressError {
+    display: flex;
+    align-items: flex-start;
+    gap: 7px;
+    margin-top: 12px;
+    color: var(--colorError);
+    font-size: 12px;
+  }
+}
+
+.KafkaHealthProgress {
+  margin: 10px 0 14px;
+
+  .KafkaOperationProgress {
+    padding: 12px 16px;
+  }
+}
+
+.KafkaHealthProgressSlot {
+  display: flow-root;
+  min-height: 66px;
+}
+
+.KafkaHealthProgressCompact {
+  border: 1px solid var(--borderColor, rgba(127, 127, 127, 0.22));
+  border-radius: 6px;
+  background: var(--contentColor, rgba(127, 127, 127, 0.06));
+
+  > summary {
+    display: grid;
+    min-height: 40px;
+    box-sizing: border-box;
+    grid-template-columns: auto minmax(120px, 1fr) auto auto auto auto;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 12px;
+    cursor: pointer;
+    list-style: none;
+
+    &::-webkit-details-marker {
+      display: none;
+    }
+
+    > span,
+    > strong {
+      white-space: nowrap;
+    }
+
+    > span:not(.KafkaHealthProgressLabel) {
+      color: var(--textColorSecondary);
+      font-size: 11px;
+    }
+
+    > strong {
+      color: var(--primary);
+      font-size: 12px;
+    }
+
+    .KafkaHealthProgressLabel {
+      min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      font-weight: 600;
+    }
+  }
+
+  &[open] > summary > .Icon:last-child {
+    transform: rotate(180deg);
+  }
+
+  > .KafkaOperationProgress {
+    border-width: 1px 0 0;
+    border-radius: 0 0 6px 6px;
+  }
+}
+
+.KafkaProgressLiveStatus {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+.KafkaHealthNotice {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin: 10px 0 14px;
+  padding: 10px 14px;
+  border: 1px solid
+    color-mix(in srgb, var(--colorWarning, #f9a825) 45%, transparent);
+  background: color-mix(in srgb, var(--colorWarning, #f9a825) 8%, transparent);
+  color: var(--textColorPrimary);
+
+  > .Icon {
+    margin-top: 1px;
+    color: var(--colorWarning, #f9a825);
+  }
+
+  > div {
+    display: flex;
+    min-width: 0;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  span {
+    color: var(--textColorSecondary);
+    font-size: 11px;
+    line-height: 1.4;
+  }
+}
+
+@keyframes kafka-progress-indeterminate {
+  from {
+    left: -40%;
+  }
+
+  to {
+    left: 100%;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .KafkaOperationProgress .KafkaProgressLine.indeterminate .line {
+    left: 30%;
+    animation: none;
+  }
+}
+
+.KafkaDiscoveryError {
+  display: flex;
+  align-items: flex-end;
+  gap: 12px;
+
+  .KafkaOperationProgress {
+    flex: 1 1 auto;
+  }
+}
+
+.Drawer.KafkaConnectionSettingsDrawer {
+  --kafka-border: var(--borderColor, rgba(127, 127, 127, 0.22));
+  --kafka-muted: var(--textColorSecondary, rgba(127, 127, 127, 0.92));
+
+  * {
+    box-sizing: border-box;
+  }
+
+  .KafkaConnectionSettingsBody {
+    padding: 16px 20px 24px;
+    overflow-x: hidden;
+  }
+
+  .DrawerItem {
+    padding: 9px 0;
+  }
+
+  .KafkaDetailContext {
+    margin-bottom: 10px;
+    color: var(--kafka-muted);
+    font-size: 12px;
+  }
+
+  .KafkaDetailBadges {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-bottom: 12px;
+  }
+
+  .KafkaStatusBadge,
+  .KafkaSourceBadge,
+  .KafkaTlsBadge,
+  .KafkaStrategyBadge {
+    display: inline-flex;
+    align-items: center;
+    max-width: 100%;
+    gap: 4px;
+    border: 1px solid transparent;
+
+    .Icon {
+      font-size: 14px;
+    }
+  }
+
+  .KafkaStatusBadge.reachable {
+    color: var(--colorOk, #4caf50);
+    border-color: color-mix(in srgb, currentColor 35%, transparent);
+  }
+
+  .KafkaStatusBadge.unreachable {
+    color: var(--colorError, #ef5350);
+    border-color: color-mix(in srgb, currentColor 35%, transparent);
+  }
+
+  .KafkaStatusBadge.checking,
+  .KafkaStatusBadge.unknown {
+    color: var(--kafka-muted);
+  }
+
+  .KafkaStatusBadge.unknown {
+    border-color: var(--kafka-border);
+  }
+
+  .KafkaTlsBadge.enabled,
+  .KafkaStrategyBadge.strategy-direct {
+    color: var(--primary);
+    border-color: var(--primary);
+  }
+
+  .KafkaRemoveEndpoint {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    margin: 12px 0 2px;
+    color: var(--colorError);
+  }
+
+  .KafkaConnectionSettings {
+    margin: 14px 0;
+    border-top: 1px solid var(--kafka-border);
+    border-bottom: 1px solid var(--kafka-border);
+
+    h2 {
+      margin: 0;
+      padding: 12px 0 8px;
+      font-size: 13px;
+      font-weight: 600;
+      letter-spacing: 0;
+    }
+  }
+
+  .KafkaSecurityForm {
+    display: grid;
+    gap: 12px;
+    padding: 4px 0 14px;
+
+    > label {
+      display: grid;
+      grid-template-columns: 118px minmax(0, 1fr);
+      align-items: center;
+      gap: 10px;
+
+      > span {
+        color: var(--kafka-muted);
+        font-size: 12px;
+      }
+    }
+
+    > p {
+      margin: 0;
+      color: var(--kafka-muted);
+      font-size: 11px;
+      line-height: 1.45;
+    }
+
+    > .Button {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      justify-self: end;
+      gap: 6px;
+    }
+  }
+
+  .KafkaSecurityError {
+    color: var(--colorError);
+    font-size: 12px;
+  }
+
+  .KafkaConnectionVerified {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    margin-top: 14px;
+    padding: 11px 12px;
+    border: 1px solid
+      color-mix(in srgb, var(--colorOk, #4caf50) 45%, transparent);
+    color: var(--colorOk, #4caf50);
+
+    > .Icon {
+      flex: 0 0 auto;
+    }
+
+    > div {
+      display: grid;
+      min-width: 0;
+      gap: 2px;
+
+      span {
+        color: var(--kafka-muted);
+        font-size: 11px;
+      }
+    }
+  }
+
+  .KafkaBootstrapDetail {
+    display: block;
+    max-height: 90px;
+    overflow: auto;
+    overflow-wrap: anywhere;
+    white-space: normal;
+  }
+
+  .KafkaReferences {
+    margin: 14px 0;
+    border-top: 1px solid var(--kafka-border);
+    border-bottom: 1px solid var(--kafka-border);
+
+    summary {
+      padding: 10px 0;
+      cursor: pointer;
+      font-weight: 500;
+    }
+
+    ul {
+      max-height: 180px;
+      margin: 0 0 12px;
+      padding-left: 20px;
+      overflow: auto;
+      color: var(--kafka-muted);
+      font-family: monospace;
+      font-size: 11px;
+    }
+  }
+}
+
+.Drawer.KafkaMessageDetailDrawer {
+  --kafka-border: var(--borderColor, rgba(127, 127, 127, 0.22));
+  --kafka-muted: var(--textColorSecondary, rgba(127, 127, 127, 0.92));
+  --kafka-panel: var(--contentColor, rgba(127, 127, 127, 0.06));
+
+  * {
+    box-sizing: border-box;
+  }
+
+  .KafkaMessageDetailBody {
+    padding: 16px 20px 24px;
+    overflow-x: hidden;
+    overflow-y: auto;
+  }
+
+  .DrawerItem {
+    padding: 9px 0;
+  }
+
+  .KafkaMessageInspector {
+    min-width: 0;
+  }
+
+  // Monospace inline value (offset, header content)
+  .KafkaMsgMono {
+    font-family: monospace;
+    font-size: 12px;
+  }
+
+  // Timestamp with epoch sub-line
+  .KafkaMsgTimestamp {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+
+    > small {
+      font-family: monospace;
+      font-size: 10px;
+      color: var(--kafka-muted);
+    }
+  }
+
+  // Wrapper under each DrawerTitle (badge + code block)
+  .KafkaMsgBytesBody {
+    padding-bottom: 4px;
+  }
+
+  // Colored format + size badge
+  .KafkaMsgFormatBadge {
+    display: inline-flex;
+    align-items: center;
+    padding: 2px 8px;
+    margin-bottom: 8px;
+    border: 1px solid transparent;
+    border-radius: 10px;
+    font-size: 11px;
+    font-family: monospace;
+    line-height: 1.6;
+
+    &.format-json {
+      color: var(--colorOk, #4caf50);
+      border-color: color-mix(in srgb, currentColor 35%, transparent);
+    }
+
+    &.format-text {
+      color: var(--textColorSecondary);
+      border-color: var(--kafka-border);
+    }
+
+    &.format-binary {
+      color: var(--colorWarning, #f9a825);
+      border-color: color-mix(in srgb, currentColor 35%, transparent);
+    }
+
+    &.format-null {
+      color: var(--kafka-muted);
+      border-color: var(--kafka-border);
+    }
+  }
+
+  // Scrollable code block for Key/Value content
+  .KafkaMsgCodeBlock {
+    display: block;
+    max-height: 320px;
+    overflow: auto;
+    margin: 0 0 4px;
+    padding: 12px 14px;
+    background: var(--kafka-panel);
+    font-family: monospace;
+    font-size: 11px;
+    line-height: 1.5;
+    border: 1px solid var(--kafka-border);
+    border-radius: 4px;
+    white-space: pre-wrap;
+    word-break: break-word;
+    color: var(--textColorPrimary);
+
+    &[data-format="binary"] {
+      color: var(--colorWarning, #f9a825);
+    }
+  }
+
+  // Base64 fallback details block
+  .KafkaMsgBase64 {
+    margin: 6px 0 4px;
+
+    > summary {
+      cursor: pointer;
+      font-size: 10px;
+      color: var(--kafka-muted);
+      padding: 2px 0;
+    }
+
+    > code {
+      display: block;
+      margin-top: 6px;
+      padding: 8px 10px;
+      background: var(--kafka-panel);
+      border: 1px solid var(--kafka-border);
+      border-radius: 3px;
+      font-family: monospace;
+      font-size: 10px;
+      line-height: 1.45;
+      overflow-wrap: break-word;
+      word-break: break-all;
+      color: var(--textColorPrimary);
+    }
+  }
+
+  // Headers list with divider rows
+  .KafkaMsgHeaderList {
+    margin-top: 4px;
+    border-top: 1px solid var(--kafka-border);
+
+    .DrawerItem {
+      border-bottom: 1px solid var(--kafka-border);
+      padding: 8px 0;
+    }
+  }
+
+  // Header row value: badge + truncated code
+  .KafkaMsgHeaderValue {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    min-width: 0;
+
+    .KafkaMsgFormatBadge {
+      margin-bottom: 0;
+    }
+
+    .KafkaMsgMono {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+  }
+
+  // "No headers" empty state
+  .KafkaMsgEmpty {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 0;
+    color: var(--kafka-muted);
+    font-size: 12px;
+
+    .Icon {
+      font-size: 16px;
+    }
+  }
+}
+
+.KafkaOverviewPage {
+  .KafkaTopicSection,
+  .KafkaTopicMetadata {
+    width: 100%;
+    min-width: 0;
+  }
+
+  .KafkaTopicSearch {
+    width: 100%;
+    margin-bottom: 10px;
+  }
+
+  .KafkaTopicTable,
+  .KafkaPartitionTable {
+    width: 100%;
+    min-width: 0;
+    max-width: 100%;
+    overflow-x: hidden;
+    overflow-y: auto !important;
+    border-top: 1px solid var(--kafka-border);
+    border-bottom: 1px solid var(--kafka-border);
+
+    .TableHead,
+    .TableRow {
+      width: 100%;
+      min-width: 0;
+      min-height: 38px;
+    }
+
+    .TableRow[role="button"] {
+      cursor: pointer;
+    }
+  }
+
+  .KafkaTopicTable {
+    height: 240px;
+
+    .topicNameCell {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+
+      > .content {
+        min-width: 0;
+        padding-right: 24px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      > .KafkaEllipsis {
+        min-width: 0;
+        flex: 1 1 auto;
+      }
+
+      .Icon {
+        flex: 0 0 auto;
+        color: var(--primary);
+      }
+    }
+
+    .topicActionCell {
+      justify-content: center;
+    }
+  }
+
+  .KafkaInternalTopicBadge {
+    color: var(--kafka-muted);
+    border: 1px solid var(--kafka-border);
+  }
+
+  .KafkaTopicType {
+    color: var(--kafka-muted);
+    font-size: 11px;
+  }
+
+  .KafkaTopicPrompt {
+    display: flex;
+    min-height: 92px;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    color: var(--kafka-muted);
+    text-align: center;
+  }
+
+  .KafkaTopicMetadata {
+    margin-top: 18px;
+    padding-top: 14px;
+    border-top: 1px solid var(--kafka-border);
+
+    > .KafkaOperationProgress {
+      margin-bottom: 14px;
+    }
+  }
+
+  .KafkaTopicMetadataHeader {
+    display: flex;
+    min-width: 0;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 10px;
+
+    > div {
+      display: flex;
+      min-width: 0;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .DrawerTitle {
+      min-width: 0;
+      margin: 0;
+      padding: 0;
+      overflow: hidden;
+      background: transparent;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .Button {
+      display: inline-flex;
+      flex: 0 0 auto;
+      align-items: center;
+      gap: 5px;
+    }
+  }
+
+  .KafkaPartitionTable {
+    height: 320px;
+
+    .TableHead .TableCell > .content {
+      min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .TableHead .partitionIdCell > .content {
+      padding-right: 24px;
+    }
+
+    .partitionIdCell,
+    .partitionLeaderCell,
+    .partitionReplicasCell,
+    .partitionIsrCell,
+    .partitionHealthCell {
+      box-sizing: border-box;
+    }
+  }
+
+  .KafkaTopicConfigTable {
+    height: 320px;
+
+    .configNameCell,
+    .configValueCell,
+    .configSourceCell,
+    .configFlagsCell {
+      box-sizing: border-box;
+    }
+  }
+
+  .KafkaTopicConsumersTable {
+    height: 320px;
+
+    .consumerGroupCell,
+    .consumerStateCell,
+    .consumerMembersCell,
+    .consumerLagCell,
+    .consumerActionCell {
+      box-sizing: border-box;
+    }
+
+    .consumerGroupCell {
+      gap: 8px;
+
+      .Icon {
+        flex: 0 0 auto;
+        color: var(--primary);
+      }
+    }
+
+    .consumerMembersCell,
+    .consumerLagCell {
+      justify-content: flex-end;
+      text-align: right;
+    }
+
+    .consumerActionCell {
+      justify-content: center;
+    }
+  }
+
+  .KafkaConfigSource {
+    color: var(--kafka-muted);
+    font-size: 11px;
+    letter-spacing: 0.02em;
+  }
+
+  .KafkaConfigFlags {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+
+    > span {
+      color: var(--kafka-muted);
+      font-size: 11px;
+    }
+  }
+
+  .KafkaMono {
+    font-family: monospace;
+    font-size: 11px;
+  }
+
+  .KafkaReplicaSet {
+    display: block;
+    min-width: 0;
+    overflow: hidden;
+    font-family: monospace;
+    font-size: 11px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .KafkaPartitionHealth {
+    display: flex;
+    min-width: 0;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 2px;
+
+    small {
+      max-width: 100%;
+      overflow: hidden;
+      color: var(--kafka-muted);
+      font-size: 9px;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+  }
+
+  .KafkaPartitionBadge {
+    display: inline-flex;
+    max-width: 100%;
+    align-items: center;
+    gap: 4px;
+    border: 1px solid currentColor;
+
+    .Icon {
+      font-size: 13px;
+    }
+
+    &.healthy {
+      color: var(--colorOk, #4caf50);
+    }
+
+    &.underreplicated {
+      color: var(--colorWarning, #f9a825);
+    }
+
+    &.unavailable {
+      color: var(--colorError, #ef5350);
+    }
+  }
+}
+
+@media (max-width: 1180px) {
+  .KafkaOverviewPage {
+    .KafkaClusterTable .usageCell,
+    .KafkaClusterTable .podsCell {
+      display: none;
+    }
+  }
+}
+
+@media (max-width: 820px) {
+  .KafkaOverviewPage {
+    padding: 16px;
+
+    .KafkaToolbar {
+      align-items: stretch;
+      flex-direction: column;
+    }
+
+    .KafkaPageHeader {
+      align-items: flex-start;
+    }
+
+    .KafkaHeaderActions {
+      width: 100%;
+      flex-wrap: wrap;
+      justify-content: space-between;
+    }
+
+    .KafkaClusterSelector {
+      min-width: 0;
+      flex: 1 1 260px;
+      grid-template-columns: auto minmax(120px, 1fr);
+    }
+
+    .KafkaMetrics {
+      &,
+      &[data-metric-count="4"] {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      .KafkaMetric:nth-child(odd) {
+        border-left: 0;
+      }
+
+      .KafkaMetric:nth-child(n + 3) {
+        border-top: 1px solid var(--kafka-border);
+      }
+
+      .KafkaMetric:nth-child(odd):last-child {
+        grid-column: 1 / -1;
+      }
+    }
+
+    .KafkaResourceDetails {
+      grid-template-columns: minmax(0, 1fr);
+
+      > div {
+        border-right: 0;
+      }
+    }
+
+    .KafkaHealthProgressCompact > summary {
+      grid-template-columns: auto minmax(0, 1fr) auto auto;
+
+      > span:not(.KafkaHealthProgressLabel):not(.KafkaProgressLiveStatus) {
+        display: none;
+      }
+    }
+
+    .KafkaEntityTabs {
+      max-width: 100%;
+      overflow-x: auto;
+    }
+
+    .KafkaTopicWorkspace {
+      overflow: auto;
+
+      .KafkaTopicMetadata {
+        overflow: visible;
+      }
+    }
+
+    .KafkaMessagesBrowser {
+      min-height: 520px;
+      overflow: visible;
+    }
+
+    .KafkaMessageControls {
+      align-items: stretch;
+      padding: 12px;
+
+      > label,
+      > label.KafkaMessagePartitionField {
+        width: calc(50% - 5px);
+
+        .Input {
+          width: 100%;
+        }
+      }
+
+      > label.KafkaMessagePartitionField {
+        min-width: 0;
+        max-width: none;
+        flex: 1 1 calc(50% - 5px);
+      }
+
+      .KafkaMessageStartField,
+      .KafkaMessageStartModes {
+        width: 100%;
+      }
+
+      .KafkaMessageStartField {
+        flex-basis: 100%;
+      }
+
+      .KafkaMessageStartModes {
+        grid-template-columns: repeat(4, minmax(max-content, 1fr));
+      }
+
+      > .Button {
+        margin-left: auto;
+      }
+    }
+
+    .KafkaMessageFilters {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .KafkaMessageRange {
+      align-items: flex-start;
+      flex-direction: column;
+      padding: 12px;
+
+      > div span {
+        white-space: normal;
+      }
+    }
+
+    .KafkaMessageWorkspace {
+      min-height: 620px;
+      grid-template-columns: minmax(0, 1fr);
+      grid-template-rows: minmax(260px, 42vh) minmax(300px, auto);
+      overflow: visible;
+    }
+
+    .KafkaMessageTable {
+      border-right: 0;
+      border-bottom: 1px solid var(--kafka-border);
+
+      .messageOffsetCell {
+        flex-basis: 64px;
+        min-width: 64px;
+      }
+
+      .messageTimeCell {
+        flex-basis: 128px;
+        min-width: 128px;
+      }
+
+      .messageActionCell {
+        flex-basis: 38px;
+        min-width: 38px;
+      }
+
+      .messageKeyCell,
+      .messageValueCell {
+        min-width: 78px;
+      }
+    }
+
+    .KafkaTopicPageTable,
+    .KafkaPartitionTable {
+      .TableCell {
+        padding-right: 8px;
+        padding-left: 8px;
+      }
+    }
+
+    .KafkaBrokerPageTable {
+      .brokerRoleCell {
+        flex-basis: 106px;
+      }
+
+      .brokerIdCell,
+      .brokerPortCell {
+        flex-basis: 70px;
+      }
+    }
+
+    .KafkaManualEndpoint {
+      grid-template-columns: minmax(0, 1fr) auto;
+
+      .KafkaManualBootstrap {
+        grid-column: 1 / -1;
+      }
+    }
+
+    .KafkaSearchInput {
+      flex-basis: auto;
+      width: 100%;
+      max-width: none;
+    }
+
+    .KafkaFilterGroup {
+      align-self: flex-start;
+      max-width: 100%;
+      overflow-x: auto;
+    }
+
+    .KafkaClusterTable .sourceCell,
+    .KafkaClusterTable .securityCell,
+    .KafkaClusterTable .actionCell {
+      display: none;
+    }
+
+    .KafkaClusterTable {
+      .TableCell {
+        padding-right: 8px;
+        padding-left: 8px;
+      }
+
+      .nameCell {
+        flex: 1 1 120px;
+        min-width: 105px;
+      }
+
+      .bootstrapCell {
+        flex: 1.2 1 150px;
+        min-width: 125px;
+      }
+
+      .reachCell {
+        flex: 0 0 90px;
+      }
+    }
+  }
+
+  .KafkaDiscoveryError {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .KafkaOverviewPage {
+    .KafkaPartitionTable {
+      .partitionIdCell {
+        flex: 0 0 96px !important;
+        width: 96px !important;
+        min-width: 96px !important;
+      }
+
+      .partitionLeaderCell {
+        flex: 0 0 64px !important;
+        width: 64px !important;
+        min-width: 64px !important;
+      }
+
+      .partitionReplicasCell,
+      .partitionIsrCell {
+        flex: 1 1 82px !important;
+        width: 0 !important;
+        min-width: 72px !important;
+      }
+
+      .partitionHealthCell {
+        flex: 0 0 112px !important;
+        width: 112px !important;
+        min-width: 112px !important;
+      }
+    }
+  }
+
+  .Drawer.KafkaConnectionSettingsDrawer {
+    .KafkaSecurityForm > label {
+      grid-template-columns: minmax(0, 1fr);
+      gap: 4px;
+    }
+  }
+
+  // ─── Consumer Groups ──────────────────────────────────────────────────────
+
+  .KafkaGroupWorkspace {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  .KafkaGroupOffsetSection {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+  }
+
+  .KafkaGroupTopicSection {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .KafkaGroupTopicHeader {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 14px;
+    font-weight: 600;
+
+    .KafkaGroupTopicName {
+      flex: 1 1 0;
+      min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .KafkaGroupTopicLag {
+      color: var(--kafka-muted);
+      font-size: 12px;
+      font-weight: 400;
+      white-space: nowrap;
+
+      strong {
+        color: var(--textColorPrimary);
+        font-weight: 600;
+      }
+    }
+  }
+
+  .KafkaGroupMemberSection {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .KafkaGroupTopicsSection {
+    display: flex;
+    min-width: 0;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .KafkaGroupTopicsTable {
+    height: 320px;
+
+    .groupTopicNameCell,
+    .groupTopicPartitionsCell,
+    .groupTopicLagCell,
+    .groupTopicActionCell {
+      box-sizing: border-box;
+    }
+
+    .groupTopicNameCell {
+      gap: 8px;
+      overflow: hidden;
+
+      .Icon {
+        flex: 0 0 auto;
+        color: var(--primary);
+      }
+    }
+
+    .groupTopicPartitionsCell,
+    .groupTopicLagCell {
+      justify-content: flex-end;
+      font-variant-numeric: tabular-nums;
+      text-align: right;
+    }
+
+    .groupTopicActionCell {
+      justify-content: center;
+    }
+  }
+
+  .KafkaLagZero {
+    color: var(--colorSuccess, #3dc43d);
+  }
+  .KafkaLagLow {
+    color: var(--colorWarning, #f0a500);
+  }
+  .KafkaLagHigh {
+    color: var(--colorError, #e05454);
+  }
+  .KafkaLagUnknown {
+    color: var(--kafka-muted);
+  }
+
+  .KafkaGroupProtocol {
+    color: var(--kafka-muted);
+    font-size: 12px;
+  }
+
+  .KafkaGroupsPage,
+  .KafkaGroupWorkspace {
+    .groupNameCell {
+      overflow: hidden;
+    }
+    .groupMembersCell {
+      font-variant-numeric: tabular-nums;
+    }
+  }
+
+  .KafkaHealthyBadge {
+    --badge-bg: var(--colorSuccess, #3dc43d);
+  }
+  .KafkaWarningBadge {
+    --badge-bg: var(--colorWarning, #f0a500);
+  }
+  .KafkaErrorBadge {
+    --badge-bg: var(--colorError, #e05454);
+  }
+}

@@ -1,0 +1,27 @@
+services:
+  kafka-auth:
+    image: apache/kafka:3.9.0
+    container_name: freelens-kafka-auth
+    entrypoint: ["/bin/bash", "-ec"]
+    command:
+      - |
+        /opt/kafka/bin/kafka-storage.sh format --ignore-formatted \
+          --cluster-id 5L6g3nShT-eMCtK--X86sw \
+          --config /etc/kafka-auth/storage.properties
+        exec /opt/kafka/bin/kafka-server-start.sh /etc/kafka-auth/server.properties
+    ports:
+      - "127.0.0.1:19093:19093"
+      - "127.0.0.1:19094:19094"
+      - "127.0.0.1:19097:19097"
+    volumes:
+      - ./fixtures/kafka-auth-server.properties:/etc/kafka-auth/server.properties:ro
+      - ./fixtures/kafka-auth-storage.properties:/etc/kafka-auth/storage.properties:ro
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "/opt/kafka/bin/kafka-broker-api-versions.sh --bootstrap-server 127.0.0.1:19093 >/dev/null 2>&1",
+        ]
+      interval: 3s
+      timeout: 10s
+      retries: 40

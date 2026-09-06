@@ -1,0 +1,20 @@
+{
+  "$schema": "https://unpkg.com/knip@5/schema-jsonc.json",
+
+  "entry": ["src/main/index.ts", "src/renderer/index.tsx"],
+  "project": ["*.{js,mjs,ts}", "src/**/*.{ts,tsx}"],
+
+  "ignoreBinaries": ["electron-rebuild", "yq", "kind", "kubectl"],
+  "ignoreDependencies": [
+    // Build-only plugins; Knip does not execute the Electron Vite config.
+    "@vitejs/plugin-react",
+    "vite-plugin-sass-dts",
+    // optional peer of node-fetch (via @kubernetes/client-node), resolved & bundled at build time
+    "encoding"
+  ],
+
+  "typescript": {
+    "config": ["tsconfig.json"]
+  },
+  "exclude": ["exports"]
+}

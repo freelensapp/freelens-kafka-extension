@@ -1,0 +1,27 @@
+{
+  "schemaVersion": 1,
+  "capturedAt": "2026-08-20",
+  "mode": "authorized-read-only",
+  "scale": {
+    "workloads": 236,
+    "targets": 5,
+    "brokers": 3,
+    "topics": 1096,
+    "consumerGroups": 1125
+  },
+  "extension": {
+    "discovery": { "durationMs": 20777 },
+    "reachability": { "durationMs": 11 },
+    "credentialResolution": { "durationMs": 17981 },
+    "overview": { "durationMs": 5217 },
+    "topics": { "durationMs": 1074 },
+    "groups": { "durationMs": 5083 },
+    "groupDetail": { "durationMs": 3893 },
+    "topicConsumers": { "durationMs": 35599 }
+  },
+  "comparison": {
+    "provider": "akhq",
+    "topics": { "durationMs": 3646 },
+    "consumerGroups": { "durationMs": 14166 }
+  }
+}

@@ -1,0 +1,77 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: kafka-auth-demo
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: kafka-auth-client
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: kafka-auth
+  namespace: kafka-auth-demo
+type: Opaque
+stringData:
+  username: alice
+  password: alice-secret
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: secure-consumer
+  namespace: kafka-auth-demo
+spec:
+  replicas: 0
+  selector:
+    matchLabels:
+      app: secure-consumer
+  template:
+    metadata:
+      labels:
+        app: secure-consumer
+    spec:
+      containers:
+        - name: app
+          image: busybox:1.36
+          env:
+            - name: KAFKA_BOOTSTRAP_SERVERS
+              value: "127.0.0.1:19094"
+            - name: KAFKA_SECURITY_PROTOCOL
+              value: SASL_PLAINTEXT
+            - name: KAFKA_SASL_MECHANISM
+              value: PLAIN
+            - name: KAFKA_SASL_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: kafka-auth
+                  key: username
+            - name: KAFKA_SASL_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: kafka-auth
+                  key: password
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: reporting-consumer
+  namespace: kafka-auth-client
+spec:
+  replicas: 0
+  selector:
+    matchLabels:
+      app: reporting-consumer
+  template:
+    metadata:
+      labels:
+        app: reporting-consumer
+    spec:
+      containers:
+        - name: app
+          image: busybox:1.36
+          env:
+            - name: KAFKA_BOOTSTRAP_SERVERS
+              value: "127.0.0.1:19094"

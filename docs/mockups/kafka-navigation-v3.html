@@ -1,0 +1,1903 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Freelens Kafka UX v3</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+      href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap"
+      rel="stylesheet"
+    >
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined" rel="stylesheet">
+    <style>
+    :root {
+      color-scheme: dark;
+      --bg: #171a1d;
+      --rail: #141719;
+      --sidebar: #202428;
+      --surface: #1c2023;
+      --surface-2: #24292e;
+      --surface-3: #2b3136;
+      --line: #394148;
+      --line-soft: #30363c;
+      --text: #eef2f3;
+      --muted: #a3adb5;
+      --faint: #748089;
+      --accent: #55b7a8;
+      --accent-soft: rgba(85, 183, 168, 0.13);
+      --good: #73c591;
+      --warning: #e4b45f;
+      --bad: #df7773;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    [hidden] {
+      display: none !important;
+    }
+
+    html,
+    body {
+      width: 100%;
+      min-width: 320px;
+      height: 100%;
+      margin: 0;
+      overflow: hidden;
+      background: #101315;
+      color: var(--text);
+      font-family: "IBM Plex Sans", sans-serif;
+      letter-spacing: 0;
+    }
+
+    button,
+    input,
+    select,
+    textarea {
+      font: inherit;
+      letter-spacing: 0;
+    }
+
+    button,
+    select {
+      color: inherit;
+    }
+
+    .mockup-toolbar {
+      display: flex;
+      height: 44px;
+      align-items: center;
+      justify-content: space-between;
+      gap: 14px;
+      padding: 0 14px;
+      border-bottom: 1px solid #30363b;
+      background: #101315;
+    }
+
+    .mockup-label {
+      display: flex;
+      min-width: 0;
+      align-items: center;
+      gap: 8px;
+      color: #cbd2d5;
+      font-size: 11px;
+      font-weight: 600;
+    }
+
+    .mockup-label strong {
+      padding: 3px 6px;
+      border: 1px solid #7f693d;
+      border-radius: 3px;
+      color: var(--warning);
+      font-size: 9px;
+    }
+
+    .mockup-label span {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .mockup-nav {
+      display: flex;
+      min-width: 0;
+      align-items: center;
+      gap: 3px;
+      overflow-x: auto;
+    }
+
+    .mockup-nav button {
+      height: 28px;
+      padding: 0 9px;
+      border: 1px solid transparent;
+      border-radius: 4px;
+      background: transparent;
+      color: var(--muted);
+      font-size: 10px;
+      white-space: nowrap;
+      cursor: pointer;
+    }
+
+    .mockup-nav button.active {
+      border-color: #447e76;
+      background: var(--accent-soft);
+      color: #c7eee8;
+    }
+
+    .app {
+      display: grid;
+      grid-template-columns: 60px 218px minmax(0, 1fr);
+      height: calc(100% - 44px);
+      overflow: hidden;
+    }
+
+    .app-rail {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 12px;
+      padding-top: 12px;
+      border-right: 1px solid #292f34;
+      background: var(--rail);
+    }
+
+    .rail-item {
+      display: grid;
+      width: 38px;
+      height: 38px;
+      place-items: center;
+      border: 0;
+      border-radius: 4px;
+      background: transparent;
+      color: #829099;
+      font-family: "IBM Plex Mono", monospace;
+      font-size: 10px;
+    }
+
+    .rail-item.active {
+      background: #293035;
+      color: var(--accent);
+      box-shadow: inset 2px 0 var(--accent);
+    }
+
+    .sidebar {
+      min-width: 0;
+      overflow: auto;
+      border-right: 1px solid #353c42;
+      background: var(--sidebar);
+    }
+
+    .kube-context {
+      display: flex;
+      height: 58px;
+      align-items: center;
+      gap: 10px;
+      padding: 0 12px;
+      border-bottom: 1px solid #343b41;
+    }
+
+    .kube-avatar {
+      display: grid;
+      width: 30px;
+      height: 30px;
+      flex: 0 0 auto;
+      place-items: center;
+      border-radius: 4px;
+      background: #347a58;
+      font-size: 11px;
+      font-weight: 600;
+    }
+
+    .kube-copy strong,
+    .kube-copy small {
+      display: block;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .kube-copy strong {
+      font-size: 12px;
+    }
+
+    .kube-copy small {
+      margin-top: 2px;
+      color: var(--muted);
+      font-size: 10px;
+    }
+
+    .side-section {
+      padding: 13px 13px 6px;
+      color: #748089;
+      font-size: 9px;
+      font-weight: 600;
+      text-transform: uppercase;
+    }
+
+    .side-item,
+    .side-parent {
+      display: flex;
+      width: 100%;
+      height: 34px;
+      align-items: center;
+      gap: 9px;
+      padding: 0 12px;
+      border: 0;
+      background: transparent;
+      color: #aeb7bd;
+      font-size: 11px;
+      text-align: left;
+      cursor: pointer;
+    }
+
+    .side-parent {
+      height: 38px;
+      margin-top: 4px;
+      color: #eef2f3;
+      font-weight: 600;
+    }
+
+    .side-item.child {
+      height: 32px;
+      padding-left: 39px;
+    }
+
+    .side-item.active {
+      background: #2b3237;
+      color: white;
+      box-shadow: inset 2px 0 var(--accent);
+    }
+
+    .side-item.future {
+      color: #68747c;
+    }
+
+    .side-icon {
+      display: grid;
+      width: 18px;
+      height: 18px;
+      flex: 0 0 auto;
+      place-items: center;
+      color: #849199;
+      font-family: "IBM Plex Mono", monospace;
+      font-size: 9px;
+    }
+
+    .side-icon .material-symbols-outlined {
+      color: var(--accent);
+      font-size: 18px;
+      font-variation-settings:
+        "FILL" 0,
+        "wght" 400,
+        "GRAD" 0,
+        "opsz" 20;
+      letter-spacing: 0;
+    }
+
+    .sidebar-rule {
+      height: 1px;
+      margin: 8px 12px;
+      background: #343b40;
+    }
+
+    .workspace {
+      min-width: 0;
+      height: 100%;
+      overflow: hidden;
+      background: var(--bg);
+    }
+
+    .view {
+      display: none;
+      min-width: 0;
+      height: 100%;
+      overflow: auto;
+    }
+
+    .view.active {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .context-header {
+      display: flex;
+      min-height: 78px;
+      flex: 0 0 auto;
+      align-items: center;
+      justify-content: space-between;
+      gap: 20px;
+      padding: 12px 22px;
+      border-bottom: 1px solid var(--line-soft);
+      background: #1a1e21;
+    }
+
+    .title-group {
+      min-width: 0;
+    }
+
+    h1 {
+      margin: 0;
+      overflow: hidden;
+      font-size: 21px;
+      font-weight: 600;
+      line-height: 1.2;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .subtitle {
+      margin-top: 4px;
+      color: var(--muted);
+      font-size: 10px;
+    }
+
+    .context-actions {
+      display: flex;
+      flex: 0 0 auto;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .target-control {
+      display: grid;
+      min-width: 240px;
+      grid-template-columns: auto minmax(150px, 1fr);
+      align-items: center;
+      gap: 8px;
+    }
+
+    .target-control label {
+      color: var(--muted);
+      font-size: 9px;
+      font-weight: 600;
+      text-transform: uppercase;
+    }
+
+    .target-select,
+    .field,
+    .select {
+      height: 32px;
+      border: 1px solid #475158;
+      border-radius: 4px;
+      outline: 0;
+      background: #20252a;
+      color: var(--text);
+      font-size: 11px;
+    }
+
+    .target-select,
+    .select {
+      padding: 0 28px 0 9px;
+    }
+
+    .target-select:focus,
+    .field:focus,
+    .select:focus,
+    textarea:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 1px var(--accent);
+    }
+
+    .target-meta {
+      display: flex;
+      grid-column: 2;
+      align-items: center;
+      gap: 6px;
+      margin-top: -2px;
+    }
+
+    .badge {
+      display: inline-flex;
+      min-height: 21px;
+      align-items: center;
+      gap: 4px;
+      padding: 2px 7px;
+      border: 1px solid #485158;
+      border-radius: 3px;
+      color: #c4cbd0;
+      font-size: 9px;
+      line-height: 1;
+      white-space: nowrap;
+    }
+
+    .badge.good {
+      border-color: rgba(115, 197, 145, 0.5);
+      color: var(--good);
+    }
+
+    .badge.accent {
+      border-color: rgba(85, 183, 168, 0.5);
+      color: #8bd1c7;
+    }
+
+    .badge.warning {
+      border-color: rgba(228, 180, 95, 0.52);
+      color: var(--warning);
+    }
+
+    .button {
+      display: inline-flex;
+      height: 32px;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      padding: 0 11px;
+      border: 1px solid #4b545b;
+      border-radius: 4px;
+      background: #282e33;
+      color: #e8ecee;
+      font-size: 10px;
+      font-weight: 500;
+      cursor: pointer;
+    }
+
+    .button:hover {
+      border-color: #6b767e;
+      background: #30373c;
+    }
+
+    .button.primary {
+      border-color: #4d9a8e;
+      background: #337d72;
+      color: white;
+    }
+
+    .button.write {
+      border-color: #a77b3e;
+      background: #4c3c26;
+      color: #f1cf95;
+    }
+
+    .button.icon {
+      width: 32px;
+      padding: 0;
+    }
+
+    .entity-tabs {
+      display: flex;
+      min-height: 41px;
+      flex: 0 0 auto;
+      align-items: flex-end;
+      gap: 3px;
+      padding: 0 22px;
+      border-bottom: 1px solid var(--line);
+      background: #1b1f22;
+      overflow-x: auto;
+    }
+
+    .entity-tab {
+      display: flex;
+      height: 40px;
+      align-items: center;
+      padding: 0 12px;
+      border: 0;
+      border-bottom: 2px solid transparent;
+      background: transparent;
+      color: var(--muted);
+      font-size: 10px;
+      white-space: nowrap;
+      cursor: pointer;
+    }
+
+    .entity-tab.active {
+      border-bottom-color: var(--accent);
+      color: white;
+    }
+
+    .metrics {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      flex: 0 0 auto;
+      border-bottom: 1px solid var(--line-soft);
+      background: #1d2124;
+    }
+
+    .metric {
+      min-width: 0;
+      padding: 11px 17px;
+    }
+
+    .metric + .metric {
+      border-left: 1px solid var(--line-soft);
+    }
+
+    .metric strong,
+    .metric span {
+      display: block;
+    }
+
+    .metric strong {
+      font-size: 17px;
+      font-weight: 600;
+    }
+
+    .metric span {
+      margin-top: 2px;
+      color: var(--muted);
+      font-size: 8px;
+      text-transform: uppercase;
+    }
+
+    .content {
+      display: flex;
+      min-height: 0;
+      flex: 1 1 auto;
+      flex-direction: column;
+      padding: 15px 22px 20px;
+      overflow: auto;
+    }
+
+    .toolbar {
+      display: flex;
+      min-height: 40px;
+      flex: 0 0 auto;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 9px;
+    }
+
+    .toolbar-left,
+    .toolbar-right,
+    .inline {
+      display: flex;
+      min-width: 0;
+      align-items: center;
+      gap: 7px;
+    }
+
+    .field {
+      width: min(430px, 44vw);
+      padding: 0 10px;
+    }
+
+    .segments {
+      display: flex;
+      height: 32px;
+      align-items: center;
+      padding: 2px;
+      border: 1px solid #414a50;
+      border-radius: 4px;
+      background: #20252a;
+    }
+
+    .segment {
+      height: 26px;
+      padding: 0 9px;
+      border: 0;
+      border-radius: 3px;
+      background: transparent;
+      color: var(--muted);
+      font-size: 9px;
+    }
+
+    .segment.active {
+      background: #384147;
+      color: white;
+    }
+
+    .table-wrap {
+      min-height: 0;
+      flex: 1 1 auto;
+      overflow: auto;
+      border-top: 1px solid var(--line);
+      border-bottom: 1px solid var(--line);
+    }
+
+    .overview-table tbody tr {
+      cursor: default;
+    }
+
+    .brokers-table tbody tr {
+      cursor: default;
+    }
+
+    .clusters-table td:nth-child(3),
+    .clusters-table td:nth-child(5),
+    .clusters-table td:nth-child(6) {
+      text-overflow: clip;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      table-layout: fixed;
+    }
+
+    th,
+    td {
+      height: 40px;
+      padding: 0 10px;
+      overflow: hidden;
+      border-bottom: 1px solid var(--line-soft);
+      font-size: 10px;
+      text-align: left;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    th {
+      position: sticky;
+      z-index: 2;
+      top: 0;
+      height: 36px;
+      background: #24292e;
+      color: #aab3b9;
+      font-size: 8px;
+      font-weight: 600;
+      text-transform: uppercase;
+    }
+
+    tbody tr {
+      background: #1b1f22;
+      cursor: pointer;
+    }
+
+    tbody tr:nth-child(even) {
+      background: #1e2226;
+    }
+
+    tbody tr:hover,
+    tbody tr.selected {
+      background: #293136;
+    }
+
+    tbody tr:focus-visible {
+      outline: 2px solid var(--accent);
+      outline-offset: -2px;
+    }
+
+    .entity {
+      display: flex;
+      min-width: 0;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .entity-mark {
+      display: grid;
+      width: 23px;
+      height: 23px;
+      flex: 0 0 auto;
+      place-items: center;
+      border: 1px solid #4c565d;
+      border-radius: 3px;
+      color: var(--accent);
+      font-family: "IBM Plex Mono", monospace;
+      font-size: 8px;
+    }
+
+    .entity-copy {
+      min-width: 0;
+    }
+
+    .entity-copy strong,
+    .entity-copy small {
+      display: block;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .entity-copy strong {
+      font-size: 10px;
+      font-weight: 500;
+    }
+
+    .entity-copy small {
+      margin-top: 2px;
+      color: var(--faint);
+      font-family: "IBM Plex Mono", monospace;
+      font-size: 8px;
+    }
+
+    code,
+    .mono {
+      font-family: "IBM Plex Mono", monospace;
+    }
+
+    .good-text {
+      color: var(--good);
+    }
+
+    .warn-text {
+      color: var(--warning);
+    }
+
+    .muted {
+      color: var(--muted);
+    }
+
+    .status-line {
+      display: flex;
+      min-height: 32px;
+      flex: 0 0 auto;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 0 9px;
+      color: var(--muted);
+      font-size: 9px;
+    }
+
+    .target-note {
+      padding: 7px 10px;
+      border-left: 2px solid var(--accent);
+      background: var(--accent-soft);
+      color: #c2d3d1;
+      font-size: 9px;
+    }
+
+    .message-grid {
+      display: grid;
+      min-height: 0;
+      flex: 1 1 auto;
+      grid-template-columns: minmax(0, 1fr) minmax(290px, 35%);
+      border-top: 1px solid var(--line);
+      border-bottom: 1px solid var(--line);
+    }
+
+    .message-list {
+      min-width: 0;
+      overflow: auto;
+      border-right: 1px solid var(--line);
+    }
+
+    .message-inspector {
+      min-width: 0;
+      overflow: auto;
+      background: #1c2024;
+    }
+
+    .inspector-head {
+      display: flex;
+      height: 40px;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 12px;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .inspector-head strong {
+      font-size: 10px;
+    }
+
+    .inspector-block {
+      padding: 10px 12px;
+      border-bottom: 1px solid var(--line-soft);
+    }
+
+    .inspector-label {
+      margin-bottom: 5px;
+      color: var(--muted);
+      font-size: 8px;
+      font-weight: 600;
+      text-transform: uppercase;
+    }
+
+    pre {
+      margin: 0;
+      overflow: auto;
+      color: #dce7e5;
+      font-family: "IBM Plex Mono", monospace;
+      font-size: 9px;
+      line-height: 1.5;
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+
+    .write-banner {
+      display: flex;
+      align-items: flex-start;
+      gap: 9px;
+      margin-bottom: 14px;
+      padding: 10px 12px;
+      border: 1px solid rgba(228, 180, 95, 0.45);
+      border-radius: 4px;
+      background: rgba(228, 180, 95, 0.08);
+      color: #e8d1a8;
+      font-size: 10px;
+      line-height: 1.4;
+    }
+
+    .produce-layout {
+      display: grid;
+      min-height: 0;
+      flex: 1 1 auto;
+      grid-template-columns: minmax(0, 1fr) 260px;
+      gap: 16px;
+    }
+
+    .editor-stack {
+      display: grid;
+      min-height: 0;
+      grid-template-rows: minmax(110px, 0.7fr) minmax(210px, 1.3fr);
+      gap: 12px;
+    }
+
+    .editor-panel,
+    .produce-summary {
+      min-width: 0;
+      overflow: auto;
+      border: 1px solid var(--line);
+      background: #1c2024;
+    }
+
+    .panel-head {
+      display: flex;
+      height: 34px;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 10px;
+      border-bottom: 1px solid var(--line);
+      color: var(--muted);
+      font-size: 9px;
+      text-transform: uppercase;
+    }
+
+    textarea {
+      width: 100%;
+      height: calc(100% - 34px);
+      resize: none;
+      padding: 10px;
+      border: 0;
+      outline: 0;
+      background: transparent;
+      color: #dfe9e7;
+      font-family: "IBM Plex Mono", monospace;
+      font-size: 10px;
+      line-height: 1.5;
+    }
+
+    .summary-row {
+      display: grid;
+      grid-template-columns: 80px minmax(0, 1fr);
+      gap: 8px;
+      padding: 9px 10px;
+      border-bottom: 1px solid var(--line-soft);
+      font-size: 9px;
+    }
+
+    .summary-row span:first-child {
+      color: var(--muted);
+    }
+
+    .summary-actions {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      padding: 12px 10px;
+    }
+
+    .future-tag {
+      margin-left: auto;
+      color: #68747c;
+      font-size: 8px;
+      text-transform: uppercase;
+    }
+
+    @media (max-width: 980px) {
+      .app {
+        grid-template-columns: 54px 190px minmax(0, 1fr);
+      }
+
+      .clusters-table .cluster-secondary {
+        display: none;
+      }
+
+      .clusters-table th:nth-child(1) {
+        width: 34% !important;
+      }
+
+      .clusters-table th:nth-child(3) {
+        width: 18% !important;
+      }
+
+      .clusters-table th:nth-child(5) {
+        width: 21% !important;
+      }
+
+      .clusters-table th:nth-child(6) {
+        width: 27% !important;
+      }
+
+      .context-header,
+      .content {
+        padding-right: 15px;
+        padding-left: 15px;
+      }
+
+      .entity-tabs {
+        padding: 0 15px;
+      }
+
+      .metrics {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      .metric:nth-child(3) {
+        border-top: 1px solid var(--line-soft);
+        border-left: 0;
+      }
+
+      .metric:nth-child(4) {
+        border-top: 1px solid var(--line-soft);
+      }
+
+      .produce-layout {
+        grid-template-columns: minmax(0, 1fr) 220px;
+      }
+    }
+
+    @media (max-width: 760px) {
+      .mockup-label span,
+      .sidebar {
+        display: none;
+      }
+
+      .app {
+        grid-template-columns: 48px minmax(0, 1fr);
+      }
+
+      .workspace {
+        grid-column: 2;
+      }
+
+      .context-header {
+        min-height: 116px;
+        align-items: flex-start;
+        flex-direction: column;
+        gap: 9px;
+        padding: 10px 12px;
+      }
+
+      .context-actions {
+        width: 100%;
+        justify-content: space-between;
+      }
+
+      .target-control {
+        min-width: 0;
+        flex: 1 1 auto;
+        grid-template-columns: auto minmax(120px, 1fr);
+      }
+
+      .context-actions > .button:not(.write):not(.icon) {
+        display: none;
+      }
+
+      .entity-tabs,
+      .content {
+        padding-right: 12px;
+        padding-left: 12px;
+      }
+
+      .toolbar {
+        align-items: stretch;
+        flex-direction: column;
+      }
+
+      .toolbar-left,
+      .toolbar-right {
+        width: 100%;
+      }
+
+      .field {
+        width: 100%;
+      }
+
+      .optional {
+        display: none;
+      }
+
+      .message-grid {
+        display: flex;
+        flex-direction: column;
+        overflow: auto;
+      }
+
+      .message-list {
+        min-height: 250px;
+        border-right: 0;
+        border-bottom: 1px solid var(--line);
+      }
+
+      .message-inspector {
+        min-height: 250px;
+      }
+
+      .produce-layout {
+        display: flex;
+        flex-direction: column;
+        overflow: auto;
+      }
+
+      .editor-stack {
+        min-height: 430px;
+      }
+
+      .produce-summary {
+        flex: 0 0 auto;
+      }
+    }
+    </style>
+  </head>
+  <body>
+    <header class="mockup-toolbar">
+      <div class="mockup-label">
+        <strong>MOCKUP CONTROLS</strong><span>Not part of the extension UI · Proposal v3</span>
+      </div>
+      <nav class="mockup-nav" aria-label="Mockup views">
+        <button data-view="clusters">Clusters</button>
+        <button data-view="overview">Overview</button>
+        <button class="active" data-view="topics">Topics</button>
+        <button data-view="topic">Topic workspace</button>
+        <button data-view="groups">Consumer groups</button>
+        <button data-view="brokers">Brokers</button>
+        <button data-view="produce">Produce · future</button>
+      </nav>
+    </header>
+
+    <div class="app">
+      <aside class="app-rail" aria-label="Freelens application rail">
+        <button class="rail-item">HM</button><button class="rail-item active">CL</button
+        ><button class="rail-item">EX</button>
+      </aside>
+
+      <aside class="sidebar" aria-label="Cluster navigation">
+        <div class="kube-context">
+          <div class="kube-avatar">KK</div>
+          <div class="kube-copy"><strong>kind-kind</strong><small>Connected</small></div>
+        </div>
+        <div class="side-section">Cluster</div>
+        <button class="side-item"><span class="side-icon">OV</span>Overview</button>
+        <button class="side-item"><span class="side-icon">WK</span>Workloads</button>
+        <button class="side-item"><span class="side-icon">NW</span>Network</button>
+        <div class="side-section">Extensions</div>
+        <button class="side-parent" data-view="clusters">
+          <span class="side-icon"><span class="material-symbols-outlined">hub</span></span>
+          Apache Kafka
+        </button>
+        <button class="side-item child" data-section="clusters" data-view="clusters">Clusters</button>
+        <button class="side-item child" data-section="overview" data-view="overview">Overview</button>
+        <button class="side-item child active" data-section="topics" data-view="topics">Topics</button>
+        <button class="side-item child" data-section="groups" data-view="groups">Consumer Groups</button>
+        <button class="side-item child" data-section="brokers" data-view="brokers">Brokers</button>
+        <div class="sidebar-rule"></div>
+        <button class="side-item child future">
+          <span>Schema Registry</span><span class="future-tag">future</span>
+        </button>
+        <button class="side-item child future"><span>Kafka Connect</span><span class="future-tag">future</span></button>
+      </aside>
+
+      <main class="workspace">
+        <section class="view" id="clusters" aria-label="Kafka clusters">
+          <header class="context-header">
+            <div class="title-group">
+              <h1>Kafka clusters</h1>
+              <div class="subtitle">Kafka connections discovered from kind-kind</div>
+            </div>
+            <div class="context-actions">
+              <button class="button">＋ Add endpoint</button><button class="button icon">↻</button>
+            </div>
+          </header>
+          <div class="content">
+            <div class="toolbar">
+              <div class="toolbar-left">
+                <input class="field" placeholder="Filter clusters">
+                <div class="segments">
+                  <button class="segment active">All 3</button><button class="segment">Reachable 2</button
+                  ><button class="segment">Pod only 1</button>
+                </div>
+              </div>
+            </div>
+            <div class="table-wrap">
+              <table class="clusters-table">
+                <thead>
+                  <tr>
+                    <th style="width: 21%">Kafka cluster</th>
+                    <th class="cluster-secondary" style="width: 16%">Kubernetes usage</th>
+                    <th style="width: 10%">Source</th>
+                    <th class="cluster-secondary">Bootstrap</th>
+                    <th style="width: 12%">Security</th>
+                    <th style="width: 15%">Reachability</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr tabindex="0" data-open-target="orders-msk">
+                    <td>
+                      <div class="entity">
+                        <span class="entity-mark">K</span
+                        ><span class="entity-copy"><strong>orders-msk</strong><small>managed Kafka</small></span>
+                      </div>
+                    </td>
+                    <td class="cluster-secondary">14 workloads · 3 ns</td>
+                    <td><span class="badge">MSK</span></td>
+                    <td class="mono cluster-secondary">b-1.orders.kafka.us-west-2.amazonaws.com:9094</td>
+                    <td><span class="badge accent">TLS</span></td>
+                    <td><span class="badge good">● Reachable</span></td>
+                  </tr>
+                  <tr tabindex="0" data-open-target="payments-kafka">
+                    <td>
+                      <div class="entity">
+                        <span class="entity-mark">K</span
+                        ><span class="entity-copy"><strong>payments-kafka</strong><small>Strimzi</small></span>
+                      </div>
+                    </td>
+                    <td class="cluster-secondary">streaming namespace</td>
+                    <td><span class="badge">Strimzi</span></td>
+                    <td class="mono cluster-secondary">payments-kafka-bootstrap.streaming.svc:9092</td>
+                    <td><span class="badge">PLAINTEXT</span></td>
+                    <td><span class="badge accent">↔ Port-forward</span></td>
+                  </tr>
+                  <tr tabindex="0">
+                    <td>
+                      <div class="entity">
+                        <span class="entity-mark">K</span
+                        ><span class="entity-copy"
+                          ><strong>analytics-kafka</strong><small>workload reference</small></span
+                        >
+                      </div>
+                    </td>
+                    <td class="cluster-secondary">2 workloads · 1 ns</td>
+                    <td><span class="badge">External</span></td>
+                    <td class="mono cluster-secondary">analytics.kafka.example.test:9092</td>
+                    <td><span class="badge">PLAINTEXT</span></td>
+                    <td><span class="badge warning">● Pod only</span></td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <div class="status-line">
+              <span>Selecting a cluster opens its Overview</span><span>Read-only metadata</span>
+            </div>
+          </div>
+        </section>
+
+        <section class="view" id="overview" aria-label="Kafka cluster overview">
+          <header class="context-header">
+            <div class="title-group">
+              <h1>Overview</h1>
+              <div class="subtitle">Health and identity of the selected Kafka cluster</div>
+            </div>
+            <div class="context-actions">
+              <div class="target-control">
+                <label for="target-overview">Kafka cluster</label
+                ><select class="target-select" id="target-overview" data-target-select>
+                  <option value="orders-msk">orders-msk</option>
+                  <option value="payments-kafka">payments-kafka</option>
+                  <option value="local-dev">local-dev</option>
+                </select>
+                <div class="target-meta">
+                  <span class="badge" data-target-provider>MSK</span
+                  ><span class="badge good" data-target-status>● Reachable</span>
+                </div>
+              </div>
+              <button class="button icon">↻</button>
+            </div>
+          </header>
+          <div class="metrics">
+            <div class="metric">
+              <strong class="good-text" data-overview-health>Healthy</strong><span>Cluster health</span>
+            </div>
+            <div class="metric"><strong data-overview-brokers>3</strong><span>Brokers</span></div>
+            <div class="metric"><strong data-overview-topics>184</strong><span>Topics</span></div>
+            <div class="metric"><strong data-overview-partitions>552</strong><span>Partitions</span></div>
+          </div>
+          <div class="content">
+            <div class="table-wrap overview-table">
+              <table>
+                <thead>
+                  <tr>
+                    <th style="width: 21%">Area</th>
+                    <th style="width: 18%">Status</th>
+                    <th>Detail</th>
+                    <th style="width: 24%">Context</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td><strong>Replication</strong></td>
+                    <td><span class="badge good" data-overview-replication-status>● Healthy</span></td>
+                    <td data-overview-replication-detail>0 unavailable · 0 under-replicated</td>
+                    <td data-overview-replication-context>Replication factor 3</td>
+                  </tr>
+                  <tr>
+                    <td><strong>Controller</strong></td>
+                    <td data-overview-controller>Broker 1</td>
+                    <td>Active controller reported by Kafka metadata</td>
+                    <td class="mono" data-overview-controller-id>node.id 1</td>
+                  </tr>
+                  <tr>
+                    <td><strong>Consumer groups</strong></td>
+                    <td><span class="badge warning" data-overview-lag>2,481 lag</span></td>
+                    <td data-overview-groups>18 groups · 14 stable · 4 empty</td>
+                    <td data-overview-lagging-groups>3 groups currently have lag</td>
+                  </tr>
+                  <tr>
+                    <td><strong>Connection</strong></td>
+                    <td><span class="badge" data-overview-provider>MSK</span></td>
+                    <td class="mono" data-overview-bootstrap>b-1.orders.kafka.us-west-2.amazonaws.com:9094</td>
+                    <td><span data-overview-security>TLS</span> · <span data-overview-connection>Direct</span></td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <div class="status-line">
+              <span>Overview is a summary; resource details remain in Topics, Consumer Groups and Brokers</span
+              ><span>Last refreshed just now</span>
+            </div>
+          </div>
+        </section>
+
+        <section class="view active" id="topics" aria-label="Kafka topics">
+          <header class="context-header">
+            <div class="title-group">
+              <h1>Topics</h1>
+              <div class="subtitle">Browse topics in the selected Kafka cluster</div>
+            </div>
+            <div class="context-actions">
+              <div class="target-control">
+                <label for="target-topics">Kafka cluster</label
+                ><select class="target-select" id="target-topics" data-target-select>
+                  <option value="orders-msk">orders-msk</option>
+                  <option value="payments-kafka">payments-kafka</option>
+                  <option value="local-dev">local-dev</option>
+                </select>
+                <div class="target-meta">
+                  <span class="badge" data-target-provider>MSK</span
+                  ><span class="badge good" data-target-status>● Reachable</span>
+                </div>
+              </div>
+              <button class="button icon">↻</button>
+            </div>
+          </header>
+          <div class="metrics">
+            <div class="metric"><strong>184</strong><span>Topics</span></div>
+            <div class="metric"><strong>552</strong><span>Partitions</span></div>
+            <div class="metric"><strong>3</strong><span>Brokers</span></div>
+            <div class="metric"><strong class="good-text">Healthy</strong><span>Replica health</span></div>
+          </div>
+          <div class="content">
+            <div class="toolbar">
+              <div class="toolbar-left">
+                <input class="field" placeholder="Filter topics">
+                <div class="segments">
+                  <button class="segment active">All 184</button><button class="segment">Application 172</button
+                  ><button class="segment">Internal 12</button>
+                </div>
+              </div>
+              <div class="toolbar-right"><span class="badge good">0 unavailable</span></div>
+            </div>
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Topic</th>
+                    <th style="width: 11%">Partitions</th>
+                    <th style="width: 12%">Replication</th>
+                    <th style="width: 13%">Consumers</th>
+                    <th style="width: 15%">Health</th>
+                    <th class="optional" style="width: 14%">Retention</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr tabindex="0" data-view="topic">
+                    <td>
+                      <div class="entity">
+                        <span class="entity-mark">T</span
+                        ><span class="entity-copy"
+                          ><strong>orders.events.v2</strong><small>application topic</small></span
+                        >
+                      </div>
+                    </td>
+                    <td>12</td>
+                    <td>3</td>
+                    <td>4 groups</td>
+                    <td><span class="badge good">● Healthy</span></td>
+                    <td class="optional">7 days</td>
+                  </tr>
+                  <tr tabindex="0" data-view="topic">
+                    <td>
+                      <div class="entity">
+                        <span class="entity-mark">T</span
+                        ><span class="entity-copy"
+                          ><strong>orders.commands.v1</strong><small>application topic</small></span
+                        >
+                      </div>
+                    </td>
+                    <td>6</td>
+                    <td>3</td>
+                    <td>2 groups</td>
+                    <td><span class="badge good">● Healthy</span></td>
+                    <td class="optional">24 hours</td>
+                  </tr>
+                  <tr tabindex="0">
+                    <td>
+                      <div class="entity">
+                        <span class="entity-mark">T</span
+                        ><span class="entity-copy"
+                          ><strong>orders.retry.v1</strong><small>application topic</small></span
+                        >
+                      </div>
+                    </td>
+                    <td>6</td>
+                    <td>3</td>
+                    <td>1 group</td>
+                    <td><span class="badge warning">● 1 under-replicated</span></td>
+                    <td class="optional">3 days</td>
+                  </tr>
+                  <tr tabindex="0">
+                    <td>
+                      <div class="entity">
+                        <span class="entity-mark">T</span
+                        ><span class="entity-copy"><strong>__consumer_offsets</strong><small>internal</small></span>
+                      </div>
+                    </td>
+                    <td>50</td>
+                    <td>3</td>
+                    <td>—</td>
+                    <td><span class="badge good">● Healthy</span></td>
+                    <td class="optional">internal</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <div class="status-line">
+              <span>Changing cluster keeps you on Topics and clears the selected topic</span
+              ><span>Cluster ID stored in URL</span>
+            </div>
+          </div>
+        </section>
+
+        <section class="view" id="topic" aria-label="Topic workspace">
+          <header class="context-header">
+            <div class="title-group">
+              <div class="subtitle" style="margin: 0 0 4px">Topics / <span data-target-name>orders-msk</span></div>
+              <div class="inline">
+                <h1>orders.events.v2</h1>
+                <span class="badge good">● Healthy</span>
+              </div>
+              <div class="subtitle">12 partitions · replication factor 3</div>
+            </div>
+            <div class="context-actions">
+              <div class="target-control">
+                <label for="target-topic">Kafka cluster</label
+                ><select class="target-select" id="target-topic" data-target-select>
+                  <option value="orders-msk">orders-msk</option>
+                  <option value="payments-kafka">payments-kafka</option>
+                  <option value="local-dev">local-dev</option>
+                </select>
+                <div class="target-meta">
+                  <span class="badge" data-target-provider>MSK</span
+                  ><span class="badge good" data-target-status>● Reachable</span>
+                </div>
+              </div>
+              <button class="button write" data-view="produce">Produce message</button>
+            </div>
+          </header>
+          <div class="target-note">
+            Changing Kafka cluster from a topic detail returns to the Topics list for the new cluster, avoiding a stale
+            or missing topic context.
+          </div>
+          <nav class="entity-tabs" aria-label="Topic sections">
+            <button class="entity-tab">Overview</button><button class="entity-tab active">Messages</button
+            ><button class="entity-tab">Partitions</button><button class="entity-tab">Consumers</button
+            ><button class="entity-tab">Configuration</button>
+          </nav>
+          <div class="content">
+            <div class="toolbar">
+              <div class="toolbar-left">
+                <div class="segments">
+                  <button class="segment active">Browse</button><button class="segment">Tail</button>
+                </div>
+                <select class="select">
+                  <option>All partitions</option>
+                  <option>Partition 0</option>
+                </select><select class="select">
+                  <option>Newest</option>
+                  <option>Oldest</option>
+                  <option>Timestamp…</option>
+                  <option>Offset…</option>
+                </select><select class="select">
+                  <option>100 messages</option>
+                  <option>250 messages</option>
+                </select>
+              </div>
+              <div class="toolbar-right"><button class="button primary">Read messages</button></div>
+            </div>
+            <div class="message-grid">
+              <div class="message-list">
+                <table>
+                  <thead>
+                    <tr>
+                      <th style="width: 14%">Partition</th>
+                      <th style="width: 18%">Offset</th>
+                      <th style="width: 26%">Timestamp</th>
+                      <th style="width: 19%">Key</th>
+                      <th>Value preview</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr class="selected">
+                      <td>4</td>
+                      <td class="mono">1849201</td>
+                      <td>2026-07-24 09:41:22</td>
+                      <td class="mono good-text">ORD-84291</td>
+                      <td>{ "event": "OrderPaid"… }</td>
+                    </tr>
+                    <tr>
+                      <td>8</td>
+                      <td class="mono">1734410</td>
+                      <td>2026-07-24 09:41:21</td>
+                      <td class="mono good-text">ORD-84290</td>
+                      <td>{ "event": "OrderCreated"… }</td>
+                    </tr>
+                    <tr>
+                      <td>2</td>
+                      <td class="mono">1920053</td>
+                      <td>2026-07-24 09:41:20</td>
+                      <td class="mono good-text">ORD-84289</td>
+                      <td>{ "event": "OrderShipped"… }</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+              <aside class="message-inspector">
+                <div class="inspector-head"><strong>Message 1849201</strong><span class="badge">JSON</span></div>
+                <div class="inspector-block">
+                  <div class="inspector-label">Key</div>
+                  <pre>ORD-84291</pre>
+                </div>
+                <div class="inspector-block">
+                  <div class="inspector-label">Metadata</div>
+                  <pre>partition  4
+offset     1849201
+timestamp  2026-07-24T09:41:22.183Z</pre>
+                </div>
+                <div class="inspector-block">
+                  <div class="inspector-label">Headers</div>
+                  <pre>trace-id: c9f38e21
+content-type: application/json</pre>
+                </div>
+                <div class="inspector-block">
+                  <div class="inspector-label">Value</div>
+                  <pre>{
+  "event": "OrderPaid",
+  "orderId": "ORD-84291",
+  "amount": 129.90
+}</pre>
+                </div>
+              </aside>
+            </div>
+            <div class="status-line">
+              <span>3 messages loaded · no offsets committed</span><span>Read-only session</span>
+            </div>
+          </div>
+        </section>
+
+        <section class="view" id="groups" aria-label="Consumer groups">
+          <header class="context-header">
+            <div class="title-group">
+              <h1>Consumer Groups</h1>
+              <div class="subtitle">Activity, membership and lag</div>
+            </div>
+            <div class="context-actions">
+              <div class="target-control">
+                <label for="target-groups">Kafka cluster</label
+                ><select class="target-select" id="target-groups" data-target-select>
+                  <option value="orders-msk">orders-msk</option>
+                  <option value="payments-kafka">payments-kafka</option>
+                  <option value="local-dev">local-dev</option>
+                </select>
+                <div class="target-meta">
+                  <span class="badge" data-target-provider>MSK</span
+                  ><span class="badge good" data-target-status>● Reachable</span>
+                </div>
+              </div>
+              <button class="button icon">↻</button>
+            </div>
+          </header>
+          <div class="metrics">
+            <div class="metric"><strong>18</strong><span>Groups</span></div>
+            <div class="metric"><strong>14</strong><span>Stable</span></div>
+            <div class="metric"><strong>4</strong><span>Empty</span></div>
+            <div class="metric"><strong class="warn-text">2,481</strong><span>Total lag</span></div>
+          </div>
+          <div class="content">
+            <div class="toolbar">
+              <div class="toolbar-left">
+                <input class="field" placeholder="Filter consumer groups">
+                <div class="segments">
+                  <button class="segment active">All 18</button><button class="segment">With lag 3</button
+                  ><button class="segment">Active 14</button>
+                </div>
+              </div>
+            </div>
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Consumer group</th>
+                    <th style="width: 13%">State</th>
+                    <th style="width: 12%">Members</th>
+                    <th style="width: 12%">Topics</th>
+                    <th style="width: 14%">Total lag</th>
+                    <th class="optional" style="width: 15%">Coordinator</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td>
+                      <div class="entity">
+                        <span class="entity-mark">CG</span
+                        ><span class="entity-copy"><strong>orders-projector-v2</strong><small>commerce</small></span>
+                      </div>
+                    </td>
+                    <td><span class="badge good">Stable</span></td>
+                    <td>6</td>
+                    <td>3</td>
+                    <td class="good-text">0</td>
+                    <td class="optional">Broker 2</td>
+                  </tr>
+                  <tr>
+                    <td>
+                      <div class="entity">
+                        <span class="entity-mark">CG</span
+                        ><span class="entity-copy"><strong>fraud-detector</strong><small>risk</small></span>
+                      </div>
+                    </td>
+                    <td><span class="badge good">Stable</span></td>
+                    <td>3</td>
+                    <td>2</td>
+                    <td class="warn-text">2,311</td>
+                    <td class="optional">Broker 1</td>
+                  </tr>
+                  <tr>
+                    <td>
+                      <div class="entity">
+                        <span class="entity-mark">CG</span
+                        ><span class="entity-copy"><strong>shipment-sync</strong><small>fulfilment</small></span>
+                      </div>
+                    </td>
+                    <td><span class="badge">Empty</span></td>
+                    <td>0</td>
+                    <td>1</td>
+                    <td>170</td>
+                    <td class="optional">Broker 3</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <div class="status-line">
+              <span>Group detail uses tabs: Offsets & Lag · Members · Topics</span><span>No offset mutation</span>
+            </div>
+          </div>
+        </section>
+
+        <section class="view" id="brokers" aria-label="Kafka brokers">
+          <header class="context-header">
+            <div class="title-group">
+              <h1>Brokers</h1>
+              <div class="subtitle">Broker identities and advertised endpoints</div>
+            </div>
+            <div class="context-actions">
+              <div class="target-control">
+                <label for="target-brokers">Kafka cluster</label
+                ><select class="target-select" id="target-brokers" data-target-select>
+                  <option value="orders-msk">orders-msk</option>
+                  <option value="payments-kafka">payments-kafka</option>
+                  <option value="local-dev">local-dev</option>
+                </select>
+                <div class="target-meta">
+                  <span class="badge" data-target-provider>MSK</span
+                  ><span class="badge good" data-target-status>● Reachable</span>
+                </div>
+              </div>
+              <button class="button icon">↻</button>
+            </div>
+          </header>
+          <div class="metrics">
+            <div class="metric"><strong data-broker-count>3</strong><span>Brokers</span></div>
+            <div class="metric"><strong data-broker-controller>Broker 1</strong><span>Controller</span></div>
+            <div class="metric"><strong data-broker-endpoints>3</strong><span>Advertised endpoints</span></div>
+            <div class="metric"><strong class="good-text">Available</strong><span>Metadata</span></div>
+          </div>
+          <div class="content">
+            <div class="table-wrap">
+              <table class="brokers-table">
+                <thead>
+                  <tr>
+                    <th style="width: 18%">Broker</th>
+                    <th style="width: 20%">Role</th>
+                    <th>Advertised host</th>
+                    <th style="width: 16%">Port</th>
+                  </tr>
+                </thead>
+                <tbody data-broker-rows></tbody>
+              </table>
+            </div>
+            <div class="status-line">
+              <span>Broker identities come from Kafka cluster metadata</span><span>Read-only · no broker probes</span>
+            </div>
+          </div>
+        </section>
+
+        <section class="view" id="produce" aria-label="Produce Kafka message future concept">
+          <header class="context-header">
+            <div class="title-group">
+              <div class="subtitle" style="margin: 0 0 4px">Topics / orders.events.v2</div>
+              <h1>Produce message</h1>
+              <div class="subtitle">Explicit write workflow · future capability</div>
+            </div>
+            <div class="context-actions">
+              <div class="target-control">
+                <label for="target-produce">Kafka cluster</label
+                ><select class="target-select" id="target-produce" disabled>
+                  <option>orders-msk</option>
+                </select>
+                <div class="target-meta">
+                  <span class="badge">MSK</span><span class="badge warning">Write allowlist required</span>
+                </div>
+              </div>
+            </div>
+          </header>
+          <div class="content">
+            <div class="write-banner">
+              <strong>!</strong
+              ><span
+                >This is intentionally a dedicated page, not a tab or quick action. Producing would be disabled by
+                default, require an explicitly write-enabled Kafka cluster, and never be exercised against a real
+                cluster by autonomous tests.</span
+              >
+            </div>
+            <div class="produce-layout">
+              <div class="editor-stack">
+                <section class="editor-panel">
+                  <div class="panel-head"><span>Key</span><span>UTF-8</span></div>
+                  <textarea>ORD-84292</textarea>
+                </section>
+                <section class="editor-panel">
+                  <div class="panel-head"><span>Value</span><span>JSON</span></div>
+                  <textarea>
+                    { "event": "OrderCreated", "orderId": "ORD-84292", "createdAt": "2026-07-24T10:03:18Z" }
+                  </textarea>
+                </section>
+              </div>
+              <aside class="produce-summary">
+                <div class="panel-head"><span>Delivery</span><span>Review</span></div>
+                <div class="summary-row"><span>Kafka cluster</span><strong>orders-msk</strong></div>
+                <div class="summary-row"><span>Topic</span><strong>orders.events.v2</strong></div>
+                <div class="summary-row">
+                  <span>Partition</span
+                  ><select class="select">
+                    <option>Auto</option>
+                    <option>0</option>
+                    <option>1</option>
+                  </select>
+                </div>
+                <div class="summary-row"><span>Headers</span><strong>2 configured</strong></div>
+                <div class="summary-actions">
+                  <button class="button">Cancel</button><button class="button write">Review & send</button>
+                </div>
+              </aside>
+            </div>
+          </div>
+        </section>
+      </main>
+    </div>
+
+    <script>
+    const targetData = {
+      "orders-msk": {
+        provider: "MSK",
+        status: "● Reachable",
+        statusClass: "good",
+        security: "TLS",
+        bootstrap: "b-1.orders.kafka.us-west-2.amazonaws.com:9094",
+        connection: "Direct",
+        health: "Healthy",
+        brokers: "3",
+        topics: "184",
+        partitions: "552",
+        controller: "Broker 1",
+        controllerId: "node.id 1",
+        replicationStatus: "● Healthy",
+        replicationDetail: "0 unavailable · 0 under-replicated",
+        replicationContext: "Replication factor 3",
+        lag: "2,481 lag",
+        groups: "18 groups · 14 stable · 4 empty",
+        laggingGroups: "3 groups currently have lag",
+        brokerNodes: [
+          { nodeId: 1, host: "b-1.orders.kafka.us-west-2.amazonaws.com", port: 9094 },
+          { nodeId: 2, host: "b-2.orders.kafka.us-west-2.amazonaws.com", port: 9094 },
+          { nodeId: 3, host: "b-3.orders.kafka.us-west-2.amazonaws.com", port: 9094 },
+        ],
+      },
+      "payments-kafka": {
+        provider: "Strimzi",
+        status: "↔ Port-forward",
+        statusClass: "accent",
+        security: "PLAINTEXT",
+        bootstrap: "payments-kafka-bootstrap.streaming.svc:9092",
+        connection: "Port-forward",
+        health: "Healthy",
+        brokers: "3",
+        topics: "42",
+        partitions: "126",
+        controller: "Broker 0",
+        controllerId: "node.id 0",
+        replicationStatus: "● Healthy",
+        replicationDetail: "0 unavailable · 0 under-replicated",
+        replicationContext: "Replication factor 3",
+        lag: "0 lag",
+        groups: "7 groups · 6 stable · 1 empty",
+        laggingGroups: "No groups currently have lag",
+        brokerNodes: [
+          { nodeId: 0, host: "payments-kafka-0.payments-kafka-brokers.streaming.svc", port: 9092 },
+          { nodeId: 1, host: "payments-kafka-1.payments-kafka-brokers.streaming.svc", port: 9092 },
+          { nodeId: 2, host: "payments-kafka-2.payments-kafka-brokers.streaming.svc", port: 9092 },
+        ],
+      },
+      "local-dev": {
+        provider: "Manual",
+        status: "● Reachable",
+        statusClass: "good",
+        security: "PLAINTEXT",
+        bootstrap: "127.0.0.1:9092",
+        connection: "Direct",
+        health: "Healthy",
+        brokers: "1",
+        topics: "8",
+        partitions: "16",
+        controller: "Broker 1",
+        controllerId: "node.id 1",
+        replicationStatus: "● Healthy",
+        replicationDetail: "0 unavailable · 0 under-replicated",
+        replicationContext: "Replication factor 1",
+        lag: "12 lag",
+        groups: "3 groups · 2 stable · 1 empty",
+        laggingGroups: "1 group currently has lag",
+        brokerNodes: [{ nodeId: 1, host: "127.0.0.1", port: 9092 }],
+      },
+    };
+
+    let currentTarget = "orders-msk";
+
+    const renderBrokers = (data) => {
+      const body = document.querySelector("[data-broker-rows]");
+      if (!body) return;
+      const controllerId = Number(data.controller.replace("Broker ", ""));
+      const rows = data.brokerNodes.map((broker) => {
+        const row = document.createElement("tr");
+        const brokerCell = document.createElement("td");
+        const identity = document.createElement("div");
+        identity.className = "entity";
+        const mark = document.createElement("span");
+        mark.className = "entity-mark";
+        mark.textContent = "B";
+        const copy = document.createElement("span");
+        copy.className = "entity-copy";
+        const name = document.createElement("strong");
+        name.textContent = `Broker ${broker.nodeId}`;
+        const id = document.createElement("small");
+        id.textContent = `node.id ${broker.nodeId}`;
+        copy.append(name, id);
+        identity.append(mark, copy);
+        brokerCell.append(identity);
+
+        const roleCell = document.createElement("td");
+        const role = document.createElement("span");
+        role.className = broker.nodeId === controllerId ? "badge accent" : "badge";
+        role.textContent = broker.nodeId === controllerId ? "Controller" : "Broker";
+        roleCell.append(role);
+
+        const hostCell = document.createElement("td");
+        hostCell.className = "mono";
+        hostCell.title = broker.host;
+        hostCell.textContent = broker.host;
+
+        const portCell = document.createElement("td");
+        portCell.textContent = String(broker.port);
+        row.append(brokerCell, roleCell, hostCell, portCell);
+        return row;
+      });
+      body.replaceChildren(...rows);
+      document.querySelectorAll("[data-broker-count], [data-broker-endpoints]").forEach((element) => {
+        element.textContent = String(data.brokerNodes.length);
+      });
+      document.querySelectorAll("[data-broker-controller]").forEach((element) => {
+        element.textContent = data.controller;
+      });
+    };
+
+    const syncTarget = (target) => {
+      currentTarget = target;
+      const data = targetData[target];
+      document.querySelectorAll("[data-target-select]").forEach((select) => {
+        if ([...select.options].some((option) => option.value === target)) select.value = target;
+      });
+      document.querySelectorAll("[data-target-name]").forEach((element) => (element.textContent = target));
+      document.querySelectorAll("[data-target-provider]").forEach((element) => {
+        element.textContent = data.provider;
+      });
+      document.querySelectorAll("[data-target-status]").forEach((element) => {
+        element.textContent = data.status;
+        element.className = `badge ${data.statusClass}`;
+      });
+      const overviewFields = {
+        "overview-health": data.health,
+        "overview-brokers": data.brokers,
+        "overview-topics": data.topics,
+        "overview-partitions": data.partitions,
+        "overview-replication-status": data.replicationStatus,
+        "overview-replication-detail": data.replicationDetail,
+        "overview-replication-context": data.replicationContext,
+        "overview-controller": data.controller,
+        "overview-controller-id": data.controllerId,
+        "overview-lag": data.lag,
+        "overview-groups": data.groups,
+        "overview-lagging-groups": data.laggingGroups,
+        "overview-provider": data.provider,
+        "overview-security": data.security,
+        "overview-bootstrap": data.bootstrap,
+        "overview-connection": data.connection,
+      };
+      Object.entries(overviewFields).forEach(([field, value]) => {
+        document.querySelectorAll(`[data-${field}]`).forEach((element) => (element.textContent = value));
+      });
+      renderBrokers(data);
+    };
+
+    const sectionForView = {
+      clusters: "clusters",
+      overview: "overview",
+      topics: "topics",
+      topic: "topics",
+      groups: "groups",
+      brokers: "brokers",
+      produce: "topics",
+    };
+
+    const showView = (view) => {
+      document.querySelectorAll(".view").forEach((element) => element.classList.toggle("active", element.id === view));
+      document
+        .querySelectorAll(".mockup-nav button")
+        .forEach((button) => button.classList.toggle("active", button.dataset.view === view));
+      const section = sectionForView[view];
+      document
+        .querySelectorAll(".side-item[data-section]")
+        .forEach((item) => item.classList.toggle("active", item.dataset.section === section));
+    };
+
+    document.querySelectorAll("[data-view]").forEach((element) => {
+      element.addEventListener("click", () => showView(element.dataset.view));
+      element.addEventListener("keydown", (event) => {
+        if (event.key === "Enter" || event.key === " ") {
+          event.preventDefault();
+          showView(element.dataset.view);
+        }
+      });
+    });
+
+    document.querySelectorAll("[data-open-target]").forEach((row) => {
+      row.addEventListener("click", () => {
+        syncTarget(row.dataset.openTarget);
+        showView("overview");
+      });
+    });
+
+    document.querySelectorAll("[data-target-select]").forEach((select) => {
+      select.addEventListener("change", () => {
+        syncTarget(select.value);
+        if (document.querySelector("#topic.active")) showView("topics");
+      });
+    });
+
+    syncTarget(currentTarget);
+    </script>
+  </body>
+</html>
