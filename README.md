@@ -75,7 +75,7 @@ installing anything extra (Freelens does not npm-install an extension's dependen
 ### Get something to look at (local KinD)
 
 - **Discovery only** (populate the Overview table, no real brokers): deploy the Strimzi CRD
-  + sample `Kafka` fixtures used by the tests:
+  and sample `Kafka` fixtures used by the tests:
 
   ```sh
   corepack pnpm kind:disc:up     # apply fake Strimzi CRD + Kafka CRs
@@ -120,7 +120,7 @@ change:
 
 ```sh
 corepack pnpm type:check
-corepack pnpm lint:check     # biome + prettier  (lint:fix to auto-format)
+corepack pnpm lint:check     # biome  (lint:fix to auto-format)
 corepack pnpm build
 corepack pnpm knip:check
 corepack pnpm test:unit
