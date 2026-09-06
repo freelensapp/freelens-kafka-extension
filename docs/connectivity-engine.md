@@ -18,15 +18,15 @@ isolation and reused by the extension's Main process in P3.
 
 ## Module map
 
-| File                                                                          | Role                                                                                              |
-| ----------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------- |
+| File                                                                                  | Role                                                                                              |
+| ------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------- |
 | [`src/main/kafka/types.ts`](../src/main/kafka/types.ts)                               | `BrokerRef`, `PodPort`, `AddressMap`.                                                             |
 | [`src/main/kafka/redirect.ts`](../src/main/kafka/redirect.ts)                         | `resolveTarget` (pure) + `createRedirectSocketFactory` for kafkajs.                               |
 | [`src/main/kafka/port-forward-manager.ts`](../src/main/kafka/port-forward-manager.ts) | `PortForwardManager` + the `Forwarder` seam. Opens one local listener per broker, builds the map. |
 | [`src/main/kafka/kube-forwarder.ts`](../src/main/kafka/kube-forwarder.ts)             | `createKubeForwarder` — production `Forwarder` over `@kubernetes/client-node` SPDY port-forward.  |
 | [`src/main/kafka/kafka-connection.ts`](../src/main/kafka/kafka-connection.ts)         | `KafkaConnection` — orchestrates forwards + socketFactory + kafkajs; lifecycle owner.             |
-| [`src/main/kafka/external-credentials.ts`](../src/main/kafka/external-credentials.ts) | Applies automatic/override TLS, PLAIN, SCRAM and mTLS profiles to Direct connections. |
-| [`src/main/ipc.ts`](../src/main/ipc.ts)                               | Wires the engine to the renderer over `Main.Ipc`.                                                                                   |
+| [`src/main/kafka/external-credentials.ts`](../src/main/kafka/external-credentials.ts) | Applies automatic/override TLS, PLAIN, SCRAM and mTLS profiles to Direct connections.             |
+| [`src/main/ipc.ts`](../src/main/ipc.ts)                                               | Wires the engine to the renderer over `Main.Ipc`.                                                 |
 
 ## Public API
 

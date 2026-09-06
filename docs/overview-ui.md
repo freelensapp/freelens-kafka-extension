@@ -54,19 +54,19 @@ sequenceDiagram
 
 ## Pieces
 
-| File                                                     | Role                                                                                                                     |
-| -------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
-| [`src/common/ipc.ts`](../src/common/ipc.ts) | Shared `discover` / `overview` / `topic` / `reachability` channels, requests and cluster/topic DTOs. |
-| [`src/main/ipc.ts`](../src/main/ipc.ts) | Discovery, reachability and connection-resolving overview/topic handlers with correlated progress and guaranteed teardown. |
-| [`src/main/kafka/topic-metadata.ts`](../src/main/kafka/topic-metadata.ts) | Pure KafkaJS metadata normalization and partition-health summaries. |
-| [`src/renderer/kafka-ipc.ts`](../src/renderer/kafka-ipc.ts) | Typed Renderer IPC wrappers for discovery, overview, topic and reachability. |
-| [`src/renderer/index.tsx`](../src/renderer/index.tsx) | Binds active-cluster-aware callbacks to the page. |
-| [`src/renderer/kafka-resource-cache.ts`](../src/renderer/kafka-resource-cache.ts) | Renderer-owned 60-second discovery/reachability/overview cache with in-flight deduplication, generation guards and aggregate request counts. |
-| [`src/renderer/kafka-connection-settings.ts`](../src/renderer/kafka-connection-settings.ts) | Context/target-isolated, session-only TLS/auth credential overrides. |
-| [`src/renderer/kafka-overview.tsx`](../src/renderer/kafka-overview.tsx) | Native Clusters list, manual endpoints and settings-only secondary Drawer. |
-| [`src/renderer/kafka-resource-pages.tsx`](../src/renderer/kafka-resource-pages.tsx) | Shared Overview/Brokers target loader, selector, cache state and page rendering. |
-| [`src/renderer/kafka-topic-pages.tsx`](../src/renderer/kafka-topic-pages.tsx) | Topics list and URL-backed Topic Workspace with partition detail. |
-| [`src/renderer/kafka-overview.scss`](../src/renderer/kafka-overview.scss) | Responsive page tables, badges, states and Connection Settings; bundled with `?inline`. |
+| File                                                                                        | Role                                                                                                                                         |
+| ------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
+| [`src/common/ipc.ts`](../src/common/ipc.ts)                                                 | Shared `discover` / `overview` / `topic` / `reachability` channels, requests and cluster/topic DTOs.                                         |
+| [`src/main/ipc.ts`](../src/main/ipc.ts)                                                     | Discovery, reachability and connection-resolving overview/topic handlers with correlated progress and guaranteed teardown.                   |
+| [`src/main/kafka/topic-metadata.ts`](../src/main/kafka/topic-metadata.ts)                   | Pure KafkaJS metadata normalization and partition-health summaries.                                                                          |
+| [`src/renderer/kafka-ipc.ts`](../src/renderer/kafka-ipc.ts)                                 | Typed Renderer IPC wrappers for discovery, overview, topic and reachability.                                                                 |
+| [`src/renderer/index.tsx`](../src/renderer/index.tsx)                                       | Binds active-cluster-aware callbacks to the page.                                                                                            |
+| [`src/renderer/kafka-resource-cache.ts`](../src/renderer/kafka-resource-cache.ts)           | Renderer-owned 60-second discovery/reachability/overview cache with in-flight deduplication, generation guards and aggregate request counts. |
+| [`src/renderer/kafka-connection-settings.ts`](../src/renderer/kafka-connection-settings.ts) | Context/target-isolated, session-only TLS/auth credential overrides.                                                                         |
+| [`src/renderer/kafka-overview.tsx`](../src/renderer/kafka-overview.tsx)                     | Native Clusters list, manual endpoints and settings-only secondary Drawer.                                                                   |
+| [`src/renderer/kafka-resource-pages.tsx`](../src/renderer/kafka-resource-pages.tsx)         | Shared Overview/Brokers target loader, selector, cache state and page rendering.                                                             |
+| [`src/renderer/kafka-topic-pages.tsx`](../src/renderer/kafka-topic-pages.tsx)               | Topics list and URL-backed Topic Workspace with partition detail.                                                                            |
+| [`src/renderer/kafka-overview.scss`](../src/renderer/kafka-overview.scss)                   | Responsive page tables, badges, states and Connection Settings; bundled with `?inline`.                                                      |
 
 ## Active-cluster resolution
 

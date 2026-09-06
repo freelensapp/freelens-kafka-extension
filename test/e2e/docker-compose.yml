@@ -14,9 +14,9 @@ services:
     image: apache/kafka:3.9.0
     container_name: freelens-kafka-poc
     ports:
-      - "9092:9092"
+      - 9092:9092
     extra_hosts:
-      - "kafka-internal:127.0.0.1"
+      - kafka-internal:127.0.0.1
     environment:
       KAFKA_NODE_ID: 1
       KAFKA_PROCESS_ROLES: broker,controller
@@ -32,10 +32,8 @@ services:
       KAFKA_NUM_PARTITIONS: 1
     healthcheck:
       test:
-        [
-          "CMD-SHELL",
-          "/opt/kafka/bin/kafka-topics.sh --bootstrap-server localhost:9092 --list || exit 1",
-        ]
+        - CMD-SHELL
+        - /opt/kafka/bin/kafka-topics.sh --bootstrap-server localhost:9092 --list || exit 1
       interval: 5s
       timeout: 10s
       retries: 20

@@ -17,13 +17,13 @@ Turns "a connected Kubernetes cluster" into the inputs the P1 engine needs —
 
 ## Module map
 
-| File                                                        | Role                                                                                                |
-| ----------------------------------------------------------- | --------------------------------------------------------------------------------------------------- |
-| [`src/main/kafka/kube-reader.ts`](../src/main/kafka/kube-reader.ts) | `KubeReader` seam (`listCustomResources`/`listPods`/`listServices`/`listWorkloads`/`getConfigMap`/`getSecret`) + client-node impl. |
-| [`src/main/kafka/discovery.ts`](../src/main/kafka/discovery.ts)     | `discoverStrimziKafkas`, `discoverKafkaServices`, `discoverWorkloadKafkas`, `discoverAllKafkas`, `classifyProvider` + pure parsers. |
-| [`src/main/kafka/credentials.ts`](../src/main/kafka/credentials.ts) | `resolveStrimziCredentials` + pure `parseClusterCa`/`parseScram`/`parseMtls`.                       |
-| [`src/main/kafka/external-credentials.ts`](../src/main/kafka/external-credentials.ts) | External workload env/Secret TLS, PLAIN, SCRAM and mTLS resolver + override merger. |
-| [`src/main/kafka/workload-environment.ts`](../src/main/kafka/workload-environment.ts) | Cached/selective env, `valueFrom` and `envFrom` resolver; keeps Secret values in Main. |
+| File                                                                                  | Role                                                                                                                                |
+| ------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
+| [`src/main/kafka/kube-reader.ts`](../src/main/kafka/kube-reader.ts)                   | `KubeReader` seam (`listCustomResources`/`listPods`/`listServices`/`listWorkloads`/`getConfigMap`/`getSecret`) + client-node impl.  |
+| [`src/main/kafka/discovery.ts`](../src/main/kafka/discovery.ts)                       | `discoverStrimziKafkas`, `discoverKafkaServices`, `discoverWorkloadKafkas`, `discoverAllKafkas`, `classifyProvider` + pure parsers. |
+| [`src/main/kafka/credentials.ts`](../src/main/kafka/credentials.ts)                   | `resolveStrimziCredentials` + pure `parseClusterCa`/`parseScram`/`parseMtls`.                                                       |
+| [`src/main/kafka/external-credentials.ts`](../src/main/kafka/external-credentials.ts) | External workload env/Secret TLS, PLAIN, SCRAM and mTLS resolver + override merger.                                                 |
+| [`src/main/kafka/workload-environment.ts`](../src/main/kafka/workload-environment.ts) | Cached/selective env, `valueFrom` and `envFrom` resolver; keeps Secret values in Main.                                              |
 
 ## The `KubeReader` seam
 

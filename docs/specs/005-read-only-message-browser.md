@@ -265,7 +265,7 @@ Evidence: `pnpm itest:messages` (disposable Docker Kafka) extended with a Tail-p
 3 independent `connectDirect` / `browseMessages` / `disconnect` cycles matching the IPC handler
 pattern — reports `groups=0` before and after, proving no consumer-group creation or offset commit
 during polling. Full output:
-```
+```text
 MESSAGE_BROWSE_OK records=4 range=0-4 groups=0
 TAIL_POLL_OK polls=3 final_cursor=4 groups=0
 ```

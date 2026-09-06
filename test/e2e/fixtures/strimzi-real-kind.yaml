@@ -10,17 +10,15 @@ kind: Kafka
 metadata:
   name: my-cluster
   namespace: default
-  labels: { app: kafka-real }
+  labels: {app: kafka-real}
 spec:
   kafka:
     listeners:
-      - { name: plain, port: 9092, type: internal, tls: false }
+      - {name: plain, port: 9092, type: internal, tls: false}
 status:
   listeners:
-    - {
-        name: plain,
-        bootstrapServers: "my-cluster-kafka-bootstrap.default.svc:9092",
-      }
+    - name: plain
+      bootstrapServers: my-cluster-kafka-bootstrap.default.svc:9092
 ---
 # Headless service: makes the pod DNS resolve inside the cluster before the pod is Ready
 # (publishNotReadyAddresses), avoiding the readiness/advertised-listener deadlock.
@@ -29,13 +27,13 @@ kind: Service
 metadata:
   name: my-cluster-kafka-brokers
   namespace: default
-  labels: { app: kafka-real }
+  labels: {app: kafka-real}
 spec:
   clusterIP: None
   publishNotReadyAddresses: true
-  selector: { app: kafka-real }
+  selector: {app: kafka-real}
   ports:
-    - { name: tcp-clients, port: 9092 }
+    - {name: tcp-clients, port: 9092}
 ---
 # Bootstrap service (cosmetic: discovery reads the bootstrap host from the CR status;
 # the actual connection port-forwards the broker pod).
@@ -44,11 +42,11 @@ kind: Service
 metadata:
   name: my-cluster-kafka-bootstrap
   namespace: default
-  labels: { app: kafka-real }
+  labels: {app: kafka-real}
 spec:
-  selector: { app: kafka-real }
+  selector: {app: kafka-real}
   ports:
-    - { name: tcp-clients, port: 9092 }
+    - {name: tcp-clients, port: 9092}
 ---
 apiVersion: v1
 kind: Pod
@@ -69,27 +67,27 @@ spec:
       ports:
         - containerPort: 9092
       env:
-        - { name: KAFKA_NODE_ID, value: "0" }
-        - { name: KAFKA_PROCESS_ROLES, value: "broker,controller" }
-        - {
-            name: KAFKA_LISTENERS,
-            value: "PLAINTEXT://:9092,CONTROLLER://:9093",
-          }
-        - {
-            name: KAFKA_ADVERTISED_LISTENERS,
-            value: "PLAINTEXT://my-cluster-kafka-0.my-cluster-kafka-brokers.default.svc:9092",
-          }
-        - { name: KAFKA_CONTROLLER_LISTENER_NAMES, value: "CONTROLLER" }
-        - {
-            name: KAFKA_LISTENER_SECURITY_PROTOCOL_MAP,
-            value: "CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT",
-          }
-        - { name: KAFKA_CONTROLLER_QUORUM_VOTERS, value: "0@localhost:9093" }
-        - { name: KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR, value: "1" }
-        - { name: KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR, value: "1" }
-        - { name: KAFKA_TRANSACTION_STATE_LOG_MIN_ISR, value: "1" }
-        - { name: KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS, value: "0" }
-        - { name: KAFKA_NUM_PARTITIONS, value: "1" }
+        - name: KAFKA_NODE_ID
+          value: "0"
+        - {name: KAFKA_PROCESS_ROLES, value: "broker,controller"}
+        - {name: KAFKA_LISTENERS, value: "PLAINTEXT://:9092,CONTROLLER://:9093"}
+        - name: KAFKA_ADVERTISED_LISTENERS
+          value: PLAINTEXT://my-cluster-kafka-0.my-cluster-kafka-brokers.default.svc:9092
+        - name: KAFKA_CONTROLLER_LISTENER_NAMES
+          value: CONTROLLER
+        - {name: KAFKA_LISTENER_SECURITY_PROTOCOL_MAP, value: "CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT"}
+        - name: KAFKA_CONTROLLER_QUORUM_VOTERS
+          value: 0@localhost:9093
+        - name: KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR
+          value: "1"
+        - name: KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR
+          value: "1"
+        - name: KAFKA_TRANSACTION_STATE_LOG_MIN_ISR
+          value: "1"
+        - name: KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS
+          value: "0"
+        - name: KAFKA_NUM_PARTITIONS
+          value: "1"
       readinessProbe:
         exec:
           command:
