@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased - v1.0.0
+## v1.0.0 - 2026-09-06
 
 ### Added
 
@@ -25,3 +25,11 @@
 - Authorized click-to-visible first useful/topology paint measured 3.879 seconds median / 4.762 seconds P95, versus fresh pinned open-source reference-console Topics paint at 7.081 seconds median / 7.673 seconds P95.
 - Full sanitized backend, API and packaged browser measurements are recorded in `docs/performance/spec-014-slice-16.json`.
 - The publication-ready post-approval TGZ has SHA-256 `da9b175c8b17293864825f031ae11f62b5e44f4605a8b700c750718a05e21c63`; its runtime bundles are byte-identical to the browser-attested release candidate.
+
+### Released
+
+- Published on 2026-09-06 from tag `v1.0.0` (commit `1a2eb58`) by the
+  release workflow: `@freelensapp/kafka-extension@1.0.0` on npm (tag
+  `latest`) and the GitHub release asset `freelensapp-kafka-extension-1.0.0.tgz`
+  are the same CI production build, SHA-256
+  `ee939118bd31dace018261cfdfa1bd27567ea31eebc8457b9576688fcf24751d`.
