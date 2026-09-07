@@ -316,12 +316,14 @@ port, `DEMO_PRODUCE_INTERVAL_SECONDS` changes the producer rate,
 `DEMO_CLUSTER` renames the kind cluster and `DEMO_KIND_NODE_IMAGE` pins the
 kind node image.
 
-On Windows run the scripts from WSL2 with Docker Desktop's WSL integration
-enabled. kind writes the kubeconfig inside WSL, so add that file to Freelens
-on Windows (Preferences, Kubernetes, sync a kubeconfig file) using its
-`\\wsl.localhost\<distro>\home\<user>\.kube\config` path; the API server
-and the Docker broker are published on `127.0.0.1` of the Windows host as
-well.
+On Windows run the scripts from WSL2, with either Docker Engine installed
+in the distribution or Docker Desktop's WSL integration. Since Freelens runs
+on Windows, `demo:up` also writes a copy of the kubeconfig to
+`%USERPROFILE%\.kube\freelens-kafka-demo.yaml` and prints its path: add
+that file to Freelens (Preferences, Kubernetes, sync a kubeconfig file);
+`demo:down` removes it. The API server and the Docker broker listen on
+`127.0.0.1` inside WSL and reach Windows through WSL2's localhost
+forwarding, which is on by default.
 
 ### Local fixtures (kind and Docker)
 

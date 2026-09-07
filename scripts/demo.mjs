@@ -14,6 +14,8 @@
  */
 
 import { spawn } from "node:child_process";
+import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { dirname, join } from "node:path";
 import process from "node:process";
 
 const CLUSTER = process.env.DEMO_CLUSTER || "freelens-kafka-demo";
@@ -545,6 +547,54 @@ async function preflight() {
   );
 }
 
+function runningInWsl() {
+  try {
+    return /microsoft/i.test(readFileSync("/proc/version", "utf8"));
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Under WSL2 Freelens runs on Windows, so it needs a copy of the kubeconfig on the Windows side.
+ * Returns { linux, windows } paths, or null when not applicable. DEMO_WINDOWS_KUBECONFIG_DIR overrides
+ * the directory (also outside WSL, for testing) and "0" disables the copy.
+ */
+async function windowsKubeconfigTarget() {
+  const override = process.env.DEMO_WINDOWS_KUBECONFIG_DIR;
+  const fileName = `${CLUSTER}.yaml`;
+  if (override === "0") return null;
+  if (override) return { linux: join(override, fileName), windows: join(override, fileName) };
+  if (!runningInWsl()) return null;
+  const profile = await run("cmd.exe", ["/c", "echo %USERPROFILE%"], { capture: true, allowFailure: true });
+  const windowsHome = profile.stdout.trim();
+  if (profile.code !== 0 || !/^[A-Za-z]:\\/.test(windowsHome)) return null;
+  const linuxHome = await run("wslpath", ["-u", windowsHome], { capture: true, allowFailure: true });
+  if (linuxHome.code !== 0) return null;
+  return {
+    linux: join(linuxHome.stdout.trim(), ".kube", fileName),
+    windows: `${windowsHome}\\.kube\\${fileName}`,
+  };
+}
+
+async function exportWindowsKubeconfig() {
+  const target = await windowsKubeconfigTarget();
+  if (!target) return null;
+  const kubeconfig = await run("kind", ["get", "kubeconfig", "--name", CLUSTER], { capture: true });
+  mkdirSync(dirname(target.linux), { recursive: true });
+  writeFileSync(target.linux, kubeconfig.stdout, { mode: 0o600 });
+  log(`Kubeconfig for Freelens on Windows written to ${target.windows}`);
+  return target.windows;
+}
+
+async function removeWindowsKubeconfig() {
+  const target = await windowsKubeconfigTarget();
+  if (target && existsSync(target.linux)) {
+    rmSync(target.linux);
+    log(`Removed ${target.windows}`);
+  }
+}
+
 async function clusterExists() {
   const result = await run("kind", ["get", "clusters"], { quiet: true, allowFailure: true });
   return result.stdout
@@ -766,14 +816,14 @@ async function seedDirectBroker() {
   }
 }
 
-function printSummary() {
-  const lines = [
-    "",
-    "Demo environment ready.",
-    "",
-    `  Kubernetes context : ${CONTEXT} (added to your kubeconfig)`,
+function printSummary(windowsKubeconfig) {
+  const lines = ["", "Demo environment ready.", "", `  Kubernetes context : ${CONTEXT} (added to your kubeconfig)`];
+  if (windowsKubeconfig) {
+    lines.push(`  Freelens on Windows: add the kubeconfig file ${windowsKubeconfig} (Preferences, Kubernetes)`);
+  }
+  lines.push(
     `  In-cluster Kafka   : Strimzi cluster "${STRIMZI_CLUSTER}" in namespace ${KAFKA_NAMESPACE}, reached through a port-forward`,
-  ];
+  );
   if (DIRECT_ENABLED) {
     lines.push(
       `  External Kafka     : ${DIRECT_BOOTSTRAP} in Docker, referenced by the checkout-service workload, reached directly`,
@@ -796,13 +846,14 @@ async function up() {
   await ensureImage();
   if (DIRECT_ENABLED) await startDirectBroker();
   await ensureCluster();
+  const windowsKubeconfig = await exportWindowsKubeconfig();
   await loadImage();
   await applyManifests();
   if (DIRECT_ENABLED) await seedDirectBroker();
   await waitForSeed();
   await waitForWorkloads();
   log("Everything is up");
-  printSummary();
+  printSummary(windowsKubeconfig);
 }
 
 async function down() {
@@ -818,6 +869,7 @@ async function down() {
   } else {
     log(`kind cluster ${CLUSTER} is not there`);
   }
+  await removeWindowsKubeconfig();
   log("Demo environment removed (the pulled images are kept)");
 }
 
@@ -841,7 +893,9 @@ Environment variables:
   DEMO_DIRECT_PORT               host port of the Docker broker (default: ${DIRECT_PORT})
   DEMO_PRODUCE_INTERVAL_SECONDS  live producer interval (default: ${PRODUCE_INTERVAL})
   DEMO_KAFKA_IMAGE               Kafka image (default: ${KAFKA_IMAGE})
-  DEMO_KIND_NODE_IMAGE           kind node image, when a specific Kubernetes version is wanted`;
+  DEMO_KIND_NODE_IMAGE           kind node image, when a specific Kubernetes version is wanted
+  DEMO_WINDOWS_KUBECONFIG_DIR    where the kubeconfig copy for Freelens on Windows goes under WSL2
+                                 (default: %USERPROFILE%\\.kube, "0" disables it)`;
 
 const commands = { up, down, status };
 const command = commands[process.argv[2]];
