@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+### Added
+
+- `demo:up`, `demo:status` and `demo:down` scripts that build and remove a disposable demo environment with only Docker, kind and Node.js: a dedicated kind cluster with a Strimzi-like Kafka broker, an external Docker broker referenced by a workload, seeded topics with JSON records, an active and a lagging consumer group, and a live producer.
+
 ## v1.0.0 - 2026-09-06
 
 ### Added
