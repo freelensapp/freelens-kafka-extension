@@ -2,3 +2,6 @@
 extends: markdownlint/style/prettier
 # First line in a file should be a top-level heading
 MD041: false
+# Changelog sections repeat "Added" / "Changed" under every release heading
+MD024:
+  siblings_only: true
