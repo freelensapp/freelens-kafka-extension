@@ -277,6 +277,52 @@ Engine integration tests run against Docker / KinD, see
 [test/e2e](./test/e2e) and the `kafka:*` / `kind:*` / `itest*` scripts in
 [package.json](./package.json).
 
+### Demo environment (Docker + kind)
+
+`demo:up` builds a disposable, fully populated environment on your machine,
+so that anyone can try the extension or record a demo without preparing
+anything by hand. It needs only Docker, kind and Node.js: kubectl is used
+when present, otherwise the kubectl inside the kind node does the work.
+
+```sh
+corepack pnpm demo:up      # or: npm run demo:up
+corepack pnpm demo:status
+corepack pnpm demo:down    # deletes the demo cluster and the Docker broker
+```
+
+What you get:
+
+- A dedicated kind cluster `freelens-kafka-demo` (context
+  `kind-freelens-kafka-demo`, added to your kubeconfig). Your own `kind`
+  cluster is never touched.
+- A real single-broker Kafka 3.9 inside the cluster, discovered as the
+  Strimzi cluster `orders` in namespace `kafka-demo` and reached through a
+  port-forward.
+- A second broker in Docker on `127.0.0.1:19093`, referenced by the
+  `checkout-service` workload in the cluster, discovered as an external
+  Kafka and reached directly.
+- On both brokers: the topics `orders` (6 partitions), `payments`,
+  `shipments` and `notifications` with JSON records, keys and headers; the
+  consumer group `billing-service`, kept active by a running consumer; the
+  consumer group `orders-dashboard`, stopped early so its lag keeps growing;
+  a producer that writes one order per second to `orders`, so Tail always
+  has something to show.
+
+In Freelens open the `kind-freelens-kafka-demo` cluster, then **Kafka** in
+the sidebar. The first run pulls the kind node and Kafka images, so allow a
+few minutes; later runs take about a minute. Environment variables:
+`DEMO_DIRECT=0` skips the Docker broker, `DEMO_DIRECT_PORT` changes its
+port, `DEMO_PRODUCE_INTERVAL_SECONDS` changes the producer rate,
+`DEMO_CLUSTER` renames the kind cluster and `DEMO_KIND_NODE_IMAGE` pins the
+kind node image.
+
+On Windows run the scripts from WSL2 with Docker Desktop's WSL integration
+enabled. kind writes the kubeconfig inside WSL, so add that file to Freelens
+on Windows (Preferences, Kubernetes, sync a kubeconfig file) using its
+`\\wsl.localhost\<distro>\home\<user>\.kube\config` path; the API server
+and the Docker broker are published on `127.0.0.1` of the Windows host as
+well.
+
 ### Local fixtures (kind and Docker)
 
 - **Discovery only** (populate the Overview table, no real brokers): deploy
