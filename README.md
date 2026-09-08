@@ -30,6 +30,8 @@ the cluster sidebar under **Apache Kafka**: **Clusters**, **Overview**,
 **Topics**, **Consumer Groups**, **Brokers** and, once an endpoint is
 configured, **Schema Registry**, **Kafka Connect** and **ACLs**.
 
+[Video Demo](https://github.com/user-attachments/assets/0e91a8fb-0ed8-4b28-9231-4ea59e2245a7)
+
 ![The Messages browser of a topic on the local Kafka fixture, dark theme](docs/screenshots/topic-messages-dark.png)
 
 The goal is feature parity with the standalone open-source Kafka consoles,
