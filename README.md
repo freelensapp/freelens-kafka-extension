@@ -213,10 +213,11 @@ for the clusters that have them.
 ### Write operations
 
 Writes are disabled by default. A session-only write mode per target unlocks
-Produce Message, consumer group offset reset, Schema Registry and Kafka
-Connect management, and ACL create/delete on brokers that authorize it, each
-behind an explicit confirmation. Automated tests only ever write to the local
-`kind` cluster and the disposable Docker fixtures.
+Produce Message, topic deletion (typed confirmation), consumer group offset
+reset, Schema Registry and Kafka Connect management, and ACL create/delete on
+brokers that authorize it, each behind an explicit confirmation. Automated
+tests only ever write to the local `kind` cluster and the disposable Docker
+fixtures.
 
 ### Production-scale performance
 

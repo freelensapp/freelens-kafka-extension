@@ -2203,6 +2203,93 @@ clusterDescribe("Kafka cluster page", () => {
   );
 
   it(
+    "deletes a topic only after the typed confirmation",
+    async () => {
+      // SPEC-009 REQ-194–REQ-196: disposable loopback topic only.
+      expect(DIRECT_KAFKA_BROKER).toBe("127.0.0.1:19092");
+      const disposableTopic = `freelens-e2e-delete-${Date.now()}`;
+      const topicFixture = (action: "create" | "assert-absent") => {
+        execFileSync("pnpm", ["tsx", "test/e2e/direct-topic-fixture.ts"], {
+          cwd: extensionRootForFixtureCommands,
+          env: {
+            ...process.env,
+            KAFKA_LOCAL: DIRECT_KAFKA_BROKER,
+            KAFKA_TOPIC: disposableTopic,
+            KAFKA_TOPIC_ACTION: action,
+          },
+          stdio: "inherit",
+        });
+      };
+      topicFixture("create");
+
+      await openKafkaMenuItem("kafka-clusters");
+      await frame.waitForFunction(() => window.location.pathname.endsWith("/kafka-clusters"));
+      const settingsRow = await ensureKafkaClusterRow(DIRECT_KAFKA_BROKER);
+      await settingsRow.locator(".KafkaIconButton").dispatchEvent("click");
+      const settings = frame.locator('[data-testid="kafka-connection-settings"]');
+      await settings.waitFor({ state: "visible", timeout: 30_000 });
+      // Order-independent: the switch persists asynchronously, so click only when it is off and wait.
+      const writeToggle = frame.getByLabel("Enable write mode for this Kafka target");
+      if (!(await writeToggle.isChecked())) await writeToggle.click();
+      await frame.waitForFunction(
+        () => (document.querySelector('[data-testid="kafka-write-mode-toggle"]') as HTMLInputElement | null)?.checked,
+        undefined,
+        { timeout: 30_000 },
+      );
+      await settings.locator(".drawer-title .Icon").last().click();
+      await settings.waitFor({ state: "hidden", timeout: 30_000 });
+
+      const directRow = await ensureKafkaClusterRow(DIRECT_KAFKA_BROKER);
+      await directRow.focus();
+      await directRow.press("Enter");
+      await frame.waitForFunction(() => window.location.pathname.endsWith("/kafka-overview"));
+      await openKafkaMenuItem("kafka-topics");
+      await frame.waitForFunction(() => window.location.pathname.endsWith("/kafka-topics"));
+      const topicsPage = frame.locator('[data-testid="kafka-topics-page"]');
+      await topicsPage.waitFor({ state: "visible", timeout: 120_000 });
+      // The topic was created after the cached metadata snapshot: reload the list.
+      await frame.locator(".KafkaRefreshButton").click();
+      await topicsPage.getByPlaceholder("Filter topics").fill("e2e-delete");
+      const topicRow = topicsPage.locator(`.KafkaTopicPageTable .TableRow[data-topic="${disposableTopic}"]`);
+      await topicRow.waitFor({ state: "visible", timeout: 60_000 });
+      await topicRow.focus();
+      await topicRow.press("Enter");
+      const topicWorkspace = frame.locator('[data-testid="kafka-topic-workspace"]');
+      await topicWorkspace.waitFor({ state: "visible", timeout: 120_000 });
+
+      await frame.getByTestId("kafka-delete-topic-button").click();
+      const deleteDrawer = frame.locator('[data-testid="kafka-delete-topic-drawer"]');
+      await deleteDrawer.waitFor({ state: "visible", timeout: 30_000 });
+      expect(await deleteDrawer.innerText()).toContain(disposableTopic);
+      const submitDelete = frame.getByTestId("kafka-delete-topic-submit");
+      expect(await submitDelete.isDisabled()).toBe(true);
+      await frame.getByLabel("Confirm topic deletion").check({ force: true });
+      expect(await submitDelete.isDisabled()).toBe(true);
+      await frame.getByLabel("Type topic to confirm deletion").fill(`${disposableTopic}-wrong`);
+      expect(await submitDelete.isDisabled()).toBe(true);
+      await frame.getByLabel("Type topic to confirm deletion").fill(disposableTopic);
+      expect(await submitDelete.isDisabled()).toBe(false);
+      await submitDelete.click();
+
+      await topicsPage.waitFor({ state: "visible", timeout: 60_000 });
+      expect(await frame.locator('[data-testid="kafka-topic-workspace"]').count()).toBe(0);
+      expect(await frame.getByTestId("kafka-topic-write-status").innerText()).toContain(
+        `Deleted topic ${disposableTopic}`,
+      );
+      await topicsPage.getByPlaceholder("Filter topics").fill("e2e-delete");
+      await frame.waitForFunction(
+        (name) =>
+          Boolean(document.querySelector(".KafkaTopicPageTable")) &&
+          !document.querySelector(`.KafkaTopicPageTable .TableRow[data-topic="${name}"]`),
+        disposableTopic,
+        { timeout: 60_000 },
+      );
+      topicFixture("assert-absent");
+    },
+    6 * 60 * 1000,
+  );
+
+  it(
     "shows Consumer Groups detail tabs and Topic cross-link",
     async () => {
       const TEST_GROUP = "freelens-orders-consumer";

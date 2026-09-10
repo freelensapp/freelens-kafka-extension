@@ -14,6 +14,7 @@ export const KAFKA_IPC = {
   groups: "kafka:groups",
   groupDetail: "kafka:group:detail",
   produce: "kafka:produce",
+  deleteTopic: "kafka:topic:delete",
   resetOffsets: "kafka:group:reset-offsets",
   schemaSubjects: "kafka:schema-registry:subjects",
   schemaSubjectNames: "kafka:schema-registry:subject-names",
@@ -363,6 +364,15 @@ export interface ProduceResultDto {
   topic: string;
   partition: number;
   offset: string;
+}
+
+/** Destructive: deletes one topic with all its partitions and records (SPEC-009 REQ-194). */
+export interface DeleteTopicRequest extends OverviewRequest {
+  topic: string;
+}
+
+export interface DeleteTopicResultDto {
+  topic: string;
 }
 
 export type OffsetResetMode = "earliest" | "latest" | "offset" | "timestamp";

@@ -12,6 +12,8 @@ import {
   type ConnectorSummaryDto,
   type ConsumerGroupDetailDto,
   type ConsumerGroupsDto,
+  type DeleteTopicRequest,
+  type DeleteTopicResultDto,
   type DiscoveredKafkaInfo,
   type DiscoverRequest,
   type GroupDetailRequest,
@@ -99,6 +101,10 @@ export class KafkaIpcRenderer extends Renderer.Ipc {
 
   produce(request: ProduceRequest): Promise<ProduceResultDto> {
     return this.invoke(KAFKA_IPC.produce, request) as Promise<ProduceResultDto>;
+  }
+
+  deleteTopic(request: DeleteTopicRequest): Promise<DeleteTopicResultDto> {
+    return this.invoke(KAFKA_IPC.deleteTopic, request) as Promise<DeleteTopicResultDto>;
   }
 
   resetOffsets(request: ResetOffsetsRequest): Promise<ResetOffsetsResultDto> {
