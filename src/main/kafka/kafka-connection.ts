@@ -10,6 +10,7 @@ import {
   listConsumerGroups,
 } from "./group-fetch";
 import { KafkaGroupOffsetBatchReader } from "./group-offset-batch";
+import { fetchTopicSizes } from "./log-dirs";
 import { browseMessagesWithCluster, createKafkaJsReadCluster, type KafkaReadCluster } from "./message-fetch";
 import { fetchHighWatermarks, type OffsetBatchPartition } from "./offset-batch";
 import { PortForwardManager } from "./port-forward-manager";
@@ -33,6 +34,7 @@ import type {
   TopicConfigDto,
   TopicConsumersDto,
   TopicDetailDto,
+  TopicSizesDto,
 } from "../../common/ipc";
 import type { Forwarder } from "./port-forward-manager";
 import type { KafkaProgressReporter } from "./progress";
@@ -369,6 +371,11 @@ export class KafkaConnection {
     request: Pick<MessageBrowseRequest, "topic" | "partition" | "startMode" | "offset" | "timestamp" | "limit">,
   ): Promise<MessageBrowseDto> {
     return this.getMessageCluster().then((cluster) => browseMessagesWithCluster(cluster, request));
+  }
+
+  /** Sizes on disk per topic and partition through DescribeLogDirs on every broker (read-only). */
+  topicSizes(topics: readonly string[], signal?: AbortSignal): Promise<TopicSizesDto> {
+    return this.getMessageCluster().then((cluster) => fetchTopicSizes(cluster, topics, { signal }));
   }
 
   /** List all consumer groups with state and member count (read-only, no join or commit). */

@@ -9,6 +9,7 @@ export const KAFKA_IPC = {
   topic: "kafka:topic",
   topicConfig: "kafka:topic:config",
   topicConsumers: "kafka:topic:consumers",
+  topicSizes: "kafka:topics:sizes",
   brokerConfig: "kafka:broker:config",
   messagesBrowse: "kafka:messages:browse",
   groups: "kafka:groups",
@@ -85,6 +86,35 @@ export interface AggregateHealthInvalidateRequest {
 }
 
 export interface TopicConfigRequest extends TopicRequest {}
+
+/** Sizes on disk of the given topics, read through DescribeLogDirs on every broker. */
+export interface TopicSizesRequest extends OverviewRequest {
+  topics: string[];
+}
+
+export interface PartitionSizeDto {
+  partition: number;
+  /** Bytes of the leader replica (int64 as a decimal string). */
+  leaderBytes: string;
+  /** Bytes of every replica summed. */
+  replicaBytes: string;
+  replicas: Array<{ nodeId: number; bytes: string; offsetLag: string }>;
+}
+
+export interface TopicSizeDto {
+  leaderBytes: string;
+  replicaBytes: string;
+  /** False when a partition leader was not reported (its size is then a lower bound). */
+  exact: boolean;
+  partitions: PartitionSizeDto[];
+}
+
+export interface TopicSizesDto {
+  /** False when the brokers do not offer DescribeLogDirs. */
+  supported: boolean;
+  unavailableBrokers: number[];
+  topics: Record<string, TopicSizeDto>;
+}
 
 export interface TopicConsumersRequest extends TopicRequest {}
 

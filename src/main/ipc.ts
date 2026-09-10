@@ -37,6 +37,7 @@ import {
   type TopicConfigRequest,
   type TopicConsumersRequest,
   type TopicRequest,
+  type TopicSizesRequest,
 } from "../common/ipc";
 import { kafkaPersistentStateStore } from "../common/kafka-persistent-state-store";
 import { createKafkaTargetId } from "../common/kafka-target";
@@ -478,6 +479,19 @@ export class KafkaIpcMain extends Main.Ipc {
       } finally {
         await this.sessions.release(connection);
       }
+    });
+
+    this.handle(KAFKA_IPC.topicSizes, async (_event, request: TopicSizesRequest) => {
+      const reader = createReader(request);
+      const connectionPromise = this.resolveConnection(request, reader, () => undefined);
+      const operation = connectionPromise.then(async ({ connection }) => {
+        return connection.topicSizes(Array.isArray(request.topics) ? request.topics.map(String) : []);
+      });
+      const finalized = withFinalizer(operation, async () => {
+        const resolved = await connectionPromise.catch(() => undefined);
+        if (resolved) await this.sessions.release(resolved.connection);
+      });
+      return withTimeout(finalized, KAFKA_ADMIN_TIMEOUT_MS, "Topic sizes");
     });
 
     this.handle(KAFKA_IPC.topicConfig, async (_event, request: TopicConfigRequest) => {
