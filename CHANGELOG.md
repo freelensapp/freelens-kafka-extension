@@ -6,6 +6,10 @@
 
 - `demo:up`, `demo:status` and `demo:down` scripts that build and remove a disposable demo environment with only Docker, kind and Node.js: a dedicated kind cluster with a Strimzi-like Kafka broker, an external Docker broker referenced by a workload, seeded topics with JSON records, an active and a lagging consumer group, and a live producer. Under WSL2 the kubeconfig is also copied to the Windows side for Freelens.
 
+### Fixed
+
+- The broker port-forward now loads the kubeconfig file the selected Freelens cluster was added from (the catalog `kubeConfigPath`) instead of only the default `~/.kube/config` / `$KUBECONFIG`, so clusters kept in separate kubeconfig files connect through Freelens. An unreadable file still falls back to the default resolution (#22).
+
 ## v1.0.0 - 2026-09-06
 
 ### Added
