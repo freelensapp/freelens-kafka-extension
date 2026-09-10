@@ -21,13 +21,13 @@ jobs:
 
     steps:
       - name: Checkout plugin
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
 
       - name: Check if package version matches
         run: test "${GITHUB_REF_NAME}" = "v$(yq -r .version package.json)"
 
       - name: Setup node
-        uses: actions/setup-node@v6
+        uses: actions/setup-node@v7
         with:
           node-version-file: .nvmrc
           package-manager-cache: false
@@ -44,7 +44,7 @@ jobs:
         run: echo "pnpm_cache_dir=$(pnpm store path)" >> ${GITHUB_ENV}
 
       - name: Use pnpm cache
-        uses: actions/cache@v5
+        uses: actions/cache@v6
         with:
           path: ${{ env.pnpm_cache_dir }}
           key: ubuntu-24.04-arm-node-${{ hashFiles('**/pnpm-lock.yaml') }}
