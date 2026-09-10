@@ -334,7 +334,7 @@ clusterDescribe("Kafka cluster page", () => {
     writeFileSync(storePath, `${JSON.stringify(model, null, 2)}\n`);
   };
 
-  const produceDirectTopicPartition0Messages = (lines: string[]) => {
+  const produceDirectTopicPartition0Messages = (lines: string[], topic = DIRECT_TOPIC) => {
     if (lines.length === 0) {
       return;
     }
@@ -345,7 +345,7 @@ clusterDescribe("Kafka cluster page", () => {
         ...process.env,
         KAFKA_LOCAL: DIRECT_KAFKA_BROKER,
         KAFKA_TAIL_MESSAGES: JSON.stringify(lines),
-        KAFKA_TAIL_TOPIC: DIRECT_TOPIC,
+        KAFKA_TAIL_TOPIC: topic,
       },
       stdio: "inherit",
     });
@@ -1495,6 +1495,24 @@ clusterDescribe("Kafka cluster page", () => {
       expect(await messageDetailDrawer.locator(".KafkaMsgHeaderList").innerText()).toMatch(
         /trace[\s\S]*first[\s\S]*second/,
       );
+      // #23: copy buttons for value and headers (the status flips only once the copy succeeded)
+      const copyStatus = (testId: string) =>
+        frame.waitForFunction(
+          (id) => document.querySelector(`[data-testid="${id}"]`)?.getAttribute("data-copy-status") === "copied",
+          testId,
+          { timeout: 10_000 },
+        );
+      await messageDetailDrawer.getByTestId("kafka-copy-value").click();
+      await copyStatus("kafka-copy-value");
+      const copiedValue = await frame.evaluate(() => navigator.clipboard.readText().catch(() => undefined));
+      if (copiedValue !== undefined) expect(JSON.parse(copiedValue)).toEqual({ id: 1001, state: "created" });
+      await messageDetailDrawer.getByTestId("kafka-copy-headers").click();
+      await copyStatus("kafka-copy-headers");
+      const copiedHeaders = await frame.evaluate(() => navigator.clipboard.readText().catch(() => undefined));
+      if (copiedHeaders !== undefined) {
+        expect(JSON.parse(copiedHeaders)).toEqual({ trace: ["first", "second"], contentType: "application/json" });
+      }
+      expect(await messageDetailDrawer.getByTestId("kafka-copy-key").count()).toBe(1);
       await frame
         .locator(
           ".Drawer.KafkaMessageDetailDrawer .drawer-title [data-testid], .Drawer.KafkaMessageDetailDrawer .drawer-title .Icon",
@@ -1675,6 +1693,104 @@ clusterDescribe("Kafka cluster page", () => {
       expect(await topicsPage.getByPlaceholder("Filter topics").inputValue()).toBe("orders");
     },
     10 * 60 * 1000,
+  );
+
+  it(
+    "scrolls and sorts a message window taller than the browser",
+    async () => {
+      // #25: the loaded window was clipped by the browser with no scrollbar in the desktop layout.
+      const scrollTopic = "freelens-orders-archive-with-a-very-long-topic-name-for-layout-validation";
+      const token = `scroll-${Date.now()}`;
+      produceDirectTopicPartition0Messages(
+        Array.from({ length: 40 }, (_, index) => `${token}-${String(index).padStart(2, "0")}`),
+        scrollTopic,
+      );
+
+      const directRow = await ensureKafkaClusterRow(DIRECT_KAFKA_BROKER);
+      await directRow.focus();
+      await directRow.press("Enter");
+      await frame.waitForFunction(() => window.location.pathname.endsWith("/kafka-overview"));
+      await openKafkaMenuItem("kafka-topics");
+      await frame.waitForFunction(() => window.location.pathname.endsWith("/kafka-topics"));
+      const topicsPage = frame.locator('[data-testid="kafka-topics-page"]');
+      await topicsPage.waitFor({ state: "visible", timeout: 120_000 });
+      await topicsPage.getByPlaceholder("Filter topics").fill("archive");
+      const topicRow = topicsPage.locator(`.KafkaTopicPageTable .TableRow[data-topic="${scrollTopic}"]`);
+      await topicRow.waitFor({ state: "visible", timeout: 30_000 });
+      await topicRow.focus();
+      await topicRow.press("Enter");
+      const topicWorkspace = frame.locator('[data-testid="kafka-topic-workspace"]');
+      await topicWorkspace.waitFor({ state: "visible", timeout: 120_000 });
+      await topicWorkspace.getByRole("tab", { name: "Messages" }).click();
+      const messagesBrowser = topicWorkspace.getByTestId("kafka-messages-browser");
+      await messagesBrowser.waitFor({ state: "visible", timeout: 30_000 });
+      await messagesBrowser.getByRole("button", { name: "Earliest" }).click();
+      await messagesBrowser.getByLabel("Record limit").fill("50");
+      await messagesBrowser.getByRole("button", { name: "Browse messages" }).click();
+      await frame.waitForFunction(
+        () =>
+          document.querySelector('[data-testid="kafka-messages-browser"]')?.getAttribute("data-browse-state") ===
+          "complete",
+        undefined,
+        { timeout: 45_000 },
+      );
+      const messageTable = messagesBrowser.locator(".KafkaMessageTable");
+      await messageTable.locator(".TableRow[data-offset]").first().waitFor({ state: "visible", timeout: 30_000 });
+      expect(await messageTable.locator(".TableRow[data-offset]").count()).toBeGreaterThanOrEqual(40);
+
+      const geometry = await messageTable.evaluate((table) => {
+        const browserBox = table.closest(".KafkaMessagesBrowser")?.getBoundingClientRect();
+        const rows = [...table.querySelectorAll<HTMLElement>(".TableRow[data-offset]")];
+        const lastRow = rows[rows.length - 1];
+        const tableBox = table.getBoundingClientRect();
+        const lastBefore = lastRow.getBoundingClientRect();
+        lastRow.scrollIntoView({ block: "nearest" });
+        const lastAfter = lastRow.getBoundingClientRect();
+        const headBox = table.querySelector(".TableHead")?.getBoundingClientRect();
+        return {
+          containedInBrowser: Boolean(browserBox && tableBox.bottom <= browserBox.bottom + 1),
+          headerStaysVisible: Boolean(headBox && Math.abs(headBox.top - tableBox.top) <= 2),
+          lastRowHiddenBeforeScroll: lastBefore.top >= tableBox.bottom - 1,
+          lastRowVisibleAfterScroll: lastAfter.top >= tableBox.top - 1 && lastAfter.bottom <= tableBox.bottom + 1,
+          overflowY: getComputedStyle(table).overflowY,
+          scrollable: table.scrollHeight > table.clientHeight + 1,
+        };
+      });
+      expect(geometry).toEqual({
+        containedInBrowser: true,
+        headerStaysVisible: true,
+        lastRowHiddenBeforeScroll: true,
+        lastRowVisibleAfterScroll: true,
+        overflowY: "auto",
+        scrollable: true,
+      });
+
+      const offsets = () =>
+        messageTable
+          .locator(".TableRow[data-offset]")
+          .evaluateAll((rows) => rows.map((row) => row.getAttribute("data-offset") ?? ""));
+      const ascending = await offsets();
+      const sortedAscending = [...ascending].sort((a, b) => Number(a) - Number(b));
+      expect(ascending).toEqual(sortedAscending);
+      const offsetHeader = messageTable.locator(".TableHead .TableCell", { hasText: "Offset" });
+      await offsetHeader.click();
+      await frame.waitForFunction(
+        (expected) =>
+          document.querySelector(".KafkaMessageTable .TableRow[data-offset]")?.getAttribute("data-offset") === expected,
+        sortedAscending[sortedAscending.length - 1],
+        { timeout: 10_000 },
+      );
+      expect(await offsets()).toEqual([...sortedAscending].reverse());
+      await offsetHeader.click();
+      await frame.waitForFunction(
+        (expected) =>
+          document.querySelector(".KafkaMessageTable .TableRow[data-offset]")?.getAttribute("data-offset") === expected,
+        sortedAscending[0],
+        { timeout: 10_000 },
+      );
+      expect(await offsets()).toEqual(sortedAscending);
+    },
+    5 * 60 * 1000,
   );
 
   it(

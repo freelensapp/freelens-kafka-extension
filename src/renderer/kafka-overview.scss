@@ -765,16 +765,6 @@
     }
   }
 
-  .KafkaMessageWorkspace {
-    display: grid;
-    min-width: 0;
-    min-height: 280px;
-    flex: 1 1 auto;
-    grid-template-columns: minmax(360px, 0.9fr) minmax(320px, 1.1fr);
-    border-top: 1px solid var(--kafka-border);
-    overflow: hidden;
-  }
-
   .KafkaInteractiveRow[role="button"] {
     cursor: pointer;
 
@@ -792,11 +782,13 @@
   .KafkaMessageTable {
     width: 100%;
     min-width: 0;
-    min-height: 280px;
-    height: auto;
+    min-height: 0;
+    flex: 1 1 auto;
     border-top: 1px solid var(--kafka-border);
     border-bottom: 1px solid var(--kafka-border);
-    overflow: hidden;
+    // A window taller than the browser scrolls inside the table (sticky header), so every
+    // loaded record stays reachable in the desktop layout (#25).
+    overflow: auto;
 
     .TableHead,
     .TableRow {
@@ -807,7 +799,8 @@
 
     .TableHead {
       border-bottom: 1px solid var(--kafka-border);
-      background: color-mix(in srgb, var(--contentColor, transparent) 80%, transparent);
+      // Opaque: rows scroll underneath the sticky header.
+      background: color-mix(in srgb, var(--contentColor, transparent) 80%, var(--mainBackground, transparent));
     }
 
     .TableCell {
@@ -815,8 +808,9 @@
     }
 
     .messageOffsetCell {
-      flex: 0 0 78px;
-      min-width: 78px;
+      // Room for the label plus the sort indicator
+      flex: 0 0 96px;
+      min-width: 96px;
       font-family: monospace;
     }
 
@@ -1531,6 +1525,48 @@
     padding-bottom: 4px;
   }
 
+  // Badge on the left, copy button on the right (#23)
+  .KafkaMsgBytesToolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    margin-bottom: 8px;
+
+    .KafkaMsgFormatBadge {
+      margin-bottom: 0;
+    }
+  }
+
+  .KafkaMsgCopyButton {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    min-height: 26px;
+    margin-left: auto;
+    padding: 2px 9px;
+    border: 1px solid var(--kafka-border);
+    border-radius: 4px;
+    color: var(--textColorSecondary);
+    font-size: 11px;
+    white-space: nowrap;
+
+    &:hover {
+      color: var(--textColorPrimary);
+      border-color: color-mix(in srgb, var(--primary) 45%, transparent);
+    }
+
+    &[data-copy-status="copied"] {
+      color: var(--colorOk, #4caf50);
+      border-color: color-mix(in srgb, currentColor 35%, transparent);
+    }
+
+    &[data-copy-status="failed"] {
+      color: var(--colorError);
+      border-color: color-mix(in srgb, currentColor 35%, transparent);
+    }
+  }
+
   // Colored format + size badge
   .KafkaMsgFormatBadge {
     display: inline-flex;
@@ -2063,20 +2099,13 @@
       }
     }
 
-    .KafkaMessageWorkspace {
-      min-height: 620px;
-      grid-template-columns: minmax(0, 1fr);
-      grid-template-rows: minmax(260px, 42vh) minmax(300px, auto);
-      overflow: visible;
-    }
-
     .KafkaMessageTable {
       border-right: 0;
       border-bottom: 1px solid var(--kafka-border);
 
       .messageOffsetCell {
-        flex-basis: 64px;
-        min-width: 64px;
+        flex-basis: 80px;
+        min-width: 80px;
       }
 
       .messageTimeCell {
