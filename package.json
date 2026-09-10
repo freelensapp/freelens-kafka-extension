@@ -107,7 +107,7 @@
     "@kubernetes/client-node": "^1.4.0",
     "@types/node": "~24.12.4",
     "@types/react": "^17.0.91",
-    "@vitejs/plugin-react": "^6.0.1",
+    "@vitejs/plugin-react": "^6.1.1",
     "avsc": "^5.7.9",
     "electron-vite": "^5.0.0",
     "encoding": "^0.1.13",
