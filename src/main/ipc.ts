@@ -743,7 +743,11 @@ export class KafkaIpcMain extends Main.Ipc {
     });
 
     this.handle(KAFKA_IPC.schemaSubjects, async (_event, request: SchemaSubjectsRequest) => {
-      const client = new SchemaRegistryClient({ baseUrl: request.registryUrl, username: request.registryUsername });
+      const client = new SchemaRegistryClient({
+        baseUrl: request.registryUrl,
+        username: request.registryUsername,
+        password: request.registryPassword,
+      });
       const subjects = await client.listSubjects();
       return Promise.all(subjects.map((subject) => client.getSubjectSummary(subject)));
     });
@@ -752,21 +756,34 @@ export class KafkaIpcMain extends Main.Ipc {
       return new SchemaRegistryClient({
         baseUrl: request.registryUrl,
         username: request.registryUsername,
+        password: request.registryPassword,
       }).listSubjects();
     });
 
     this.handle(KAFKA_IPC.schemaSubjectDetail, async (_event, request: SchemaSubjectDetailRequest) => {
-      const client = new SchemaRegistryClient({ baseUrl: request.registryUrl, username: request.registryUsername });
+      const client = new SchemaRegistryClient({
+        baseUrl: request.registryUrl,
+        username: request.registryUsername,
+        password: request.registryPassword,
+      });
       return client.getSubjectDetail(request.subject);
     });
 
     this.handle(KAFKA_IPC.schemaRegister, async (_event, request: SchemaRegisterRequest) => {
-      const client = new SchemaRegistryClient({ baseUrl: request.registryUrl, username: request.registryUsername });
+      const client = new SchemaRegistryClient({
+        baseUrl: request.registryUrl,
+        username: request.registryUsername,
+        password: request.registryPassword,
+      });
       return client.registerSchema(request.subject, request.schema, request.schemaType);
     });
 
     this.handle(KAFKA_IPC.schemaDeleteSubject, async (_event, request: SchemaDeleteSubjectRequest) => {
-      const client = new SchemaRegistryClient({ baseUrl: request.registryUrl, username: request.registryUsername });
+      const client = new SchemaRegistryClient({
+        baseUrl: request.registryUrl,
+        username: request.registryUsername,
+        password: request.registryPassword,
+      });
       return client.deleteSubject(request.subject);
     });
 
@@ -774,6 +791,7 @@ export class KafkaIpcMain extends Main.Ipc {
       return new KafkaConnectClient({
         baseUrl: request.connectUrl,
         username: request.connectUsername,
+        password: request.connectPassword,
       }).listConnectors();
     });
 
@@ -781,13 +799,16 @@ export class KafkaIpcMain extends Main.Ipc {
       return new KafkaConnectClient({
         baseUrl: request.connectUrl,
         username: request.connectUsername,
+        password: request.connectPassword,
       }).listConnectorNames();
     });
 
     this.handle(KAFKA_IPC.connectDetail, async (_event, request: KafkaConnectDetailRequest) => {
-      return new KafkaConnectClient({ baseUrl: request.connectUrl, username: request.connectUsername }).getConnector(
-        request.connector,
-      );
+      return new KafkaConnectClient({
+        baseUrl: request.connectUrl,
+        username: request.connectUsername,
+        password: request.connectPassword,
+      }).getConnector(request.connector);
     });
 
     this.handle(KAFKA_IPC.acls, async (_event, request: AclsRequest) => {
@@ -823,36 +844,46 @@ export class KafkaIpcMain extends Main.Ipc {
     });
 
     this.handle(KAFKA_IPC.connectPause, async (_event, request: KafkaConnectDetailRequest) => {
-      return new KafkaConnectClient({ baseUrl: request.connectUrl, username: request.connectUsername }).pauseConnector(
-        request.connector,
-      );
+      return new KafkaConnectClient({
+        baseUrl: request.connectUrl,
+        username: request.connectUsername,
+        password: request.connectPassword,
+      }).pauseConnector(request.connector);
     });
     this.handle(KAFKA_IPC.connectResume, async (_event, request: KafkaConnectDetailRequest) => {
-      return new KafkaConnectClient({ baseUrl: request.connectUrl, username: request.connectUsername }).resumeConnector(
-        request.connector,
-      );
+      return new KafkaConnectClient({
+        baseUrl: request.connectUrl,
+        username: request.connectUsername,
+        password: request.connectPassword,
+      }).resumeConnector(request.connector);
     });
     this.handle(KAFKA_IPC.connectDelete, async (_event, request: KafkaConnectDetailRequest) => {
-      return new KafkaConnectClient({ baseUrl: request.connectUrl, username: request.connectUsername }).deleteConnector(
-        request.connector,
-      );
+      return new KafkaConnectClient({
+        baseUrl: request.connectUrl,
+        username: request.connectUsername,
+        password: request.connectPassword,
+      }).deleteConnector(request.connector);
     });
     this.handle(KAFKA_IPC.connectRestart, async (_event, request: KafkaConnectDetailRequest) => {
       return new KafkaConnectClient({
         baseUrl: request.connectUrl,
         username: request.connectUsername,
+        password: request.connectPassword,
       }).restartConnector(request.connector);
     });
     this.handle(KAFKA_IPC.connectUpdate, async (_event, request: KafkaConnectCreateRequest) => {
-      return new KafkaConnectClient({ baseUrl: request.connectUrl, username: request.connectUsername }).updateConnector(
-        request.config.name,
-        request.config,
-      );
+      return new KafkaConnectClient({
+        baseUrl: request.connectUrl,
+        username: request.connectUsername,
+        password: request.connectPassword,
+      }).updateConnector(request.config.name, request.config);
     });
     this.handle(KAFKA_IPC.connectCreate, async (_event, request: KafkaConnectCreateRequest) => {
-      return new KafkaConnectClient({ baseUrl: request.connectUrl, username: request.connectUsername }).createConnector(
-        request.config,
-      );
+      return new KafkaConnectClient({
+        baseUrl: request.connectUrl,
+        username: request.connectUsername,
+        password: request.connectPassword,
+      }).createConnector(request.config);
     });
   }
 

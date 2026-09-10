@@ -106,6 +106,11 @@ confirm, **then** the connector is removed from the list.
 - **2026-08-06** — Write operations governed by the write policy in SPEC-009; not repeated here.
 - **2026-08-06** — Vendor-specific UX (Debezium, MirrorMaker) is explicitly a non-goal to keep the
   spec bounded; general connector config editing covers most use cases.
+- **2026-09-10** — v1.1.1: the basic-auth password is entered in the connection settings and kept
+  in renderer memory for the session only; before this the Connect pages never sent the username
+  either (the persisted `username` was not mapped to the request), so basic auth never worked. The
+  packaged E2E fixture now requires basic auth.
+
 
 ## Verification Evidence
 

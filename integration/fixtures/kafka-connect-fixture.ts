@@ -19,7 +19,13 @@ function send(response: ServerResponse, value: unknown, status = 200): void {
   response.end(value === undefined ? undefined : JSON.stringify(value));
 }
 
-export async function startKafkaConnectFixture(port = 18083): Promise<KafkaConnectFixture> {
+export async function startKafkaConnectFixture(
+  port = 18083,
+  auth?: { username: string; password: string },
+): Promise<KafkaConnectFixture> {
+  const expectedAuthorization = auth
+    ? `Basic ${Buffer.from(`${auth.username}:${auth.password}`).toString("base64")}`
+    : undefined;
   const connectors = new Map<string, Connector>([
     ["orders-source", { config: { name: "orders-source", "connector.class": "ExampleSource" }, state: "RUNNING" }],
     [
@@ -34,6 +40,9 @@ export async function startKafkaConnectFixture(port = 18083): Promise<KafkaConne
   const server: Server = createServer(async (request, response) => {
     response.setHeader("content-type", "application/json");
     const path = request.url ?? "/";
+    if (expectedAuthorization && request.headers.authorization !== expectedAuthorization) {
+      return send(response, { error_code: 401, message: "Unauthorized" }, 401);
+    }
     const match = path.match(/^\/connectors\/([^/]+)(?:\/(config|status|pause|resume|restart))?$/);
     if (request.method === "GET" && path === "/connectors") return send(response, [...connectors.keys()]);
     if (match) {

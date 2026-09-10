@@ -102,6 +102,7 @@ export interface MessageBrowseRequest extends TopicRequest {
   limit: number;
   registryUrl?: string;
   registryUsername?: string;
+  registryPassword?: string;
 }
 
 export type KafkaProgressOperation =
@@ -396,6 +397,8 @@ export interface ResetOffsetsResultDto {
 export interface SchemaRegistryRequest {
   registryUrl: string;
   registryUsername?: string;
+  /** Session-only: entered in the connection settings, never persisted. */
+  registryPassword?: string;
 }
 
 export interface SchemaSubjectsRequest extends SchemaRegistryRequest {}
@@ -418,6 +421,8 @@ export interface SchemaDeleteSubjectRequest extends SchemaRegistryRequest {
 export interface KafkaConnectRequest {
   connectUrl: string;
   connectUsername?: string;
+  /** Session-only: entered in the connection settings, never persisted. */
+  connectPassword?: string;
 }
 
 export interface KafkaConnectDetailRequest extends KafkaConnectRequest {
