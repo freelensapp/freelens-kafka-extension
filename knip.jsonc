@@ -1,10 +1,11 @@
 {
-  "$schema": "https://unpkg.com/knip@5/schema-jsonc.json",
+  "$schema": "https://unpkg.com/knip@6/schema-jsonc.json",
 
   "entry": ["src/main/index.ts", "src/renderer/index.tsx"],
   "project": ["*.{js,mjs,ts}", "src/**/*.{ts,tsx}"],
 
-  "ignoreBinaries": ["electron-rebuild", "yq", "kind", "kubectl"],
+  // openssl: the security E2E fixture generates its certificates with the system binary
+  "ignoreBinaries": ["electron-rebuild", "yq", "kind", "kubectl", "openssl"],
   "ignoreDependencies": [
     // Build-only plugins; Knip does not execute the Electron Vite config.
     "@vitejs/plugin-react",
@@ -16,5 +17,8 @@
   "typescript": {
     "config": ["tsconfig.json"]
   },
+  // The electron-vite plugin (Knip 6.35+) executes electron.vite.config.ts and trips on the
+  // ESM-only @vitejs/plugin-react; the build-only plugins stay in ignoreDependencies instead.
+  "electron-vite": false,
   "exclude": ["exports"]
 }
