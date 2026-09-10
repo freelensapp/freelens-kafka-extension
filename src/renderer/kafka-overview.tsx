@@ -5,6 +5,7 @@ import { kafkaPersistentStateStore } from "../common/kafka-persistent-state-stor
 import { formatKafkaEta } from "../common/kafka-phase-progress";
 import { createKafkaTargetId } from "../common/kafka-target";
 import { chooseStrategy, firstBrokerAddress } from "../common/reachability";
+import { formatBytes } from "./format-bytes";
 import { KafkaClusterCatalogStore } from "./kafka-cluster-catalog";
 import { loadManualKafkaEndpoints, mergeKafkaClusters, saveManualKafkaEndpoints } from "./kafka-manual-endpoints";
 import { forgetKafkaClusterSelection, rememberKafkaClusterSelection } from "./kafka-navigation";
@@ -35,6 +36,7 @@ import type {
   OverviewRequest,
   TopicDetailDto,
   TopicPartitionDto,
+  TopicSizeDto,
 } from "../common/ipc";
 import type { KafkaConnectSettingsStore } from "./kafka-connect-settings";
 import type { KafkaConnectionSettingsStore } from "./kafka-connection-settings";
@@ -409,7 +411,21 @@ function PartitionHealthBadge({ partition }: { partition: TopicPartitionDto }) {
   );
 }
 
-function TopicMetricStrip({ data }: { data: TopicDetailDto }) {
+function topicSizeLabel(sizes: TopicSizeDto | undefined, supported: boolean | undefined): string {
+  if (sizes) return `${sizes.exact ? "" : "≥ "}${formatBytes(sizes.leaderBytes)}`;
+  if (supported === false) return "n/a";
+  return "…";
+}
+
+function TopicMetricStrip({
+  data,
+  sizes,
+  sizesSupported,
+}: {
+  data: TopicDetailDto;
+  sizes?: TopicSizeDto;
+  sizesSupported?: boolean;
+}) {
   return (
     <KafkaMetricStrip
       ariaLabel="Kafka topic metadata summary"
@@ -427,6 +443,7 @@ function TopicMetricStrip({ data }: { data: TopicDetailDto }) {
           value: data.unavailablePartitions,
           tone: data.unavailablePartitions > 0 ? "error" : undefined,
         },
+        { label: "Size", value: topicSizeLabel(sizes, sizesSupported) },
       ]}
     />
   );
@@ -437,8 +454,10 @@ const PARTITION_LEADER_COLUMN_STYLE: CSSProperties = { flex: "0 0 84px", minWidt
 const PARTITION_REPLICAS_COLUMN_STYLE: CSSProperties = { flex: "1 1 160px", minWidth: 120, width: 0 };
 const PARTITION_ISR_COLUMN_STYLE: CSSProperties = { flex: "1 1 160px", minWidth: 120, width: 0 };
 const PARTITION_STATE_COLUMN_STYLE: CSSProperties = { flex: "0 0 156px", minWidth: 156, width: 156 };
+const PARTITION_SIZE_COLUMN_STYLE: CSSProperties = { flex: "0 0 110px", minWidth: 110, width: 110 };
 
-function TopicPartitions({ data }: { data: TopicDetailDto }) {
+function TopicPartitions({ data, sizes }: { data: TopicDetailDto; sizes?: TopicSizeDto }) {
+  const sizeByPartition = new Map((sizes?.partitions ?? []).map((partition) => [partition.partition, partition]));
   if (data.partitions.length === 0) {
     return <div className="KafkaTopicPrompt">Kafka returned no partitions for this topic.</div>;
   }
@@ -451,7 +470,10 @@ function TopicPartitions({ data }: { data: TopicDetailDto }) {
       scrollable
       sortSyncWithUrl={false}
       sortByDefault={{ sortBy: "partition", orderBy: "asc" }}
-      sortable={{ partition: (partition) => partition.partitionId }}
+      sortable={{
+        partition: (partition) => partition.partitionId,
+        size: (partition) => Number(sizeByPartition.get(partition.partitionId)?.leaderBytes ?? -1),
+      }}
     >
       <Renderer.Component.TableHead sticky={false} nowrap>
         <Renderer.Component.TableCell className="partitionIdCell" sortBy="partition" style={PARTITION_ID_COLUMN_STYLE}>
@@ -465,6 +487,9 @@ function TopicPartitions({ data }: { data: TopicDetailDto }) {
         </Renderer.Component.TableCell>
         <Renderer.Component.TableCell className="partitionIsrCell" style={PARTITION_ISR_COLUMN_STYLE}>
           ISR
+        </Renderer.Component.TableCell>
+        <Renderer.Component.TableCell className="partitionSizeCell" sortBy="size" style={PARTITION_SIZE_COLUMN_STYLE}>
+          Size
         </Renderer.Component.TableCell>
         <Renderer.Component.TableCell className="partitionHealthCell" style={PARTITION_STATE_COLUMN_STYLE}>
           State
@@ -484,6 +509,20 @@ function TopicPartitions({ data }: { data: TopicDetailDto }) {
           <Renderer.Component.TableCell className="partitionIsrCell" style={PARTITION_ISR_COLUMN_STYLE}>
             <span className="KafkaReplicaSet">{partition.isr.join(", ") || "—"}</span>
           </Renderer.Component.TableCell>
+          <Renderer.Component.TableCell className="partitionSizeCell" style={PARTITION_SIZE_COLUMN_STYLE}>
+            {(() => {
+              const size = sizeByPartition.get(partition.partitionId);
+              if (!size) return <span className="KafkaTopicSize muted">{sizes ? "—" : "…"}</span>;
+              return (
+                <span
+                  className="KafkaTopicSize"
+                  title={`Leader ${formatBytes(size.leaderBytes)}, all replicas ${formatBytes(size.replicaBytes)}`}
+                >
+                  {formatBytes(size.leaderBytes)}
+                </span>
+              );
+            })()}
+          </Renderer.Component.TableCell>
           <Renderer.Component.TableCell className="partitionHealthCell" style={PARTITION_STATE_COLUMN_STYLE}>
             <PartitionHealthBadge partition={partition} />
           </Renderer.Component.TableCell>
@@ -498,10 +537,14 @@ export function TopicMetadata({
   onRetry,
   view = "all",
   showHeader = true,
+  sizes,
+  sizesSupported,
 }: {
   state: TopicState;
   onRetry: () => void;
   view?: "all" | "overview" | "partitions";
+  sizes?: TopicSizeDto;
+  sizesSupported?: boolean;
   showHeader?: boolean;
 }) {
   if (!state.name) {
@@ -546,8 +589,10 @@ export function TopicMetadata({
         <OperationProgress progress={state.progress} error={state.error} />
       )}
 
-      {state.data && view !== "partitions" && <TopicMetricStrip data={state.data} />}
-      {state.data && view !== "overview" && <TopicPartitions data={state.data} />}
+      {state.data && view !== "partitions" && (
+        <TopicMetricStrip data={state.data} sizes={sizes} sizesSupported={sizesSupported} />
+      )}
+      {state.data && view !== "overview" && <TopicPartitions data={state.data} sizes={sizes} />}
     </section>
   );
 }

@@ -44,6 +44,8 @@ import {
   type TopicConsumersRequest,
   type TopicDetailDto,
   type TopicRequest,
+  type TopicSizesDto,
+  type TopicSizesRequest,
   type WriteModeRequest,
 } from "../common/ipc";
 import { createIpcRequestDeduper, type IpcRequest } from "./kafka-ipc-deduper";
@@ -98,6 +100,10 @@ export class KafkaIpcRenderer extends Renderer.Ipc {
 
   groupDetail(request: GroupDetailRequest): Promise<ConsumerGroupDetailDto> {
     return this.read(KAFKA_IPC.groupDetail, request);
+  }
+
+  topicSizes(request: TopicSizesRequest): Promise<TopicSizesDto> {
+    return this.read(KAFKA_IPC.topicSizes, request);
   }
 
   produce(request: ProduceRequest): Promise<ProduceResultDto> {

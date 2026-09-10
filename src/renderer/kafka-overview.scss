@@ -410,6 +410,17 @@
     }
   }
 
+  // Topic and partition sizes (SPEC-015)
+  .KafkaTopicSize {
+    font-family: monospace;
+    font-size: 12px;
+    white-space: nowrap;
+
+    &.muted {
+      color: var(--kafka-muted);
+    }
+  }
+
   .KafkaTopicInlineError {
     display: flex;
     align-items: center;
@@ -2033,6 +2044,12 @@
     .KafkaEntityTabs {
       max-width: 100%;
       overflow-x: auto;
+    }
+
+    // Sizes are a desktop-layout column: hidden in the compact layout to keep the tables readable.
+    .KafkaTopicPageTable .topicSizeCell,
+    .KafkaPartitionTable .partitionSizeCell {
+      display: none;
     }
 
     .KafkaTopicWorkspace {

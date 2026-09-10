@@ -1,6 +1,7 @@
 import { Renderer } from "@freelensapp/extensions";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { kafkaPersistentStateStore } from "../common/kafka-persistent-state-store";
+import { formatBytes, sumBytes } from "./format-bytes";
 import { kafkaListWindow } from "./kafka-list-window";
 import { KafkaMessagesBrowser } from "./kafka-messages";
 import { implementedKafkaTopicView, rememberKafkaClusterSelection, saveKafkaReloadRoute } from "./kafka-navigation";
@@ -35,6 +36,8 @@ import type {
   TopicConsumersRequest,
   TopicDetailDto,
   TopicRequest,
+  TopicSizesDto,
+  TopicSizesRequest,
 } from "../common/ipc";
 import type { KafkaEndpointSecretsStore } from "./kafka-endpoint-secrets";
 import type { KafkaSchemaRegistrySettingsStore } from "./kafka-schema-registry-settings";
@@ -53,6 +56,7 @@ interface KafkaTopicsPageParams {
 
 const TOPIC_NAME_COLUMN_STYLE: CSSProperties = { flex: "1 1 0", minWidth: 0, width: 0 };
 const TOPIC_TYPE_COLUMN_STYLE: CSSProperties = { flex: "0 0 112px", minWidth: 112, width: 112 };
+const TOPIC_SIZE_COLUMN_STYLE: CSSProperties = { flex: "0 0 120px", minWidth: 120, width: 120 };
 const TOPIC_ACTION_COLUMN_STYLE: CSSProperties = { flex: "0 0 44px", minWidth: 44, width: 44 };
 const TOPIC_CONFIG_NAME_COLUMN_STYLE: CSSProperties = { flex: "0 0 220px", minWidth: 220, width: 220 };
 const TOPIC_CONFIG_VALUE_COLUMN_STYLE: CSSProperties = { flex: "1 1 0", minWidth: 0, width: 0 };
@@ -70,6 +74,13 @@ interface TopicConfigState {
   data?: TopicConfigDto;
   error?: string;
   progress?: KafkaProgressEvent;
+}
+
+interface TopicSizesState {
+  loading: boolean;
+  targetId?: string;
+  data?: TopicSizesDto;
+  error?: string;
 }
 
 interface TopicConsumersState {
@@ -330,6 +341,7 @@ export interface KafkaTopicsPageProps extends KafkaResourcePageDependencies {
   messagesBrowse: (request: MessageBrowseRequest) => Promise<MessageBrowseDto>;
   produce: (request: ProduceRequest) => Promise<ProduceResultDto>;
   deleteTopic: (request: DeleteTopicRequest) => Promise<DeleteTopicResultDto>;
+  topicSizes: (request: TopicSizesRequest) => Promise<TopicSizesDto>;
   schemaRegistrySettings: KafkaSchemaRegistrySettingsStore;
   endpointSecrets: KafkaEndpointSecretsStore;
 }
@@ -343,6 +355,7 @@ export function KafkaTopicsPage({
   messagesBrowse,
   produce,
   deleteTopic,
+  topicSizes,
   schemaRegistrySettings,
   endpointSecrets,
   ...dependencies
@@ -362,6 +375,7 @@ export function KafkaTopicsPage({
   const [topicState, setTopicState] = useState<TopicState>({ loading: false });
   const [topicConfigState, setTopicConfigState] = useState<TopicConfigState>({ loading: false });
   const [topicConsumersState, setTopicConsumersState] = useState<TopicConsumersState>({ loading: false });
+  const [sizesState, setSizesState] = useState<TopicSizesState>({ loading: false });
   const [produceOpen, setProduceOpen] = useState(false);
   const [produceConfirmed, setProduceConfirmed] = useState(false);
   const [produceKey, setProduceKey] = useState("");
@@ -476,6 +490,85 @@ export function KafkaTopicsPage({
       }),
     [dependencies.subscribeProgress, topicName],
   );
+
+  // Topic sizes (SPEC-015): one DescribeLogDirs round per broker, after the metadata snapshot.
+  const sizeCluster = state.selectedCluster;
+  const sizeRequestBase = useMemo(
+    () =>
+      sizeCluster
+        ? {
+            targetId: sizeCluster.targetId,
+            source: sizeCluster.source,
+            bootstrap: sizeCluster.bootstrap,
+            tls: sizeCluster.tls,
+            namespace: sizeCluster.namespace,
+            clusterName: sizeCluster.name,
+          }
+        : undefined,
+    [
+      sizeCluster?.targetId,
+      sizeCluster?.source,
+      sizeCluster?.bootstrap,
+      sizeCluster?.tls,
+      sizeCluster?.namespace,
+      sizeCluster?.name,
+    ],
+  );
+  const metadataTopics = state.metadataState.data?.topics;
+  useEffect(() => {
+    if (!sizeRequestBase || !metadataTopics || metadataTopics.length === 0) return;
+    let cancelled = false;
+    const targetId = sizeRequestBase.targetId;
+    setSizesState((previous) => ({
+      loading: true,
+      targetId,
+      data: previous.targetId === targetId ? previous.data : undefined,
+    }));
+    topicSizes({ ...sizeRequestBase, topics: [...metadataTopics] })
+      .then((data) => {
+        if (!cancelled) setSizesState({ loading: false, targetId, data });
+      })
+      .catch((error: unknown) => {
+        if (!cancelled) {
+          setSizesState({ loading: false, targetId, error: error instanceof Error ? error.message : String(error) });
+        }
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [metadataTopics, sizeRequestBase, topicSizes]);
+  const currentSizes = sizesState.targetId === sizeCluster?.targetId ? sizesState.data : undefined;
+  const renderTopicSize = (name: string) => {
+    const data = currentSizes;
+    if (data) {
+      if (!data.supported) {
+        return (
+          <span className="KafkaTopicSize muted" title="The brokers do not offer DescribeLogDirs">
+            n/a
+          </span>
+        );
+      }
+      const size = data.topics[name];
+      if (!size) return <span className="KafkaTopicSize muted">—</span>;
+      const title = `Leader replicas ${formatBytes(size.leaderBytes)}, all replicas ${formatBytes(size.replicaBytes)}${
+        size.exact ? "" : " (lower bound: a broker did not report)"
+      }`;
+      return (
+        <span className="KafkaTopicSize" title={title}>
+          {size.exact ? "" : "≥ "}
+          {formatBytes(size.leaderBytes)}
+        </span>
+      );
+    }
+    if (sizesState.error && sizesState.targetId === sizeCluster?.targetId) {
+      return (
+        <span className="KafkaTopicSize muted" title={sizesState.error}>
+          n/a
+        </span>
+      );
+    }
+    return <span className="KafkaTopicSize muted">…</span>;
+  };
 
   const loadTopic = useCallback(() => {
     const cluster = state.selectedCluster;
@@ -1088,6 +1181,8 @@ export function KafkaTopicsPage({
                 onRetry={loadTopic}
                 view={view === "partitions" ? "partitions" : "overview"}
                 showHeader={false}
+                sizes={topicName ? currentSizes?.topics[topicName] : undefined}
+                sizesSupported={currentSizes?.supported}
               />
             )}
           </main>
@@ -1097,6 +1192,14 @@ export function KafkaTopicsPage({
   }
 
   const allTopics = state.metadataState.data?.topics ?? [];
+  const listSizes = currentSizes;
+  const sizeSummary = listSizes
+    ? listSizes.supported
+      ? formatBytes(sumBytes(allTopics.map((name) => listSizes.topics[name]?.leaderBytes)))
+      : "n/a"
+    : sizesState.error
+      ? "n/a"
+      : "…";
   const filteredTopics = filterTopicNames(allTopics, query);
   const topicWindow = kafkaListWindow(filteredTopics, topicPage);
   const internalCount = allTopics.filter((name) => name.startsWith("__")).length;
@@ -1123,6 +1226,7 @@ export function KafkaTopicsPage({
               { label: "Topics", value: allTopics.length },
               { label: "Application", value: allTopics.length - internalCount },
               { label: "Internal", value: internalCount },
+              { label: "Size", value: sizeSummary },
             ]}
           />
           {allTopics.length === 0 ? (
@@ -1150,7 +1254,10 @@ export function KafkaTopicsPage({
                 scrollable
                 sortSyncWithUrl={false}
                 sortByDefault={{ sortBy: "name", orderBy: "asc" }}
-                sortable={{ name: (name) => name.toLowerCase() }}
+                sortable={{
+                  name: (name) => name.toLowerCase(),
+                  size: (name) => Number(currentSizes?.topics[name]?.leaderBytes ?? -1),
+                }}
                 noItems={
                   <div className="KafkaTopicPrompt">
                     <Renderer.Component.Icon material="filter_alt_off" />
@@ -1164,6 +1271,9 @@ export function KafkaTopicsPage({
                   </Renderer.Component.TableCell>
                   <Renderer.Component.TableCell className="topicTypeCell" style={TOPIC_TYPE_COLUMN_STYLE}>
                     Type
+                  </Renderer.Component.TableCell>
+                  <Renderer.Component.TableCell className="topicSizeCell" sortBy="size" style={TOPIC_SIZE_COLUMN_STYLE}>
+                    Size
                   </Renderer.Component.TableCell>
                   <Renderer.Component.TableCell className="topicActionCell" style={TOPIC_ACTION_COLUMN_STYLE} />
                 </Renderer.Component.TableHead>
@@ -1208,6 +1318,9 @@ export function KafkaTopicsPage({
                         ) : (
                           <span className="KafkaTopicType">Application</span>
                         )}
+                      </Renderer.Component.TableCell>
+                      <Renderer.Component.TableCell className="topicSizeCell" style={TOPIC_SIZE_COLUMN_STYLE}>
+                        {renderTopicSize(name)}
                       </Renderer.Component.TableCell>
                       <Renderer.Component.TableCell className="topicActionCell" style={TOPIC_ACTION_COLUMN_STYLE}>
                         <Renderer.Component.Icon material="chevron_right" />

@@ -1253,6 +1253,24 @@ clusterDescribe("Kafka cluster page", () => {
       expect(topicGeometry.overflowY).toMatch(/auto|scroll/);
       expect(topicGeometry.scrollMoved).toBe(true);
 
+      // SPEC-015: topic sizes through DescribeLogDirs, rendered as bytes once the round completes.
+      const sizeCellText = () =>
+        document
+          .querySelector('.KafkaTopicPageTable .TableRow[data-topic="freelens-orders"] .topicSizeCell')
+          ?.textContent?.trim() ?? "";
+      await frame.waitForFunction(
+        () =>
+          /^(≥ )?\d+(\.\d+)? (B|KiB|MiB|GiB)$/.test(
+            document
+              .querySelector('.KafkaTopicPageTable .TableRow[data-topic="freelens-orders"] .topicSizeCell')
+              ?.textContent?.trim() ?? "",
+          ),
+        undefined,
+        { timeout: 60_000 },
+      );
+      expect(await frame.evaluate(sizeCellText)).not.toBe("0 B");
+      expect(await topicsPage.locator(".KafkaMetrics").innerText()).toMatch(/Size/i);
+
       await window.setViewportSize({ width: 760, height: 700 });
       expect(
         await topicsPage.locator(".KafkaMetrics").evaluate((element) => {
@@ -1677,6 +1695,14 @@ clusterDescribe("Kafka cluster page", () => {
       expect(desktopPartitionGeometry.headerReadable).toBe(true);
       expect(desktopPartitionGeometry.headerCells[0]?.width).toBeGreaterThanOrEqual(108);
       expect(desktopPartitionGeometry.headerCells[1]?.width).toBeGreaterThanOrEqual(76);
+      await frame.waitForFunction(
+        () =>
+          /^\d+(\.\d+)? (B|KiB|MiB|GiB)$/.test(
+            document.querySelector(".KafkaPartitionTable .TableRow .partitionSizeCell")?.textContent?.trim() ?? "",
+          ),
+        undefined,
+        { timeout: 60_000 },
+      );
 
       await window.setViewportSize({ width: 760, height: 700 });
       expect(

@@ -1,16 +1,19 @@
 const FIND_COORDINATOR_API_KEY = 10;
 const OFFSET_FETCH_API_KEY = 9;
+export const DESCRIBE_LOG_DIRS_API_KEY = 35;
+export const DESCRIBE_LOG_DIRS_VERSION = 1;
 const KAFKA_JS_SEND_REQUEST_SYMBOL = "private:Broker:sendRequest";
 
 export const FIND_COORDINATOR_BATCH_VERSION = 4;
 export const OFFSET_FETCH_BATCH_VERSION = 8;
 
-interface KafkaEncoder {
+export interface KafkaEncoder {
   readonly buffer: Buffer;
   writeBoolean(value: boolean): KafkaEncoder;
   writeInt8(value: number): KafkaEncoder;
   writeInt16(value: number): KafkaEncoder;
   writeInt32(value: number): KafkaEncoder;
+  writeString(value: string): KafkaEncoder;
   writeUVarIntArray(value: KafkaEncoder[] | null): KafkaEncoder;
   writeUVarIntBytes(value?: Buffer): KafkaEncoder;
   writeUVarIntString(value: string | null): KafkaEncoder;
@@ -107,6 +110,16 @@ export function supportsGroupOffsetBatch(versions: KafkaApiVersions | undefined)
   );
 }
 
+/** DescribeLogDirs (topic sizes) is read-only and needs version 1 of API key 35. */
+export function supportsDescribeLogDirs(versions: KafkaApiVersions | undefined): boolean {
+  const describeLogDirs = versions?.[DESCRIBE_LOG_DIRS_API_KEY];
+  return Boolean(
+    describeLogDirs &&
+      describeLogDirs.minVersion <= DESCRIBE_LOG_DIRS_VERSION &&
+      describeLogDirs.maxVersion >= DESCRIBE_LOG_DIRS_VERSION,
+  );
+}
+
 function protocolSymbol(value: object, description: string): symbol | undefined {
   let candidate: object | null = value;
   while (candidate) {
@@ -124,10 +137,17 @@ export async function sendKafkaProtocol<T>(broker: object, protocol: KafkaProtoc
       protocol.request.apiName === "FindCoordinator") ||
     (protocol.request.apiKey === OFFSET_FETCH_API_KEY &&
       protocol.request.apiVersion === OFFSET_FETCH_BATCH_VERSION &&
-      protocol.request.apiName === "OffsetFetch");
+      protocol.request.apiName === "OffsetFetch") ||
+    (protocol.request.apiKey === DESCRIBE_LOG_DIRS_API_KEY &&
+      protocol.request.apiVersion === DESCRIBE_LOG_DIRS_VERSION &&
+      protocol.request.apiName === "DescribeLogDirs");
   if (!readOnlyProtocol) throw new Error("Refusing non-read-only Kafka batch protocol");
   const protocolBroker = broker as KafkaProtocolBroker;
-  if (!supportsGroupOffsetBatch(protocolBroker.versions)) {
+  if (protocol.request.apiKey === DESCRIBE_LOG_DIRS_API_KEY) {
+    if (!supportsDescribeLogDirs(protocolBroker.versions)) {
+      throw new Error("Kafka broker does not support DescribeLogDirs");
+    }
+  } else if (!supportsGroupOffsetBatch(protocolBroker.versions)) {
     throw new Error("Kafka broker does not support read-only multi-group offset fetch");
   }
   const sendRequestSymbol = protocolSymbol(protocolBroker, KAFKA_JS_SEND_REQUEST_SYMBOL);
