@@ -60,7 +60,10 @@ export function KafkaConnectPage({
     const configured = selectedTargetId ? connectSettings.get(selectedTargetId) : undefined;
     if (!configured || !selectedTargetId) return undefined;
     return {
+<<<<<<< HEAD
       targetId: selectedTargetId,
+=======
+>>>>>>> origin/main
       connectUrl: configured.connectUrl,
       connectUsername: configured.username,
       connectPassword: endpointSecrets.get(selectedTargetId)?.connectPassword,
