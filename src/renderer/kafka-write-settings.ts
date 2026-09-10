@@ -55,6 +55,12 @@ export class KafkaWriteSettingsStore {
     this.emit();
   }
 
+  /** Targets with write mode on, sorted; used to mirror the state to the main process. */
+  enabledTargets(): string[] {
+    this.syncFromStorage();
+    return [...this.writeMode].sort();
+  }
+
   clear(): void {
     if (this.writeMode.size === 0) return;
     this.writeMode.clear();

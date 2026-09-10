@@ -37,6 +37,7 @@ import {
   type TopicConfigRequest,
   type TopicConsumersRequest,
   type TopicRequest,
+  type WriteModeRequest,
 } from "../common/ipc";
 import { kafkaPersistentStateStore } from "../common/kafka-persistent-state-store";
 import { createKafkaTargetId } from "../common/kafka-target";
@@ -63,6 +64,7 @@ import { KafkaTargetSessionRegistry } from "./kafka/target-session-registry";
 import { KafkaConnectClient } from "./kafka-connect/client";
 import { withFinalizer, withTimeout } from "./operation-timeout";
 import { SchemaRegistryClient } from "./schema-registry/client";
+import { WriteModeRegistry } from "./write-mode";
 
 import type { KafkaSecurityHint, KafkaSecuritySummary } from "../common/ipc";
 import type { ForwarderRequest } from "./forwarder-options";
@@ -321,6 +323,7 @@ export class KafkaIpcMain extends Main.Ipc {
   private readonly pendingConnectionsByTarget = new Map<string, Set<Promise<unknown>>>();
   private readonly sessions = new KafkaSessionManager();
   private readonly targetSessions = new KafkaTargetSessionRegistry();
+  private readonly writeMode = new WriteModeRegistry();
 
   constructor(extension: Main.LensExtension) {
     super(extension);
@@ -712,7 +715,12 @@ export class KafkaIpcMain extends Main.Ipc {
       return withTimeout(finalized, KAFKA_ADMIN_TIMEOUT_MS, "Consumer Group detail");
     });
 
+    this.handle(KAFKA_IPC.writeMode, async (_event, request: WriteModeRequest) => {
+      this.writeMode.set(String(request.targetId ?? ""), Boolean(request.enabled));
+    });
+
     this.handle(KAFKA_IPC.produce, async (_event, request: ProduceRequest) => {
+      this.writeMode.assertEnabled(request.targetId, "Produce message");
       const reader = createReader(request);
       const { connection } = await this.resolveConnection(request, reader, () => undefined);
       try {
@@ -723,6 +731,7 @@ export class KafkaIpcMain extends Main.Ipc {
     });
 
     this.handle(KAFKA_IPC.deleteTopic, async (_event, request: DeleteTopicRequest) => {
+      this.writeMode.assertEnabled(request.targetId, "Delete topic");
       const reader = createReader(request);
       const { connection } = await this.resolveConnection(request, reader, () => undefined);
       try {
@@ -733,6 +742,7 @@ export class KafkaIpcMain extends Main.Ipc {
     });
 
     this.handle(KAFKA_IPC.resetOffsets, async (_event, request: ResetOffsetsRequest) => {
+      this.writeMode.assertEnabled(request.targetId, "Reset offsets");
       const reader = createReader(request);
       const { connection } = await this.resolveConnection(request, reader, () => undefined);
       try {
@@ -770,6 +780,7 @@ export class KafkaIpcMain extends Main.Ipc {
     });
 
     this.handle(KAFKA_IPC.schemaRegister, async (_event, request: SchemaRegisterRequest) => {
+      this.writeMode.assertEnabled(request.targetId, "Register schema");
       const client = new SchemaRegistryClient({
         baseUrl: request.registryUrl,
         username: request.registryUsername,
@@ -779,6 +790,7 @@ export class KafkaIpcMain extends Main.Ipc {
     });
 
     this.handle(KAFKA_IPC.schemaDeleteSubject, async (_event, request: SchemaDeleteSubjectRequest) => {
+      this.writeMode.assertEnabled(request.targetId, "Delete subject");
       const client = new SchemaRegistryClient({
         baseUrl: request.registryUrl,
         username: request.registryUsername,
@@ -825,6 +837,7 @@ export class KafkaIpcMain extends Main.Ipc {
     });
 
     this.handle(KAFKA_IPC.aclCreate, async (_event, request: AclWriteRequest) => {
+      this.writeMode.assertEnabled(request.targetId, "Create ACL");
       const reader = createReader(request);
       const { connection } = await this.resolveConnection(request, reader, () => undefined);
       try {
@@ -834,6 +847,7 @@ export class KafkaIpcMain extends Main.Ipc {
       }
     });
     this.handle(KAFKA_IPC.aclDelete, async (_event, request: AclWriteRequest) => {
+      this.writeMode.assertEnabled(request.targetId, "Delete ACL");
       const reader = createReader(request);
       const { connection } = await this.resolveConnection(request, reader, () => undefined);
       try {
@@ -844,6 +858,7 @@ export class KafkaIpcMain extends Main.Ipc {
     });
 
     this.handle(KAFKA_IPC.connectPause, async (_event, request: KafkaConnectDetailRequest) => {
+      this.writeMode.assertEnabled(request.targetId, "Pause connector");
       return new KafkaConnectClient({
         baseUrl: request.connectUrl,
         username: request.connectUsername,
@@ -851,6 +866,7 @@ export class KafkaIpcMain extends Main.Ipc {
       }).pauseConnector(request.connector);
     });
     this.handle(KAFKA_IPC.connectResume, async (_event, request: KafkaConnectDetailRequest) => {
+      this.writeMode.assertEnabled(request.targetId, "Resume connector");
       return new KafkaConnectClient({
         baseUrl: request.connectUrl,
         username: request.connectUsername,
@@ -858,6 +874,7 @@ export class KafkaIpcMain extends Main.Ipc {
       }).resumeConnector(request.connector);
     });
     this.handle(KAFKA_IPC.connectDelete, async (_event, request: KafkaConnectDetailRequest) => {
+      this.writeMode.assertEnabled(request.targetId, "Delete connector");
       return new KafkaConnectClient({
         baseUrl: request.connectUrl,
         username: request.connectUsername,
@@ -865,6 +882,7 @@ export class KafkaIpcMain extends Main.Ipc {
       }).deleteConnector(request.connector);
     });
     this.handle(KAFKA_IPC.connectRestart, async (_event, request: KafkaConnectDetailRequest) => {
+      this.writeMode.assertEnabled(request.targetId, "Restart connector");
       return new KafkaConnectClient({
         baseUrl: request.connectUrl,
         username: request.connectUsername,
@@ -872,6 +890,7 @@ export class KafkaIpcMain extends Main.Ipc {
       }).restartConnector(request.connector);
     });
     this.handle(KAFKA_IPC.connectUpdate, async (_event, request: KafkaConnectCreateRequest) => {
+      this.writeMode.assertEnabled(request.targetId, "Update connector");
       return new KafkaConnectClient({
         baseUrl: request.connectUrl,
         username: request.connectUsername,
@@ -879,6 +898,7 @@ export class KafkaIpcMain extends Main.Ipc {
       }).updateConnector(request.config.name, request.config);
     });
     this.handle(KAFKA_IPC.connectCreate, async (_event, request: KafkaConnectCreateRequest) => {
+      this.writeMode.assertEnabled(request.targetId, "Create connector");
       return new KafkaConnectClient({
         baseUrl: request.connectUrl,
         username: request.connectUsername,

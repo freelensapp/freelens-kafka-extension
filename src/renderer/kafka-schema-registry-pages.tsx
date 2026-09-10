@@ -64,6 +64,7 @@ export function KafkaSchemaRegistryPage({
     const configured = selectedTargetId ? schemaRegistrySettings.get(selectedTargetId) : undefined;
     if (!configured || !selectedTargetId) return undefined;
     return {
+      targetId: selectedTargetId,
       registryUrl: configured.registryUrl,
       registryUsername: configured.username,
       registryPassword: endpointSecrets.get(selectedTargetId)?.registryPassword,

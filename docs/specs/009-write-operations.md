@@ -158,6 +158,14 @@ confirming, **then** the compose view closes and no message is produced.
   the target's metadata and health so the topic disappears, and MUST report the outcome. On
   failure the full error message MUST be shown without truncation and nothing is retried.
 
+### Main-process guard (v1.1.1)
+
+- **REQ-197** — The main process MUST refuse every write IPC call (produce, topic deletion, offset
+  reset, Schema Registry and Kafka Connect writes, ACL create and delete) for a Kafka target whose
+  write mode has not been enabled in the current session. The renderer mirrors the per-target
+  switch to main on activation and on every change; the guard is defence in depth against a
+  renderer bug, not a substitute for the renderer policy.
+
 ## Success Criteria
 
 - **SC-058** — With write mode disabled (default), no Produce button and no offset-reset control is
@@ -181,6 +189,8 @@ confirming, **then** the compose view closes and no message is produced.
   name: a wrong name or the accepted switch alone leaves the submit disabled. After confirmation
   the topic is absent from the list and from the broker.
 - **SC-113** — With write mode disabled, no Delete topic control is visible in the Topic Workspace.
+- **SC-114** — A write IPC call for a target that was never enabled in the session is rejected by
+  main with an explicit error, even if a renderer sent it.
 
 ## Decision Log
 
@@ -194,6 +204,8 @@ confirming, **then** the compose view closes and no message is produced.
 - **2026-09-10** — Topic deletion (REQ-194–REQ-196) added after the v1.0.0 release on user
   request (#24) under the same write policy; it uses the KafkaJS Admin `deleteTopics` call and the
   typed-name gate because the records cannot be reconstructed.
+- **2026-09-10** — v1.1.1 adds the main-process guard (REQ-197): before it, the only gate was the
+  renderer setting, so a renderer defect could have reached a broker with a write.
 
 ## Verification Evidence
 
@@ -203,5 +215,6 @@ confirming, **then** the compose view closes and no message is produced.
 | REQ-103 | `src/renderer/kafka-write-settings.test.ts`: per-target isolation, persistence, and cross-instance synchronization. |
 | REQ-110–REQ-111 | `src/main/kafka/kafka-connection.ts` plus packaged E2E: idempotent KafkaJS producer returns and renders partition/offset. |
 | REQ-113–REQ-114 | `src/main/kafka/kafka-connection.ts` plus packaged E2E: earliest reset resolves and commits the selected partition after reinforced confirmation. |
+| REQ-197, SC-114 | `src/main/write-mode.test.ts`: unknown, disabled and missing targets are refused, enabled ones pass; the packaged write E2E scenarios run through the renderer mirror. |
 | REQ-194–REQ-196, SC-112 | `src/main/kafka/kafka-connection.test.ts` (`deleteTopic`) plus packaged E2E: a disposable loopback topic is deleted only after the typed name and the switch, then it is absent from the list and the broker. |
 | SC-058–SC-064 | Packaged Electron Playwright suite: **7/7 tests passed** on 2026-08-18 using only `127.0.0.1:19092` and the local KinD fixture; typecheck, 122 unit tests and Prettier also passed. |

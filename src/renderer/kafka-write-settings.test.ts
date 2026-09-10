@@ -76,3 +76,19 @@ describe("KafkaWriteSettingsStore", () => {
     expect(notifications).toBe(2);
   });
 });
+
+describe("KafkaWriteSettingsStore.enabledTargets", () => {
+  it("lists the enabled targets sorted and follows changes", () => {
+    const storage = new Map<string, string>();
+    const store = new KafkaWriteSettingsStore({
+      getItem: (key) => storage.get(key) ?? null,
+      setItem: (key, value) => void storage.set(key, value),
+    });
+    expect(store.enabledTargets()).toEqual([]);
+    store.set("kafka-b", true);
+    store.set("kafka-a", true);
+    expect(store.enabledTargets()).toEqual(["kafka-a", "kafka-b"]);
+    store.set("kafka-b", false);
+    expect(store.enabledTargets()).toEqual(["kafka-a"]);
+  });
+});
