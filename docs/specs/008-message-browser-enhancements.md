@@ -73,6 +73,10 @@ partitions, with no offset commit.
 - **REQ-101** — When a filter is active and returns zero rows on the current page, the empty state
   MUST distinguish between "no messages match the current filter" and "no messages on this topic or
   partition range".
+- **REQ-193** (v1.1.0, issue #23) — The message inspector MUST offer copy-to-clipboard buttons
+  for the key, the value as displayed and all headers as one JSON object (a repeated header name
+  collects its values in an array). They are read-only affordances outside the SPEC-009 write policy
+  and MUST report success or failure on the button itself.
 
 ## Success Criteria
 
@@ -104,6 +108,10 @@ partitions, with no offset commit.
   `1/1` with ten intentional skips, and the integrated packaged Electron suite passed `11/11` in one
   session after all preceding Kafka workflows.
 
+- **2026-09-10** — Copy buttons (REQ-193) added after the v1.0.0 release on user request (#23); the
+  headers export is a JSON object because it pastes directly into editors, bug reports and
+  producer tooling.
+
 ## Implementation Progress
 
 | Slice | Status | Evidence |
@@ -112,6 +120,7 @@ partitions, with no offset commit.
 | URL-backed filter and timestamp state (REQ-097) | Done | Route manifest/unit checks; packaged URL assertions |
 | Seek by timestamp (REQ-098–REQ-099) | Done | Existing read-only timestamp adapter tests; packaged timestamp Browse E2E |
 | Explicit reload-with-filters evidence (SC-057) | Done | Focused packaged reload E2E `1/1`; integrated packaged Electron suite `11/11` |
+| Inspector copy buttons (REQ-193) | Done | `kafka-message-clipboard.test.ts`; packaged Browse E2E clicks Copy value and Copy headers |
 
 Final evidence (2026-08-19): typecheck, focused Biome/Prettier checks, build/smoke and 139 unit tests
 pass. The packaged reload test passes in isolation and as the final case of the `11/11` integrated

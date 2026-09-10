@@ -5,11 +5,13 @@
 ### Added
 
 - `demo:up`, `demo:status` and `demo:down` scripts that build and remove a disposable demo environment with only Docker, kind and Node.js: a dedicated kind cluster with a Strimzi-like Kafka broker, an external Docker broker referenced by a workload, seeded topics with JSON records, an active and a lagging consumer group, and a live producer. Under WSL2 the kubeconfig is also copied to the Windows side for Freelens.
+- Copy buttons in the message inspector for the key, the value as displayed and all headers as one JSON object (#23).
 
 ### Fixed
 
 - The broker port-forward now loads the kubeconfig file the selected Freelens cluster was added from (the catalog `kubeConfigPath`) instead of only the default `~/.kube/config` / `$KUBECONFIG`, so clusters kept in separate kubeconfig files connect through Freelens. An unreadable file still falls back to the default resolution (#22).
 - The Messages tab table scrolls inside the browser, with a sticky header, when the loaded window is taller than the page; in the desktop layout the rows beyond the visible height were clipped with no scrollbar. The Offset, Timestamp, Key and Value columns are sortable like the other tables (#25).
+- The format badges of the message inspector showed a literal `\u202f` escape between the byte count and `B` (JSX text does not interpret escapes); they now show the narrow space.
 
 ## v1.0.0 - 2026-09-06
 

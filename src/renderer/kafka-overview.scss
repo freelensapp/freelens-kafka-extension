@@ -1468,6 +1468,48 @@
     padding-bottom: 4px;
   }
 
+  // Badge on the left, copy button on the right (#23)
+  .KafkaMsgBytesToolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    margin-bottom: 8px;
+
+    .KafkaMsgFormatBadge {
+      margin-bottom: 0;
+    }
+  }
+
+  .KafkaMsgCopyButton {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    min-height: 26px;
+    margin-left: auto;
+    padding: 2px 9px;
+    border: 1px solid var(--kafka-border);
+    border-radius: 4px;
+    color: var(--textColorSecondary);
+    font-size: 11px;
+    white-space: nowrap;
+
+    &:hover {
+      color: var(--textColorPrimary);
+      border-color: color-mix(in srgb, var(--primary) 45%, transparent);
+    }
+
+    &[data-copy-status="copied"] {
+      color: var(--colorOk, #4caf50);
+      border-color: color-mix(in srgb, currentColor 35%, transparent);
+    }
+
+    &[data-copy-status="failed"] {
+      color: var(--colorError);
+      border-color: color-mix(in srgb, currentColor 35%, transparent);
+    }
+  }
+
   // Colored format + size badge
   .KafkaMsgFormatBadge {
     display: inline-flex;
