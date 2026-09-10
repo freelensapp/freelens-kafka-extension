@@ -81,7 +81,8 @@ function FormatBadge({ bytes }: { bytes: KafkaMessageBytesDto }) {
   const suffix = bytes.truncated ? " · truncated" : "";
   return (
     <span className={`KafkaMsgFormatBadge format-${bytes.format}`}>
-      {label} · {bytes.byteLength}\u202fB{suffix}
+      {label} · {bytes.byteLength}
+      {"\u202f"}B{suffix}
     </span>
   );
 }
