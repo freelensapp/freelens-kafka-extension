@@ -84,6 +84,19 @@ function bytesContent(bytes: KafkaMessageBytesDto): string {
   return bytes.text ?? bytes.base64 ?? "";
 }
 
+function sortableBytes(bytes: KafkaMessageBytesDto): string {
+  if (bytes.format === "null") return "";
+  return (bytes.text ?? bytes.base64 ?? "").toLowerCase();
+}
+
+/** Column sort callbacks for the message table (`sortBy` ids of the header cells). */
+const MESSAGE_SORT_CALLBACKS = {
+  offset: (message: KafkaRecordDto) => Number(message.offset),
+  timestamp: (message: KafkaRecordDto) => Number(message.timestamp),
+  key: (message: KafkaRecordDto) => sortableBytes(message.key),
+  value: (message: KafkaRecordDto) => sortableBytes(message.value),
+};
+
 function FormatBadge({ bytes }: { bytes: KafkaMessageBytesDto }) {
   if (bytes.format === "null") {
     return <span className="KafkaMsgFormatBadge format-null">null</span>;
@@ -741,12 +754,22 @@ export function KafkaMessagesBrowser({
               scrollable
               selectable
               sortSyncWithUrl={false}
+              sortByDefault={{ sortBy: "offset", orderBy: "asc" }}
+              sortable={MESSAGE_SORT_CALLBACKS}
             >
-              <Renderer.Component.TableHead sticky={false} nowrap>
-                <Renderer.Component.TableCell className="messageOffsetCell">Offset</Renderer.Component.TableCell>
-                <Renderer.Component.TableCell className="messageTimeCell">Timestamp</Renderer.Component.TableCell>
-                <Renderer.Component.TableCell className="messageKeyCell">Key</Renderer.Component.TableCell>
-                <Renderer.Component.TableCell className="messageValueCell">Value</Renderer.Component.TableCell>
+              <Renderer.Component.TableHead sticky nowrap>
+                <Renderer.Component.TableCell className="messageOffsetCell" sortBy="offset">
+                  Offset
+                </Renderer.Component.TableCell>
+                <Renderer.Component.TableCell className="messageTimeCell" sortBy="timestamp">
+                  Timestamp
+                </Renderer.Component.TableCell>
+                <Renderer.Component.TableCell className="messageKeyCell" sortBy="key">
+                  Key
+                </Renderer.Component.TableCell>
+                <Renderer.Component.TableCell className="messageValueCell" sortBy="value">
+                  Value
+                </Renderer.Component.TableCell>
                 <Renderer.Component.TableCell className="messageActionCell" />
               </Renderer.Component.TableHead>
               {filteredMessages.map((message) => {
