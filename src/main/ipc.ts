@@ -40,6 +40,7 @@ import {
 import { kafkaPersistentStateStore } from "../common/kafka-persistent-state-store";
 import { createKafkaTargetId } from "../common/kafka-target";
 import { createCatalogKubeReader } from "./catalog-kube-reader";
+import { resolveForwarderOptions } from "./forwarder-options";
 import { createAcl, deleteAcl } from "./kafka/acl";
 import { aggregateHealthWorkerKey, KafkaAggregateHealthManager } from "./kafka/aggregate-health-manager";
 import { connectDiscovered } from "./kafka/connect-discovered";
@@ -63,20 +64,16 @@ import { withFinalizer, withTimeout } from "./operation-timeout";
 import { SchemaRegistryClient } from "./schema-registry/client";
 
 import type { KafkaSecurityHint, KafkaSecuritySummary } from "../common/ipc";
+import type { ForwarderRequest } from "./forwarder-options";
+import type { KubeForwarderOptions } from "./kafka/kube-forwarder";
 
 /**
- * The kubeconfig context name for the request's cluster. Used for the real port-forward:
- * we load the default kubeconfig (`~/.kube/config` / `$KUBECONFIG`) and select this context,
- * because the catalog's `kubeConfigPath` points at the Freelens proxy (which cannot tunnel a
- * SPDY port-forward).
+ * The kubeconfig file and context for the request's cluster, used by the real port-forward:
+ * the file the cluster was added to Freelens from (`kubeConfigPath`), which may live outside
+ * the default `~/.kube/config` / `$KUBECONFIG` resolution.
  */
-function clusterContext(request: { clusterId?: string; context?: string }): string | undefined {
-  if (request.context) return request.context;
-  const clusters = Main.Catalog.getAllClusters();
-  const cluster = request.clusterId
-    ? clusters.find((c) => c.id === request.clusterId)
-    : (clusters.find((c) => c.isActive) ?? clusters[0]);
-  return cluster?.contextName;
+function clusterForwarderOptions(request: ForwarderRequest): KubeForwarderOptions {
+  return resolveForwarderOptions(Main.Catalog.getAllClusters(), request);
 }
 
 /** The id of the cluster the user is currently viewing (falls back to the first). */
@@ -97,8 +94,8 @@ function aggregateHealthIdentity(request: OverviewRequest): { contextId: string;
 }
 
 /**
- * Read Kubernetes objects through Freelens's connected cluster (`Main.K8s`) by default:
- * the catalog's raw kubeconfig points at the Freelens proxy and is not directly usable.
+ * Read Kubernetes objects through Freelens's connected cluster (`Main.K8s`) by default, so
+ * no kubeconfig has to be loaded or authenticated again for reads.
  * An explicit kubeconfig in the request (e.g. tests) still uses direct client-node access.
  */
 function createReader(request: { clusterId?: string; kubeConfigPath?: string; context?: string }): KubeReader {
@@ -280,7 +277,7 @@ async function connectForRequest(
     override: request.security,
     source: "strimzi",
   });
-  const forwarder = createKubeForwarder({ context: clusterContext(request) });
+  const forwarder = createKubeForwarder(clusterForwarderOptions(request));
   report({
     value: 30,
     phase: "connection",
