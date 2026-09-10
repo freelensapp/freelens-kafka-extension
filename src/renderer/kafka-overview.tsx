@@ -38,6 +38,7 @@ import type {
 } from "../common/ipc";
 import type { KafkaConnectSettingsStore } from "./kafka-connect-settings";
 import type { KafkaConnectionSettingsStore } from "./kafka-connection-settings";
+import type { KafkaEndpointSecretsStore } from "./kafka-endpoint-secrets";
 import type { KafkaResourceCache } from "./kafka-resource-cache";
 import type { KafkaSchemaRegistrySettingsStore } from "./kafka-schema-registry-settings";
 import type { KafkaWriteSettingsStore } from "./kafka-write-settings";
@@ -47,6 +48,7 @@ export interface KafkaOverviewPageProps {
   writeSettings: KafkaWriteSettingsStore;
   schemaRegistrySettings: KafkaSchemaRegistrySettingsStore;
   connectSettings: KafkaConnectSettingsStore;
+  endpointSecrets: KafkaEndpointSecretsStore;
   kubernetesClusterId?: string;
   resourceCache: KafkaResourceCache;
   query?: string;
@@ -558,6 +560,7 @@ function ConnectionSettingsDrawer({
   writeSettings,
   schemaRegistrySettings,
   connectSettings,
+  endpointSecrets,
   onApplySecurity,
   onClose,
   onRemove,
@@ -569,6 +572,7 @@ function ConnectionSettingsDrawer({
   writeSettings: KafkaWriteSettingsStore;
   schemaRegistrySettings: KafkaSchemaRegistrySettingsStore;
   connectSettings: KafkaConnectSettingsStore;
+  endpointSecrets: KafkaEndpointSecretsStore;
   onApplySecurity: (security?: KafkaSecurityOverride) => void;
   onClose: () => void;
   onRemove?: () => void;
@@ -586,6 +590,13 @@ function ConnectionSettingsDrawer({
   );
   const [connectUrl, setConnectUrl] = useState(() => connectSettings.get(kafka.targetId)?.connectUrl ?? "");
   const [connectUsername, setConnectUsername] = useState(() => connectSettings.get(kafka.targetId)?.username ?? "");
+  // Session-only passwords (never persisted): see KafkaEndpointSecretsStore.
+  const [registryPassword, setRegistryPassword] = useState(
+    () => endpointSecrets.get(kafka.targetId)?.registryPassword ?? "",
+  );
+  const [connectPassword, setConnectPassword] = useState(
+    () => endpointSecrets.get(kafka.targetId)?.connectPassword ?? "",
+  );
 
   useEffect(() => {
     setTlsMode(securityOverride?.tlsMode ?? "auto");
@@ -600,8 +611,11 @@ function ConnectionSettingsDrawer({
     const connect = connectSettings.get(kafka.targetId);
     setConnectUrl(connect?.connectUrl ?? "");
     setConnectUsername(connect?.username ?? "");
+    const secrets = endpointSecrets.get(kafka.targetId);
+    setRegistryPassword(secrets?.registryPassword ?? "");
+    setConnectPassword(secrets?.connectPassword ?? "");
     setSettingsError(undefined);
-  }, [connectSettings, kafka, schemaRegistrySettings, securityOverride, writeSettings]);
+  }, [connectSettings, kafka, schemaRegistrySettings, securityOverride, writeSettings, endpointSecrets]);
 
   const strategy = pcReachable === undefined ? undefined : chooseStrategy(kafka.source, pcReachable);
   const strategyLabel =
@@ -694,6 +708,14 @@ function ConnectionSettingsDrawer({
           placeholder="Username (optional)"
           aria-label="Schema Registry username"
         />
+        <Renderer.Component.Input
+          type="password"
+          value={registryPassword}
+          onChange={setRegistryPassword}
+          placeholder="Password (optional, kept for this session only)"
+          autoComplete="current-password"
+          aria-label="Schema Registry password"
+        />
         <Renderer.Component.Switch
           checked={registryTls}
           onChange={setRegistryTls}
@@ -701,13 +723,14 @@ function ConnectionSettingsDrawer({
         />
         <Renderer.Component.Button
           outlined
-          onClick={() =>
+          onClick={() => {
             schemaRegistrySettings.set(kafka.targetId, {
               registryUrl,
               tls: registryTls,
               ...(registryUsername.trim() ? { username: registryUsername.trim() } : {}),
-            })
-          }
+            });
+            endpointSecrets.set(kafka.targetId, { registryPassword });
+          }}
         >
           Save Schema Registry settings
         </Renderer.Component.Button>
@@ -727,15 +750,24 @@ function ConnectionSettingsDrawer({
           placeholder="Username (optional)"
           aria-label="Kafka Connect username"
         />
+        <Renderer.Component.Input
+          type="password"
+          value={connectPassword}
+          onChange={setConnectPassword}
+          placeholder="Password (optional, kept for this session only)"
+          autoComplete="current-password"
+          aria-label="Kafka Connect password"
+        />
         <Renderer.Component.Button
           outlined
-          onClick={() =>
+          onClick={() => {
             connectSettings.set(kafka.targetId, {
               connectUrl,
               tls: false,
               ...(connectUsername.trim() ? { username: connectUsername.trim() } : {}),
-            })
-          }
+            });
+            endpointSecrets.set(kafka.targetId, { connectPassword });
+          }}
         >
           Save Kafka Connect settings
         </Renderer.Component.Button>
@@ -867,6 +899,7 @@ export function KafkaOverviewPage({
   writeSettings,
   schemaRegistrySettings,
   connectSettings,
+  endpointSecrets,
   kubernetesClusterId,
   resourceCache,
   invalidateHealth,
@@ -1425,6 +1458,7 @@ export function KafkaOverviewPage({
                 writeSettings={writeSettings}
                 schemaRegistrySettings={schemaRegistrySettings}
                 connectSettings={connectSettings}
+                endpointSecrets={endpointSecrets}
                 onApplySecurity={(security) => applySecurity(settingsTarget, security)}
                 onClose={() => setSettingsTarget(null)}
                 onRemove={settingsTarget.source === "manual" ? () => removeManualEndpoint(settingsTarget) : undefined}

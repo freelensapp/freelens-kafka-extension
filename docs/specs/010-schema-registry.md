@@ -114,6 +114,11 @@ definition and confirms, **then** the new version appears in the subject detail.
 - **2026-08-06** — Confluent wire format (magic byte 0x00 + 4-byte schema ID) is the only
   auto-detection path. Custom serialisation without this header is not auto-detected; raw display is
   the fallback.
+- **2026-09-10** — v1.1.1: the basic-auth password is entered in the connection settings and kept
+  in renderer memory for the session only; before this the Schema Registry pages never sent the
+  username either (the persisted `username` was not mapped to the request), so basic auth never
+  worked. The packaged E2E fixture now requires basic auth.
+
 
 ## Verification Evidence
 

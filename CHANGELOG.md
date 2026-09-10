@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+### Fixed
+
+- Basic auth for Schema Registry and Kafka Connect works: the connection settings ask for a password that is kept for the session only and never stored, and the pages now send the configured username (it was never mapped to the request before, so no `Authorization` header was ever sent).
+
 ## v1.1.0 - 2026-09-10
 
 ### Added
