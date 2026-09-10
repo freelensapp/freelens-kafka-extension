@@ -751,8 +751,9 @@
     }
 
     .messageOffsetCell {
-      flex: 0 0 78px;
-      min-width: 78px;
+      // Room for the label plus the sort indicator
+      flex: 0 0 96px;
+      min-width: 96px;
       font-family: monospace;
     }
 
@@ -2004,8 +2005,8 @@
       border-bottom: 1px solid var(--kafka-border);
 
       .messageOffsetCell {
-        flex-basis: 64px;
-        min-width: 64px;
+        flex-basis: 80px;
+        min-width: 80px;
       }
 
       .messageTimeCell {
