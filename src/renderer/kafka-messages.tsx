@@ -1,5 +1,6 @@
 import { Renderer } from "@freelensapp/extensions";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { copyTextToClipboard, messageBytesText, messageHeadersJson } from "./kafka-message-clipboard";
 import { OperationProgress } from "./kafka-overview";
 import { createOperationId, matchesKafkaMessageFilters } from "./kafka-view-model";
 
@@ -72,18 +73,6 @@ function formatTimestamp(timestamp: string): string {
   return Number.isFinite(value) ? new Date(value).toLocaleString() : timestamp;
 }
 
-function bytesContent(bytes: KafkaMessageBytesDto): string {
-  if (bytes.format === "null") return "null";
-  if (bytes.format === "json" && !bytes.truncated && bytes.text !== undefined) {
-    try {
-      return JSON.stringify(JSON.parse(bytes.text), null, 2);
-    } catch {
-      return bytes.text;
-    }
-  }
-  return bytes.text ?? bytes.base64 ?? "";
-}
-
 function FormatBadge({ bytes }: { bytes: KafkaMessageBytesDto }) {
   if (bytes.format === "null") {
     return <span className="KafkaMsgFormatBadge format-null">null</span>;
@@ -97,15 +86,75 @@ function FormatBadge({ bytes }: { bytes: KafkaMessageBytesDto }) {
   );
 }
 
-function BytesSection({ label, bytes }: { label: string; bytes: KafkaMessageBytesDto }) {
+type CopyStatus = "idle" | "copied" | "failed";
+
+const COPY_STATUS_RESET_MS = 1800;
+
+/** Copy-to-clipboard affordance for the inspector (read-only: outside the SPEC-009 write policy). */
+function CopyButton({ label, text, testId, title }: { label: string; text: string; testId: string; title: string }) {
+  const [status, setStatus] = useState<CopyStatus>("idle");
+  const resetTimer = useRef<ReturnType<typeof setTimeout>>();
+  useEffect(() => () => clearTimeout(resetTimer.current), []);
+  const flash = (next: CopyStatus) => {
+    setStatus(next);
+    clearTimeout(resetTimer.current);
+    resetTimer.current = setTimeout(() => setStatus("idle"), COPY_STATUS_RESET_MS);
+  };
+  return (
+    <Renderer.Component.Button
+      plain
+      className="KafkaMsgCopyButton"
+      data-testid={testId}
+      data-copy-status={status}
+      title={title}
+      aria-label={label}
+      onClick={(event) => {
+        event.stopPropagation();
+        copyTextToClipboard(text).then(
+          () => flash("copied"),
+          () => flash("failed"),
+        );
+      }}
+    >
+      <Renderer.Component.Icon
+        small
+        material={status === "copied" ? "check" : status === "failed" ? "error_outline" : "content_copy"}
+      />
+      {status === "copied" ? "Copied" : status === "failed" ? "Copy failed" : label}
+    </Renderer.Component.Button>
+  );
+}
+
+function BytesSection({
+  label,
+  bytes,
+  copyTestId,
+}: {
+  label: string;
+  bytes: KafkaMessageBytesDto;
+  copyTestId: string;
+}) {
+  const copyLabel = `Copy ${label.toLowerCase()}`;
   return (
     <>
       <Renderer.Component.DrawerTitle size="sub-title">{label}</Renderer.Component.DrawerTitle>
       <div className="KafkaMsgBytesBody">
-        <FormatBadge bytes={bytes} />
+        <div className="KafkaMsgBytesToolbar">
+          <FormatBadge bytes={bytes} />
+          {bytes.format !== "null" && (
+            <CopyButton
+              label={copyLabel}
+              text={messageBytesText(bytes)}
+              testId={copyTestId}
+              title={
+                bytes.truncated ? `${copyLabel} as displayed (the preview is truncated)` : `${copyLabel} as displayed`
+              }
+            />
+          )}
+        </div>
         {bytes.format !== "null" && (
           <pre className="KafkaMsgCodeBlock" data-format={bytes.format}>
-            {bytesContent(bytes)}
+            {messageBytesText(bytes)}
           </pre>
         )}
         {(bytes.format === "binary" || bytes.truncated) && bytes.base64 !== undefined && (
@@ -134,8 +183,8 @@ function MessageInspector({ message }: { message: KafkaRecordDto }) {
         </div>
       </Renderer.Component.DrawerItem>
 
-      <BytesSection label="Key" bytes={message.key} />
-      <BytesSection label="Value" bytes={message.value} />
+      <BytesSection label="Key" bytes={message.key} copyTestId="kafka-copy-key" />
+      <BytesSection label="Value" bytes={message.value} copyTestId="kafka-copy-value" />
       {message.decodedValue !== undefined && (
         <>
           <Renderer.Component.DrawerTitle size="sub-title">Decoded value</Renderer.Component.DrawerTitle>
@@ -156,6 +205,14 @@ function MessageInspector({ message }: { message: KafkaRecordDto }) {
       </Renderer.Component.DrawerTitle>
       {hasHeaders ? (
         <div className="KafkaMsgHeaderList">
+          <div className="KafkaMsgBytesToolbar">
+            <CopyButton
+              label="Copy headers"
+              text={messageHeadersJson(message.headers)}
+              testId="kafka-copy-headers"
+              title="Copy all headers as a JSON object"
+            />
+          </div>
           {message.headers.map((header, index) => (
             <Renderer.Component.DrawerItem key={`${header.name}-${index}`} name={header.name}>
               {header.value.format === "null" ? (
@@ -163,7 +220,7 @@ function MessageInspector({ message }: { message: KafkaRecordDto }) {
               ) : (
                 <div className="KafkaMsgHeaderValue">
                   <FormatBadge bytes={header.value} />
-                  <code className="KafkaMsgMono">{bytesContent(header.value)}</code>
+                  <code className="KafkaMsgMono">{messageBytesText(header.value)}</code>
                 </div>
               )}
             </Renderer.Component.DrawerItem>
@@ -784,10 +841,10 @@ export function KafkaMessagesBrowser({
                       {formatTimestamp(message.timestamp)}
                     </Renderer.Component.TableCell>
                     <Renderer.Component.TableCell className="messageKeyCell" title={message.key.text}>
-                      <span className="KafkaEllipsis">{bytesContent(message.key)}</span>
+                      <span className="KafkaEllipsis">{messageBytesText(message.key)}</span>
                     </Renderer.Component.TableCell>
                     <Renderer.Component.TableCell className="messageValueCell" title={message.value.text}>
-                      <span className="KafkaEllipsis">{bytesContent(message.value)}</span>
+                      <span className="KafkaEllipsis">{messageBytesText(message.value)}</span>
                     </Renderer.Component.TableCell>
                     <Renderer.Component.TableCell className="messageActionCell">
                       <Renderer.Component.Button

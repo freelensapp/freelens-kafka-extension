@@ -1495,6 +1495,24 @@ clusterDescribe("Kafka cluster page", () => {
       expect(await messageDetailDrawer.locator(".KafkaMsgHeaderList").innerText()).toMatch(
         /trace[\s\S]*first[\s\S]*second/,
       );
+      // #23: copy buttons for value and headers (the status flips only once the copy succeeded)
+      const copyStatus = (testId: string) =>
+        frame.waitForFunction(
+          (id) => document.querySelector(`[data-testid="${id}"]`)?.getAttribute("data-copy-status") === "copied",
+          testId,
+          { timeout: 10_000 },
+        );
+      await messageDetailDrawer.getByTestId("kafka-copy-value").click();
+      await copyStatus("kafka-copy-value");
+      const copiedValue = await frame.evaluate(() => navigator.clipboard.readText().catch(() => undefined));
+      if (copiedValue !== undefined) expect(JSON.parse(copiedValue)).toEqual({ id: 1001, state: "created" });
+      await messageDetailDrawer.getByTestId("kafka-copy-headers").click();
+      await copyStatus("kafka-copy-headers");
+      const copiedHeaders = await frame.evaluate(() => navigator.clipboard.readText().catch(() => undefined));
+      if (copiedHeaders !== undefined) {
+        expect(JSON.parse(copiedHeaders)).toEqual({ trace: ["first", "second"], contentType: "application/json" });
+      }
+      expect(await messageDetailDrawer.getByTestId("kafka-copy-key").count()).toBe(1);
       await frame
         .locator(
           ".Drawer.KafkaMessageDetailDrawer .drawer-title [data-testid], .Drawer.KafkaMessageDetailDrawer .drawer-title .Icon",

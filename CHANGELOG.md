@@ -5,6 +5,7 @@
 ### Added
 
 - `demo:up`, `demo:status` and `demo:down` scripts that build and remove a disposable demo environment with only Docker, kind and Node.js: a dedicated kind cluster with a Strimzi-like Kafka broker, an external Docker broker referenced by a workload, seeded topics with JSON records, an active and a lagging consumer group, and a live producer. Under WSL2 the kubeconfig is also copied to the Windows side for Freelens.
+- Copy buttons in the message inspector for the key, the value as displayed and all headers as one JSON object (#23).
 
 ## v1.0.0 - 2026-09-06
 

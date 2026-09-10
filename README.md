@@ -190,7 +190,9 @@ byte-safe inspector for key, value, headers, timestamp and offset. Nothing is
 read until you press Browse, no consumer group is created and no offset is
 ever committed. Filters on key, value and headers, seek by timestamp, and
 URL-backed state that survives a reload of the window. Avro and Protobuf
-payloads are decoded when a Schema Registry endpoint is configured.
+payloads are decoded when a Schema Registry endpoint is configured. Copy
+buttons put the key, the value or all headers (as a JSON object) on the
+clipboard.
 
 ### Consumer groups
 
