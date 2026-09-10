@@ -106,7 +106,7 @@
     "@freelensapp/extensions": "^1.9.0",
     "@kubernetes/client-node": "^1.4.0",
     "@types/node": "~24.12.4",
-    "@types/react": "^17.0.91",
+    "@types/react": "^17.0.93",
     "@vitejs/plugin-react": "^6.0.1",
     "avsc": "^5.7.9",
     "electron-vite": "^5.0.0",
