@@ -64,11 +64,8 @@ export default class KafkaExtensionRenderer extends Renderer.LensExtension {
   private readonly schemaRegistrySettings = new KafkaSchemaRegistrySettingsStore();
   private readonly connectSettings = new KafkaConnectSettingsStore();
   private readonly endpointSecrets = new KafkaEndpointSecretsStore();
-<<<<<<< HEAD
   /** Targets whose write mode the main process has been told about (SPEC-009 REQ-197). */
   private readonly mirroredWriteTargets = new Set<string>();
-=======
->>>>>>> origin/main
   private readonly overviewSettings = new KafkaOverviewSettingsStore();
   private readonly aclAvailability = new KafkaAclAvailabilityStore();
   private readonly hiddenMenu = computed(() => false);

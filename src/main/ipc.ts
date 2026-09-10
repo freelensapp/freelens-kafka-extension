@@ -780,10 +780,7 @@ export class KafkaIpcMain extends Main.Ipc {
     });
 
     this.handle(KAFKA_IPC.schemaRegister, async (_event, request: SchemaRegisterRequest) => {
-<<<<<<< HEAD
       this.writeMode.assertEnabled(request.targetId, "Register schema");
-=======
->>>>>>> origin/main
       const client = new SchemaRegistryClient({
         baseUrl: request.registryUrl,
         username: request.registryUsername,
@@ -793,10 +790,7 @@ export class KafkaIpcMain extends Main.Ipc {
     });
 
     this.handle(KAFKA_IPC.schemaDeleteSubject, async (_event, request: SchemaDeleteSubjectRequest) => {
-<<<<<<< HEAD
       this.writeMode.assertEnabled(request.targetId, "Delete subject");
-=======
->>>>>>> origin/main
       const client = new SchemaRegistryClient({
         baseUrl: request.registryUrl,
         username: request.registryUsername,
@@ -864,36 +858,11 @@ export class KafkaIpcMain extends Main.Ipc {
     });
 
     this.handle(KAFKA_IPC.connectPause, async (_event, request: KafkaConnectDetailRequest) => {
-<<<<<<< HEAD
       this.writeMode.assertEnabled(request.targetId, "Pause connector");
-=======
       return new KafkaConnectClient({
         baseUrl: request.connectUrl,
         username: request.connectUsername,
         password: request.connectPassword,
-      }).pauseConnector(request.connector);
-    });
-    this.handle(KAFKA_IPC.connectResume, async (_event, request: KafkaConnectDetailRequest) => {
-      return new KafkaConnectClient({
-        baseUrl: request.connectUrl,
-        username: request.connectUsername,
-        password: request.connectPassword,
-      }).resumeConnector(request.connector);
-    });
-    this.handle(KAFKA_IPC.connectDelete, async (_event, request: KafkaConnectDetailRequest) => {
-      return new KafkaConnectClient({
-        baseUrl: request.connectUrl,
-        username: request.connectUsername,
-        password: request.connectPassword,
-      }).deleteConnector(request.connector);
-    });
-    this.handle(KAFKA_IPC.connectRestart, async (_event, request: KafkaConnectDetailRequest) => {
->>>>>>> origin/main
-      return new KafkaConnectClient({
-        baseUrl: request.connectUrl,
-        username: request.connectUsername,
-        password: request.connectPassword,
-<<<<<<< HEAD
       }).pauseConnector(request.connector);
     });
     this.handle(KAFKA_IPC.connectResume, async (_event, request: KafkaConnectDetailRequest) => {
@@ -922,11 +891,6 @@ export class KafkaIpcMain extends Main.Ipc {
     });
     this.handle(KAFKA_IPC.connectUpdate, async (_event, request: KafkaConnectCreateRequest) => {
       this.writeMode.assertEnabled(request.targetId, "Update connector");
-=======
-      }).restartConnector(request.connector);
-    });
-    this.handle(KAFKA_IPC.connectUpdate, async (_event, request: KafkaConnectCreateRequest) => {
->>>>>>> origin/main
       return new KafkaConnectClient({
         baseUrl: request.connectUrl,
         username: request.connectUsername,
@@ -934,10 +898,7 @@ export class KafkaIpcMain extends Main.Ipc {
       }).updateConnector(request.config.name, request.config);
     });
     this.handle(KAFKA_IPC.connectCreate, async (_event, request: KafkaConnectCreateRequest) => {
-<<<<<<< HEAD
       this.writeMode.assertEnabled(request.targetId, "Create connector");
-=======
->>>>>>> origin/main
       return new KafkaConnectClient({
         baseUrl: request.connectUrl,
         username: request.connectUsername,
