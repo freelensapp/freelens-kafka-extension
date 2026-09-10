@@ -2112,7 +2112,14 @@ clusterDescribe("Kafka cluster page", () => {
       await settingsRow.locator(".KafkaIconButton").dispatchEvent("click");
       const settings = frame.locator('[data-testid="kafka-connection-settings"]');
       await settings.waitFor({ state: "visible", timeout: 30_000 });
-      await frame.getByLabel("Enable write mode for this Kafka target").check({ force: true });
+      // Order-independent: the switch persists asynchronously, so click only when it is off and wait.
+      const writeToggle = frame.getByLabel("Enable write mode for this Kafka target");
+      if (!(await writeToggle.isChecked())) await writeToggle.click();
+      await frame.waitForFunction(
+        () => (document.querySelector('[data-testid="kafka-write-mode-toggle"]') as HTMLInputElement | null)?.checked,
+        undefined,
+        { timeout: 30_000 },
+      );
       await settings.locator(".drawer-title .Icon").last().click();
       await settings.waitFor({ state: "hidden", timeout: 30_000 });
 
