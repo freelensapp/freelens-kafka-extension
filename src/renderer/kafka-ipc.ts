@@ -44,6 +44,7 @@ import {
   type TopicConsumersRequest,
   type TopicDetailDto,
   type TopicRequest,
+  type WriteModeRequest,
 } from "../common/ipc";
 import { createIpcRequestDeduper, type IpcRequest } from "./kafka-ipc-deduper";
 
@@ -109,6 +110,10 @@ export class KafkaIpcRenderer extends Renderer.Ipc {
 
   resetOffsets(request: ResetOffsetsRequest): Promise<ResetOffsetsResultDto> {
     return this.invoke(KAFKA_IPC.resetOffsets, request) as Promise<ResetOffsetsResultDto>;
+  }
+
+  writeMode(request: WriteModeRequest): Promise<void> {
+    return this.invoke(KAFKA_IPC.writeMode, request) as Promise<void>;
   }
 
   schemaSubjects(request: SchemaSubjectsRequest): Promise<SchemaSubjectSummary[]> {

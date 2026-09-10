@@ -15,6 +15,7 @@ export const KAFKA_IPC = {
   groupDetail: "kafka:group:detail",
   produce: "kafka:produce",
   deleteTopic: "kafka:topic:delete",
+  writeMode: "kafka:write-mode",
   resetOffsets: "kafka:group:reset-offsets",
   schemaSubjects: "kafka:schema-registry:subjects",
   schemaSubjectNames: "kafka:schema-registry:subject-names",
@@ -367,6 +368,12 @@ export interface ProduceResultDto {
   offset: string;
 }
 
+/** Renderer -> Main mirror of the per-target write mode switch (SPEC-009 REQ-197). */
+export interface WriteModeRequest {
+  targetId: string;
+  enabled: boolean;
+}
+
 /** Destructive: deletes one topic with all its partitions and records (SPEC-009 REQ-194). */
 export interface DeleteTopicRequest extends OverviewRequest {
   topic: string;
@@ -395,6 +402,8 @@ export interface ResetOffsetsResultDto {
 }
 
 export interface SchemaRegistryRequest {
+  /** The Kafka target the endpoint belongs to: write calls are refused unless its write mode is on. */
+  targetId?: string;
   registryUrl: string;
   registryUsername?: string;
   /** Session-only: entered in the connection settings, never persisted. */
@@ -419,6 +428,8 @@ export interface SchemaDeleteSubjectRequest extends SchemaRegistryRequest {
 }
 
 export interface KafkaConnectRequest {
+  /** The Kafka target the endpoint belongs to: write calls are refused unless its write mode is on. */
+  targetId?: string;
   connectUrl: string;
   connectUsername?: string;
   /** Session-only: entered in the connection settings, never persisted. */
