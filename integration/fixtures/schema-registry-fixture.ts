@@ -5,11 +5,27 @@ export interface SchemaRegistryFixture {
   close: () => Promise<void>;
 }
 
-export async function startSchemaRegistryFixture(port = 18081): Promise<SchemaRegistryFixture> {
+export interface FixtureBasicAuth {
+  username: string;
+  password: string;
+}
+
+export async function startSchemaRegistryFixture(
+  port = 18081,
+  auth?: FixtureBasicAuth,
+): Promise<SchemaRegistryFixture> {
   let registered = false;
   let deleted = false;
+  const expectedAuthorization = auth
+    ? `Basic ${Buffer.from(`${auth.username}:${auth.password}`).toString("base64")}`
+    : undefined;
   const server: Server = createServer((request, response) => {
     const path = request.url ?? "/";
+    if (expectedAuthorization && request.headers.authorization !== expectedAuthorization) {
+      response.statusCode = 401;
+      response.setHeader("content-type", "application/json");
+      return void response.end(JSON.stringify({ error_code: 401, message: "Unauthorized" }));
+    }
     if (request.method === "POST" && path === "/subjects/orders-value/versions") {
       registered = true;
       response.setHeader("content-type", "application/json");

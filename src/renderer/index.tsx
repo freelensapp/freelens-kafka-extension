@@ -8,6 +8,7 @@ import { KAFKA_CLUSTER_CATALOG_KEY } from "./kafka-cluster-catalog";
 import { KafkaConnectPage, type KafkaConnectPageProps } from "./kafka-connect-pages";
 import { KafkaConnectSettingsStore } from "./kafka-connect-settings";
 import { KafkaConnectionSettingsStore } from "./kafka-connection-settings";
+import { KafkaEndpointSecretsStore } from "./kafka-endpoint-secrets";
 import { KafkaGroupsPage, type KafkaGroupsPageProps } from "./kafka-group-pages";
 import { KafkaIpcRenderer } from "./kafka-ipc";
 import { MANUAL_ENDPOINTS_KEY } from "./kafka-manual-endpoints";
@@ -63,6 +64,9 @@ export default class KafkaExtensionRenderer extends Renderer.LensExtension {
   private readonly writeSettings = new KafkaWriteSettingsStore();
   private readonly schemaRegistrySettings = new KafkaSchemaRegistrySettingsStore();
   private readonly connectSettings = new KafkaConnectSettingsStore();
+  private readonly endpointSecrets = new KafkaEndpointSecretsStore();
+  /** Targets whose write mode the main process has been told about (SPEC-009 REQ-197). */
+  private readonly mirroredWriteTargets = new Set<string>();
   private readonly overviewSettings = new KafkaOverviewSettingsStore();
   private readonly aclAvailability = new KafkaAclAvailabilityStore();
   private readonly hiddenMenu = computed(() => false);
@@ -80,6 +84,23 @@ export default class KafkaExtensionRenderer extends Renderer.LensExtension {
       MANUAL_ENDPOINTS_KEY,
       KAFKA_SELECTIONS_KEY,
     ]);
+    this.mirrorWriteMode();
+    this.writeSettings.subscribe(() => this.mirrorWriteMode());
+  }
+
+  /** Tell the main process which targets have write mode on, so it can refuse other writes. */
+  private mirrorWriteMode(): void {
+    const enabled = new Set(this.writeSettings.enabledTargets());
+    for (const targetId of enabled) {
+      if (this.mirroredWriteTargets.has(targetId)) continue;
+      this.mirroredWriteTargets.add(targetId);
+      void this.client.writeMode({ targetId, enabled: true }).catch(() => this.mirroredWriteTargets.delete(targetId));
+    }
+    for (const targetId of [...this.mirroredWriteTargets]) {
+      if (enabled.has(targetId)) continue;
+      this.mirroredWriteTargets.delete(targetId);
+      void this.client.writeMode({ targetId, enabled: false }).catch(() => undefined);
+    }
   }
 
   private get client(): KafkaIpcRenderer {
@@ -183,6 +204,7 @@ export default class KafkaExtensionRenderer extends Renderer.LensExtension {
             connectionSettings={this.connectionSettings}
             writeSettings={this.writeSettings}
             schemaRegistrySettings={this.schemaRegistrySettings}
+            endpointSecrets={this.endpointSecrets}
             connectSettings={this.connectSettings}
             kubernetesClusterId={this.clusterId}
             resourceCache={this.resourceCache}
@@ -241,6 +263,7 @@ export default class KafkaExtensionRenderer extends Renderer.LensExtension {
             produce={this.produce}
             deleteTopic={this.deleteTopic}
             schemaRegistrySettings={this.schemaRegistrySettings}
+            endpointSecrets={this.endpointSecrets}
             reachability={this.reachability}
             subscribeProgress={this.subscribeProgress}
           />
@@ -303,6 +326,7 @@ export default class KafkaExtensionRenderer extends Renderer.LensExtension {
             discover={this.discover}
             overview={this.overview}
             schemaRegistrySettings={this.schemaRegistrySettings}
+            endpointSecrets={this.endpointSecrets}
             schemaSubjectNames={this.schemaSubjectNames}
             schemaSubjectDetail={this.schemaSubjectDetail}
             schemaRegister={this.schemaRegister}
@@ -326,6 +350,7 @@ export default class KafkaExtensionRenderer extends Renderer.LensExtension {
             discover={this.discover}
             overview={this.overview}
             connectSettings={this.connectSettings}
+            endpointSecrets={this.endpointSecrets}
             connectNames={this.connectNames}
             connectDetail={this.connectDetail}
             connectPause={(request) => this.client.connectPause(request)}

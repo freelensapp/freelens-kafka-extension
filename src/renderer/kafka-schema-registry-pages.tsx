@@ -7,6 +7,7 @@ import { canSubmitWriteAction } from "./kafka-write-policy";
 import type { HTMLAttributes } from "react";
 
 import type { SchemaSubjectDetail, SchemaSubjectSummary } from "../common/ipc";
+import type { KafkaEndpointSecretsStore } from "./kafka-endpoint-secrets";
 import type { KafkaSchemaRegistrySettingsStore } from "./kafka-schema-registry-settings";
 
 export interface KafkaSchemaRegistryPageProps extends KafkaResourcePageDependencies {
@@ -16,15 +17,22 @@ export interface KafkaSchemaRegistryPageProps extends KafkaResourcePageDependenc
     subject: Renderer.Navigation.PageParam<string>;
   };
   schemaRegistrySettings: KafkaSchemaRegistrySettingsStore;
-  schemaSubjectNames: (request: { registryUrl: string; registryUsername?: string }) => Promise<string[]>;
+  endpointSecrets: KafkaEndpointSecretsStore;
+  schemaSubjectNames: (request: {
+    registryUrl: string;
+    registryUsername?: string;
+    registryPassword?: string;
+  }) => Promise<string[]>;
   schemaSubjectDetail: (request: {
     registryUrl: string;
     registryUsername?: string;
+    registryPassword?: string;
     subject: string;
   }) => Promise<SchemaSubjectDetail>;
   schemaRegister: (request: {
     registryUrl: string;
     registryUsername?: string;
+    registryPassword?: string;
     subject: string;
     schema: string;
     schemaType?: string;
@@ -32,6 +40,7 @@ export interface KafkaSchemaRegistryPageProps extends KafkaResourcePageDependenc
   schemaDeleteSubject: (request: {
     registryUrl: string;
     registryUsername?: string;
+    registryPassword?: string;
     subject: string;
   }) => Promise<number[]>;
 }
@@ -39,6 +48,7 @@ export interface KafkaSchemaRegistryPageProps extends KafkaResourcePageDependenc
 export function KafkaSchemaRegistryPage({
   params,
   schemaRegistrySettings,
+  endpointSecrets,
   schemaSubjectNames,
   schemaSubjectDetail,
   schemaRegister,
@@ -49,10 +59,17 @@ export function KafkaSchemaRegistryPage({
   const [query, setQuery] = useKafkaPageParam(params?.query);
   const [subject, setSubject] = useKafkaPageParam(params?.subject);
   const selectedTargetId = state.selectedCluster?.targetId;
-  const registry = useMemo(
-    () => (selectedTargetId ? schemaRegistrySettings.get(selectedTargetId) : undefined),
-    [schemaRegistrySettings, selectedTargetId],
-  );
+  // The IPC request shape (registryUsername/registryPassword), not the persisted settings shape.
+  const registry = useMemo(() => {
+    const configured = selectedTargetId ? schemaRegistrySettings.get(selectedTargetId) : undefined;
+    if (!configured || !selectedTargetId) return undefined;
+    return {
+      targetId: selectedTargetId,
+      registryUrl: configured.registryUrl,
+      registryUsername: configured.username,
+      registryPassword: endpointSecrets.get(selectedTargetId)?.registryPassword,
+    };
+  }, [endpointSecrets, schemaRegistrySettings, selectedTargetId]);
   const [subjects, setSubjects] = useState<SchemaSubjectSummary[]>([]);
   const [detail, setDetail] = useState<SchemaSubjectDetail>();
   const [loading, setLoading] = useState(false);

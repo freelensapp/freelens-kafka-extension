@@ -1,10 +1,17 @@
 # Changelog
 
-## Unreleased
+## v1.2.0 - 2026-09-10
 
 ### Added
 
 - Topic size on disk in the Topics list (sortable, with the sum in the summary), in the Topic Workspace and per partition, read through `DescribeLogDirs` on every broker; lower bounds are marked when a broker does not report and `n/a` appears on clusters without the API (#30).
+
+## v1.1.1 - 2026-09-10
+
+### Fixed
+
+- The main process refuses write calls (produce, delete topic, reset offsets, Schema Registry, Kafka Connect and ACL writes) for targets whose write mode is not enabled in the session; the renderer mirrors the switch to main, so the write policy no longer relies on the renderer alone.
+- Basic auth for Schema Registry and Kafka Connect works: the connection settings ask for a password that is kept for the session only and never stored, and the pages now send the configured username (it was never mapped to the request before, so no `Authorization` header was ever sent).
 
 ## v1.1.0 - 2026-09-10
 

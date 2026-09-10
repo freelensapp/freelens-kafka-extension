@@ -61,6 +61,7 @@ interface MessageBrowseInput {
   limit: number;
   registryUrl?: string;
   registryUsername?: string;
+  registryPassword?: string;
 }
 
 interface ValidatedMessageBrowseInput extends MessageBrowseInput {
@@ -405,7 +406,11 @@ export async function browseMessagesWithCluster(
     const selected = batch.messages.slice(0, input.limit);
     const budget = new PreviewBudget();
     const registry = input.registryUrl
-      ? new SchemaRegistryClient({ baseUrl: input.registryUrl, username: input.registryUsername })
+      ? new SchemaRegistryClient({
+          baseUrl: input.registryUrl,
+          username: input.registryUsername,
+          password: input.registryPassword,
+        })
       : undefined;
     messages = await Promise.all(
       selected.map((message) => normalizeRecord(input.topic, input.partition, message, budget, registry)),

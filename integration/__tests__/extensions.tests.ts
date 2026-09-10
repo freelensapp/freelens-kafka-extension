@@ -181,6 +181,8 @@ clusterDescribe("Kafka cluster page", () => {
   let schemaRegistryFixture: SchemaRegistryFixture;
   let kafkaConnectFixture: KafkaConnectFixture;
   const DIRECT_KAFKA_BROKER = "127.0.0.1:19092";
+  // Both HTTP fixtures require basic auth so the session-only password path is exercised end to end.
+  const FIXTURE_BASIC_AUTH = { username: "fixture-user", password: "fixture-pass" };
   const ACL_KAFKA_BROKER = "127.0.0.1:19095";
   const DIRECT_TOPIC = "freelens-orders";
 
@@ -506,8 +508,8 @@ clusterDescribe("Kafka cluster page", () => {
       await window.click('div[class*="close-button-module__closeButton--"][aria-label="Close"]');
 
       if (extensionPath && extensionPath.endsWith(".tgz")) {
-        schemaRegistryFixture = await startSchemaRegistryFixture();
-        kafkaConnectFixture = await startKafkaConnectFixture();
+        schemaRegistryFixture = await startSchemaRegistryFixture(18081, FIXTURE_BASIC_AUTH);
+        kafkaConnectFixture = await startKafkaConnectFixture(18083, FIXTURE_BASIC_AUTH);
       }
 
       // Back to the catalog and connect the KinD cluster.
@@ -2436,7 +2438,8 @@ clusterDescribe("Kafka cluster page", () => {
       const settings = frame.locator('[data-testid="kafka-connection-settings"]');
       await settings.waitFor({ state: "visible", timeout: 30_000 });
       await frame.getByLabel("Schema Registry URL").fill(schemaRegistryFixture.url);
-      await frame.getByLabel("Schema Registry username").fill("fixture-user");
+      await frame.getByLabel("Schema Registry username").fill(FIXTURE_BASIC_AUTH.username);
+      await frame.getByLabel("Schema Registry password").fill(FIXTURE_BASIC_AUTH.password);
       await settings.getByRole("button", { name: "Save Schema Registry settings" }).click();
       await frame.waitForFunction(() =>
         window.localStorage.getItem("freelens-kafka.schema-registry.v1")?.includes("18081"),
@@ -2578,6 +2581,8 @@ clusterDescribe("Kafka cluster page", () => {
       const settings = frame.locator('[data-testid="kafka-connection-settings"]');
       await settings.waitFor({ state: "visible", timeout: 30_000 });
       await frame.getByLabel("Kafka Connect URL").fill(kafkaConnectFixture.url);
+      await frame.getByLabel("Kafka Connect username").fill(FIXTURE_BASIC_AUTH.username);
+      await frame.getByLabel("Kafka Connect password").fill(FIXTURE_BASIC_AUTH.password);
       await settings.getByRole("button", { name: "Save Kafka Connect settings" }).click();
       await settings.locator(".drawer-title .Icon").last().click();
       await settings.waitFor({ state: "hidden", timeout: 30_000 });

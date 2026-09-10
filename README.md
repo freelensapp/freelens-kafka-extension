@@ -207,8 +207,9 @@ batched offset requests and explicit exact or lower-bound coverage.
 
 ### Schema Registry, Kafka Connect and ACLs
 
-Optional per-cluster endpoints (URL, TLS flag and optional basic auth, stored
-in the extension settings without secrets) add the **Schema Registry** page
+Optional per-cluster endpoints (URL, TLS flag and optional basic auth: the
+username is stored in the extension settings, the password is asked once per
+session and never stored) add the **Schema Registry** page
 (subjects and versions), the **Kafka Connect** page (connector list, detail
 and lifecycle) and the **ACLs** page (list and filtering) to the sidebar only
 for the clusters that have them.

@@ -56,7 +56,7 @@ interface KafkaMessagesBrowserProps {
   onFilterChange: (name: MessageFilterName, value: string) => void;
   timestamp: string;
   onTimestampChange: (value: string) => void;
-  schemaRegistry?: { registryUrl: string; username?: string };
+  schemaRegistry?: { registryUrl: string; username?: string; password?: string };
 }
 
 type MessageFilterName = "key" | "value" | "headerKey" | "headerValue";
@@ -402,10 +402,18 @@ export function KafkaMessagesBrowser({
         sourceLocator: cluster.sourceLocator,
         security,
         ...(schemaRegistry
-          ? { registryUrl: schemaRegistry.registryUrl, registryUsername: schemaRegistry.username }
+          ? {
+              registryUrl: schemaRegistry.registryUrl,
+              registryUsername: schemaRegistry.username,
+              registryPassword: schemaRegistry.password,
+            }
           : {}),
         ...(schemaRegistry
-          ? { registryUrl: schemaRegistry.registryUrl, registryUsername: schemaRegistry.username }
+          ? {
+              registryUrl: schemaRegistry.registryUrl,
+              registryUsername: schemaRegistry.username,
+              registryPassword: schemaRegistry.password,
+            }
           : {}),
       })
         .then((data) => {
@@ -528,7 +536,13 @@ export function KafkaMessagesBrowser({
       tls: cluster.tls,
       sourceLocator: cluster.sourceLocator,
       security,
-      ...(schemaRegistry ? { registryUrl: schemaRegistry.registryUrl, registryUsername: schemaRegistry.username } : {}),
+      ...(schemaRegistry
+        ? {
+            registryUrl: schemaRegistry.registryUrl,
+            registryUsername: schemaRegistry.username,
+            registryPassword: schemaRegistry.password,
+          }
+        : {}),
     })
       .then((data) => {
         if (tailSession.current !== sessionId) return;

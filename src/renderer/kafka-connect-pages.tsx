@@ -8,6 +8,7 @@ import type { HTMLAttributes } from "react";
 
 import type { ConnectorDetailDto, ConnectorSummaryDto, KafkaConnectCreateRequest } from "../common/ipc";
 import type { KafkaConnectSettingsStore } from "./kafka-connect-settings";
+import type { KafkaEndpointSecretsStore } from "./kafka-endpoint-secrets";
 
 export interface KafkaConnectPageProps extends KafkaResourcePageDependencies {
   params?: {
@@ -16,10 +17,16 @@ export interface KafkaConnectPageProps extends KafkaResourcePageDependencies {
     connector: Renderer.Navigation.PageParam<string>;
   };
   connectSettings: KafkaConnectSettingsStore;
-  connectNames: (request: { connectUrl: string; connectUsername?: string }) => Promise<string[]>;
+  endpointSecrets: KafkaEndpointSecretsStore;
+  connectNames: (request: {
+    connectUrl: string;
+    connectUsername?: string;
+    connectPassword?: string;
+  }) => Promise<string[]>;
   connectDetail: (request: {
     connectUrl: string;
     connectUsername?: string;
+    connectPassword?: string;
     connector: string;
   }) => Promise<ConnectorDetailDto>;
   connectPause: (request: { connectUrl: string; connectUsername?: string; connector: string }) => Promise<void>;
@@ -33,6 +40,7 @@ export interface KafkaConnectPageProps extends KafkaResourcePageDependencies {
 export function KafkaConnectPage({
   params,
   connectSettings,
+  endpointSecrets,
   connectNames,
   connectDetail,
   connectPause,
@@ -47,10 +55,17 @@ export function KafkaConnectPage({
   const [query, setQuery] = useKafkaPageParam(params?.query);
   const [connector, setConnector] = useKafkaPageParam(params?.connector);
   const selectedTargetId = state.selectedCluster?.targetId;
-  const settings = useMemo(
-    () => (selectedTargetId ? connectSettings.get(selectedTargetId) : undefined),
-    [connectSettings, selectedTargetId],
-  );
+  // The IPC request shape (connectUsername/connectPassword), not the persisted settings shape.
+  const settings = useMemo(() => {
+    const configured = selectedTargetId ? connectSettings.get(selectedTargetId) : undefined;
+    if (!configured || !selectedTargetId) return undefined;
+    return {
+      targetId: selectedTargetId,
+      connectUrl: configured.connectUrl,
+      connectUsername: configured.username,
+      connectPassword: endpointSecrets.get(selectedTargetId)?.connectPassword,
+    };
+  }, [connectSettings, endpointSecrets, selectedTargetId]);
   const [items, setItems] = useState<ConnectorSummaryDto[]>([]);
   const [detail, setDetail] = useState<ConnectorDetailDto>();
   const [error, setError] = useState<string>();

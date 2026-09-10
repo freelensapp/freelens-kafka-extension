@@ -39,6 +39,7 @@ import type {
   TopicSizesDto,
   TopicSizesRequest,
 } from "../common/ipc";
+import type { KafkaEndpointSecretsStore } from "./kafka-endpoint-secrets";
 import type { KafkaSchemaRegistrySettingsStore } from "./kafka-schema-registry-settings";
 
 interface KafkaTopicsPageParams {
@@ -342,6 +343,7 @@ export interface KafkaTopicsPageProps extends KafkaResourcePageDependencies {
   deleteTopic: (request: DeleteTopicRequest) => Promise<DeleteTopicResultDto>;
   topicSizes: (request: TopicSizesRequest) => Promise<TopicSizesDto>;
   schemaRegistrySettings: KafkaSchemaRegistrySettingsStore;
+  endpointSecrets: KafkaEndpointSecretsStore;
 }
 
 export function KafkaTopicsPage({
@@ -355,6 +357,7 @@ export function KafkaTopicsPage({
   deleteTopic,
   topicSizes,
   schemaRegistrySettings,
+  endpointSecrets,
   ...dependencies
 }: KafkaTopicsPageProps) {
   const state = useKafkaResourcePage({ ...dependencies, params });
@@ -1139,7 +1142,11 @@ export function KafkaTopicsPage({
                     ? (() => {
                         const configured = schemaRegistrySettings.get(state.selectedCluster.targetId);
                         return configured
-                          ? { registryUrl: configured.registryUrl, username: configured.username }
+                          ? {
+                              registryUrl: configured.registryUrl,
+                              username: configured.username,
+                              password: endpointSecrets.get(state.selectedCluster.targetId)?.registryPassword,
+                            }
                           : undefined;
                       })()
                     : undefined
