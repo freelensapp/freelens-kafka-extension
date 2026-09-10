@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+### Added
+
+- Topic size on disk in the Topics list (sortable, with the sum in the summary), in the Topic Workspace and per partition, read through `DescribeLogDirs` on every broker; lower bounds are marked when a broker does not report and `n/a` appears on clusters without the API (#30).
+
 ## v1.1.0 - 2026-09-10
 
 ### Added

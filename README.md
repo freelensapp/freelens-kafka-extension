@@ -182,6 +182,9 @@ profile, the connection strategy, brokers, the controller and topic metadata.
 A searchable topic list that lazy-loads partition leadership, replicas,
 in-sync and offline replicas and health, plus a Topic Workspace with a
 Configuration tab and cross-links to the consumer groups reading the topic.
+Every topic shows its size on disk (leader replicas, with the full replica
+footprint on hover), read through `DescribeLogDirs` on each broker, in the
+list, in the workspace and per partition.
 
 ### Messages
 

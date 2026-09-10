@@ -55,6 +55,7 @@ import type {
   TopicConfigRequest,
   TopicConsumersRequest,
   TopicRequest,
+  TopicSizesRequest,
 } from "../common/ipc";
 
 export default class KafkaExtensionRenderer extends Renderer.LensExtension {
@@ -130,6 +131,8 @@ export default class KafkaExtensionRenderer extends Renderer.LensExtension {
     this.client.topicConfig({ clusterId: this.clusterId, ...request });
   private readonly topicConsumers = (request: TopicConsumersRequest) =>
     this.client.topicConsumers({ clusterId: this.clusterId, ...request });
+  private readonly topicSizes = (request: TopicSizesRequest) =>
+    this.client.topicSizes({ clusterId: this.clusterId, ...request });
   private readonly brokerConfig = (request: BrokerConfigRequest) =>
     this.client.brokerConfig({ clusterId: this.clusterId, ...request });
   private readonly messagesBrowse = (request: MessageBrowseRequest) =>
@@ -230,6 +233,7 @@ export default class KafkaExtensionRenderer extends Renderer.LensExtension {
             topic={this.topic}
             topicConfig={this.topicConfig}
             topicConsumers={this.topicConsumers}
+            topicSizes={this.topicSizes}
             onOpenGroup={(targetId, groupId) => {
               void this.navigate(KAFKA_PAGE_IDS.groups, { target: targetId, group: groupId, view: "offsets" });
             }}
