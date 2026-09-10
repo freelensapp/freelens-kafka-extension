@@ -37,6 +37,7 @@ import type {
   AclsRequest,
   BrokerConfigRequest,
   ClusterHealthRequest,
+  DeleteTopicRequest,
   DiscoverRequest,
   GroupDetailRequest,
   GroupsRequest,
@@ -138,6 +139,8 @@ export default class KafkaExtensionRenderer extends Renderer.LensExtension {
     this.client.groupDetail({ clusterId: this.clusterId, ...request });
   private readonly produce = (request: ProduceRequest) =>
     this.client.produce({ clusterId: this.clusterId, ...request });
+  private readonly deleteTopic = (request: DeleteTopicRequest) =>
+    this.client.deleteTopic({ clusterId: this.clusterId, ...request });
   private readonly resetOffsets = (request: ResetOffsetsRequest) =>
     this.client.resetOffsets({ clusterId: this.clusterId, ...request });
   private readonly schemaSubjectNames = (request: SchemaSubjectNamesRequest) => this.client.schemaSubjectNames(request);
@@ -232,6 +235,7 @@ export default class KafkaExtensionRenderer extends Renderer.LensExtension {
             }}
             messagesBrowse={this.messagesBrowse}
             produce={this.produce}
+            deleteTopic={this.deleteTopic}
             schemaRegistrySettings={this.schemaRegistrySettings}
             reachability={this.reachability}
             subscribeProgress={this.subscribeProgress}

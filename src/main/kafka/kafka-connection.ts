@@ -23,6 +23,7 @@ import type {
   ClusterOverviewHealthDto,
   ConsumerGroupDetailDto,
   ConsumerGroupSummaryDto,
+  DeleteTopicResultDto,
   MessageBrowseDto,
   MessageBrowseRequest,
   ProduceRequest,
@@ -406,6 +407,19 @@ export class KafkaConnection {
       return { topic: request.topic, partition: result.partition, offset: result.baseOffset };
     } finally {
       await producer.disconnect();
+    }
+  }
+
+  /** Delete one topic through the Admin API: the brokers discard its partitions and records. */
+  async deleteTopic(topic: string): Promise<DeleteTopicResultDto> {
+    if (!topic) throw new Error("a topic name is required");
+    const admin = this.kafka.admin();
+    await admin.connect();
+    try {
+      await admin.deleteTopics({ topics: [topic] });
+      return { topic };
+    } finally {
+      await admin.disconnect();
     }
   }
 

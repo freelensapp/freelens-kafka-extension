@@ -54,6 +54,8 @@ any write. Any test that cannot verify a local bootstrap must abort rather than 
 - **Produce Message** — compose key, value, headers and optional partition; confirm and send once.
 - **Consumer Group offset reset** — reset a group's committed offset for a topic/partition to
   earliest, latest, a specific offset or a timestamp.
+- **Topic deletion** (v1.1.0, issue #24) — delete one topic from its workspace after the
+  reinforced confirmation.
 
 ## Non-goals
 
@@ -144,6 +146,18 @@ confirming, **then** the compose view closes and no message is produced.
   local loopback address (127.0.0.1 or ::1) before executing any write. Tests MUST abort with a
   clear diagnostic if this assertion fails; they MUST NOT skip silently.
 
+### Topic deletion (v1.1.0)
+
+- **REQ-194** — A Delete topic action MUST be accessible from the Topic Workspace header when
+  write mode is enabled for the cluster. It MUST NOT be visible when write mode is disabled.
+- **REQ-195** — Topic deletion MUST use the reinforced confirmation gate (REQ-105): the submit
+  button stays disabled until the exact topic name is typed and the confirmation is accepted. The
+  confirmation MUST show the cluster, the topic, its partition count and state that every record
+  is lost. The cluster and topic are locked at compose time (REQ-106).
+- **REQ-196** — After a confirmed deletion the extension MUST return to the topic list and refresh
+  the target's metadata and health so the topic disappears, and MUST report the outcome. On
+  failure the full error message MUST be shown without truncation and nothing is retried.
+
 ## Success Criteria
 
 - **SC-058** — With write mode disabled (default), no Produce button and no offset-reset control is
@@ -163,6 +177,10 @@ confirming, **then** the compose view closes and no message is produced.
 - **SC-064** — The test setup for all write tests asserts `bootstrap.includes("127.0.0.1") ||
   bootstrap.includes("::1")`; a test pointed at a non-local bootstrap fails at setup, not at the
   write call.
+- **SC-112** — With write mode enabled, deleting a disposable local topic requires typing its exact
+  name: a wrong name or the accepted switch alone leaves the submit disabled. After confirmation
+  the topic is absent from the list and from the broker.
+- **SC-113** — With write mode disabled, no Delete topic control is visible in the Topic Workspace.
 
 ## Decision Log
 
@@ -173,6 +191,9 @@ confirming, **then** the compose view closes and no message is produced.
   at-least-once; no exactly-once claim is made in the UI.
 - **2026-08-06** — Reset-to-timestamp uses the same `offsetsForTimes` admin call introduced in
   SPEC-008; no new API surface.
+- **2026-09-10** — Topic deletion (REQ-194–REQ-196) added after the v1.0.0 release on user
+  request (#24) under the same write policy; it uses the KafkaJS Admin `deleteTopics` call and the
+  typed-name gate because the records cannot be reconstructed.
 
 ## Verification Evidence
 
@@ -182,4 +203,5 @@ confirming, **then** the compose view closes and no message is produced.
 | REQ-103 | `src/renderer/kafka-write-settings.test.ts`: per-target isolation, persistence, and cross-instance synchronization. |
 | REQ-110–REQ-111 | `src/main/kafka/kafka-connection.ts` plus packaged E2E: idempotent KafkaJS producer returns and renders partition/offset. |
 | REQ-113–REQ-114 | `src/main/kafka/kafka-connection.ts` plus packaged E2E: earliest reset resolves and commits the selected partition after reinforced confirmation. |
+| REQ-194–REQ-196, SC-112 | `src/main/kafka/kafka-connection.test.ts` (`deleteTopic`) plus packaged E2E: a disposable loopback topic is deleted only after the typed name and the switch, then it is absent from the list and the broker. |
 | SC-058–SC-064 | Packaged Electron Playwright suite: **7/7 tests passed** on 2026-08-18 using only `127.0.0.1:19092` and the local KinD fixture; typecheck, 122 unit tests and Prettier also passed. |
