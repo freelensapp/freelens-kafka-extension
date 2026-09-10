@@ -103,7 +103,7 @@
   },
   "devDependencies": {
     "@electron-toolkit/tsconfig": "^2.0.0",
-    "@freelensapp/extensions": "^1.9.0",
+    "@freelensapp/extensions": "^1.10.3",
     "@kubernetes/client-node": "^1.4.0",
     "@types/node": "~24.12.4",
     "@types/react": "^17.0.91",

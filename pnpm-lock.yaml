@@ -12,7 +12,7 @@ importers:
         specifier: ^2.0.0
         version: 2.0.0(@types/node@24.12.4)
       '@freelensapp/extensions':
-        specifier: ^1.9.0
+        specifier: ^1.10.3
         version: 1.10.3(@emotion/react@11.14.0(@types/react@17.0.93)(react@17.0.2))(@types/react@17.0.93)
       '@kubernetes/client-node':
         specifier: ^1.4.0
@@ -1552,6 +1552,7 @@ packages:
 
   crypto-js@4.2.0:
     resolution: {integrity: sha512-KALDyEYgpY+Rlob/iriUtjV6d5Eq+Y191A5g4UqLAi8CyGP9N1+FdVbkc1SxKc2r4YAYqG8JzO2KGL+AizD70Q==}
+    deprecated: Active development of CryptoJS has been discontinued. This library is no longer maintained.
 
   crypto-random-string@2.0.0:
     resolution: {integrity: sha512-v1plID3y9r/lPhviJ1wrXpLeyUIGAZ2SHNYTEapm7/8A9nLPoyvVp3RK/EPFqn5kEznyWgYZNsRtYYIWbuG8KA==}
