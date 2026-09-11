@@ -31,6 +31,7 @@ function fakeCluster(
   brokers: Record<string, Buffer | Error>,
 ): LogDirsCluster {
   return {
+    targetTopics: new Set(Object.keys(leaders)),
     addMultipleTargetTopics: async () => undefined,
     refreshMetadata: async () => undefined,
     getNodeIds: () => Object.keys(brokers),
@@ -156,6 +157,36 @@ describe("fetchTopicSizes", () => {
     const sizes = await fetchTopicSizes(cluster, ["orders"]);
     expect(sizes.supported).toBe(false);
     expect(sizes.topics.orders.exact).toBe(false);
+  });
+
+  it("drops the target topics deleted since the last call and retries the metadata refresh once", async () => {
+    const base = fakeCluster({ orders: [{ partitionId: 0, leader: 1 }] }, { "1": brokerResponse([["orders", 0, 10]]) });
+    let refreshes = 0;
+    const cluster: LogDirsCluster = {
+      ...base,
+      targetTopics: new Set(["orders", "gone", "browsed-and-gone"]),
+      refreshMetadata: async () => {
+        refreshes += 1;
+        if (cluster.targetTopics.has("gone")) {
+          throw Object.assign(new Error("This server does not host this topic-partition"), {
+            type: "UNKNOWN_TOPIC_OR_PARTITION",
+          });
+        }
+      },
+    };
+    const sizes = await fetchTopicSizes(cluster, ["orders"]);
+    expect(refreshes).toBe(2);
+    expect([...cluster.targetTopics]).toEqual(["orders"]);
+    expect(sizes.topics.orders.leaderBytes).toBe("10");
+
+    const failing: LogDirsCluster = {
+      ...base,
+      targetTopics: new Set(["orders"]),
+      refreshMetadata: async () => {
+        throw Object.assign(new Error("broker down"), { type: "NETWORK_EXCEPTION" });
+      },
+    };
+    await expect(fetchTopicSizes(failing, ["orders"])).rejects.toThrow("broker down");
   });
 
   it("returns an empty result for no topics without touching the cluster", async () => {

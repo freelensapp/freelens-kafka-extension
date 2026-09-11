@@ -158,6 +158,28 @@ confirming, **then** the compose view closes and no message is produced.
   the target's metadata and health so the topic disappears, and MUST report the outcome. On
   failure the full error message MUST be shown without truncation and nothing is retried.
 
+### Batch topic deletion (v1.3.0)
+
+- **REQ-203** — When write mode is enabled for the cluster, the Topics list MUST offer a selection
+  checkbox per topic and a page-level checkbox that selects the application topics of the visible
+  page (internal `__` topics are never selected as a page and can only be ticked one by one). A
+  "Delete N topics" action with the current count MUST appear next to the filter, disabled while
+  nothing is selected. None of these controls is visible when write mode is disabled. The selection
+  belongs to one cluster: it survives filter and page changes, is cleared on a cluster switch or a
+  write-mode opt-out, and drops the names that a refresh no longer returns.
+- **REQ-204** — Batch deletion MUST use the reinforced confirmation gate (REQ-105) with the number
+  of selected topics as the confirmation phrase: the submit stays disabled until the exact count is
+  typed and the switch is accepted. The confirmation MUST show the cluster and every locked topic
+  name and state that every record is lost. The cluster and the names are locked at compose time
+  (REQ-106); the checkboxes are frozen while the confirmation is open, and a cluster change, an
+  opened topic or a write-mode opt-out cancels the pending batch with a notice.
+- **REQ-205** — The main process MUST delete the locked topics through one Admin session with one
+  `DeleteTopics` request per topic, so that a broker error on one name does not hide the outcome
+  of the others, and MUST return the deleted names and every failure with its full error message.
+  The renderer MUST report the outcome ("Deleted N topics", or the partial count), list every
+  failure without truncation, keep the failed topics selected and refresh the list; nothing is
+  retried. The call is guarded by REQ-197 like every other write.
+
 ### Main-process guard (v1.1.1)
 
 - **REQ-197** — The main process MUST refuse every write IPC call (produce, topic deletion, offset
@@ -191,6 +213,12 @@ confirming, **then** the compose view closes and no message is produced.
 - **SC-113** — With write mode disabled, no Delete topic control is visible in the Topic Workspace.
 - **SC-114** — A write IPC call for a target that was never enabled in the session is rejected by
   main with an explicit error, even if a renderer sent it.
+- **SC-117** — With write mode enabled, ticking three disposable local topics in the list shows
+  "Delete 3 topics"; the confirmation lists the three names and stays disabled with the switch
+  alone or a wrong count; after typing `3` and confirming, the three rows and the broker topics
+  are gone and the status reads "Deleted 3 topics".
+- **SC-118** — With write mode disabled, the Topics list shows no selection column and no batch
+  action.
 
 ## Decision Log
 
@@ -206,6 +234,11 @@ confirming, **then** the compose view closes and no message is produced.
   typed-name gate because the records cannot be reconstructed.
 - **2026-09-10** — v1.1.1 adds the main-process guard (REQ-197): before it, the only gate was the
   renderer setting, so a renderer defect could have reached a broker with a write.
+- **2026-09-11** — Batch deletion from the list (REQ-203–REQ-205) added on user request (#56).
+  The typed count replaces the typed name because retyping every name defeats the purpose of a
+  batch; the locked list of names in the confirmation keeps the operation explicit. One Admin
+  request per topic was chosen over a single multi-topic `DeleteTopics` call because KafkaJS
+  surfaces only the first per-topic error of a batch response.
 
 ## Verification Evidence
 
@@ -217,4 +250,5 @@ confirming, **then** the compose view closes and no message is produced.
 | REQ-113–REQ-114 | `src/main/kafka/kafka-connection.ts` plus packaged E2E: earliest reset resolves and commits the selected partition after reinforced confirmation. |
 | REQ-197, SC-114 | `src/main/write-mode.test.ts`: unknown, disabled and missing targets are refused, enabled ones pass; the packaged write E2E scenarios run through the renderer mirror. |
 | REQ-194–REQ-196, SC-112 | `src/main/kafka/kafka-connection.test.ts` (`deleteTopic`) plus packaged E2E: a disposable loopback topic is deleted only after the typed name and the switch, then it is absent from the list and the broker. |
+| REQ-203–REQ-205, SC-117 | `src/renderer/kafka-topic-selection.test.ts` (page selection without internal topics, pruning, outcome wording), `src/main/kafka/kafka-connection.test.ts` (`deleteTopics`: one session, one request per topic, per-topic failures) plus packaged E2E: three disposable loopback topics ticked in the list, gate enforced on the switch and on a wrong count, then absent from the list and the broker. |
 | SC-058–SC-064 | Packaged Electron Playwright suite: **7/7 tests passed** on 2026-08-18 using only `127.0.0.1:19092` and the local KinD fixture; typecheck, 122 unit tests and Prettier also passed. |

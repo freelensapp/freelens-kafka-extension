@@ -7,6 +7,8 @@ const DEFAULT_CONCURRENCY = 8;
 
 /** The part of the KafkaJS cluster the size reader needs (see `KafkaReadCluster`). */
 export interface LogDirsCluster {
+  /** The topics the KafkaJS cluster refreshes metadata for; it never forgets a name on its own. */
+  targetTopics: Set<string>;
   addMultipleTargetTopics(topics: string[]): Promise<void>;
   refreshMetadata(): Promise<void>;
   getNodeIds(): string[];
@@ -143,7 +145,17 @@ export async function fetchTopicSizes(
   const leaders = new Map<string, Map<number, number | null>>();
   if (names.length === 0) return aggregateTopicSizes([], { leaders }, []);
   await cluster.addMultipleTargetTopics(names);
-  await cluster.refreshMetadata();
+  try {
+    await cluster.refreshMetadata();
+  } catch (error) {
+    // The shared read cluster still targets the topics deleted since its last call, and KafkaJS
+    // fails the whole metadata refresh on an unknown one: drop the names outside this request
+    // (built from a fresh topic list) and retry once.
+    if ((error as { type?: string }).type !== "UNKNOWN_TOPIC_OR_PARTITION") throw error;
+    const wanted = new Set(names);
+    for (const topic of [...cluster.targetTopics]) if (!wanted.has(topic)) cluster.targetTopics.delete(topic);
+    await cluster.refreshMetadata();
+  }
   const request = names.map((topic) => {
     const partitions = cluster.findTopicPartitionMetadata(topic);
     leaders.set(topic, new Map(partitions.map((partition) => [partition.partitionId, partition.leader])));

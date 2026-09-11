@@ -306,6 +306,74 @@
       flex: 0 0 auto;
     }
 
+    // Filter input plus the batch deletion controls shown in write mode (SPEC-009 REQ-203)
+    .KafkaTopicToolbar {
+      display: flex;
+      flex: 0 0 auto;
+      align-items: center;
+      gap: 12px;
+
+      .KafkaTopicSearch {
+        min-width: 0;
+        flex: 1 1 auto;
+      }
+    }
+
+    .KafkaTopicSelectionActions {
+      display: flex;
+      flex: 0 0 auto;
+      align-items: center;
+      gap: 8px;
+      color: var(--kafka-muted);
+      font-size: 12px;
+      white-space: nowrap;
+    }
+
+    .KafkaTopicPageTable .TableCell.checkbox {
+      align-items: center;
+      justify-content: center;
+    }
+
+    // Keyboard-reachable wrapper of the Freelens Checkbox (its input is display: none)
+    .KafkaSelectBox {
+      display: inline-flex;
+      border-radius: 3px;
+
+      &:focus-visible {
+        outline: 2px solid var(--primary);
+        outline-offset: 2px;
+      }
+    }
+
+    .KafkaTopicBatchDrawer {
+      margin: 12px 0;
+    }
+
+    // The names locked in the batch confirmation, bounded so a long selection scrolls
+    .KafkaTopicSelectionList {
+      display: grid;
+      max-height: 180px;
+      margin: 0;
+      padding: 8px 12px;
+      gap: 4px;
+      border: 1px solid var(--kafka-border);
+      background: var(--kafka-panel);
+      font-size: 12px;
+      list-style: none;
+      overflow: auto;
+
+      li {
+        display: flex;
+        min-width: 0;
+        align-items: center;
+        gap: 6px;
+
+        > .Icon {
+          color: var(--kafka-muted);
+        }
+      }
+    }
+
     .KafkaTopicPageTable {
       height: auto;
       min-height: 220px;
@@ -366,6 +434,42 @@
 
     > .Icon {
       color: var(--colorOk, #4caf50);
+    }
+
+    // A batch that deleted only part of the selection
+    &.warning {
+      border-color: color-mix(in srgb, var(--colorWarning, #f9a825) 45%, transparent);
+      background: color-mix(in srgb, var(--colorWarning, #f9a825) 8%, transparent);
+
+      > .Icon {
+        color: var(--colorWarning, #f9a825);
+      }
+    }
+  }
+
+  // Per-topic failures of a batch deletion, with the full broker messages (SPEC-009 REQ-205)
+  .KafkaWriteFailures {
+    display: flex;
+    flex: 0 0 auto;
+    align-items: flex-start;
+    gap: 8px;
+    padding: 11px 12px;
+    border: 1px solid color-mix(in srgb, var(--colorError, #ef5350) 45%, transparent);
+    background: color-mix(in srgb, var(--colorError, #ef5350) 8%, transparent);
+    color: var(--textColorPrimary);
+
+    > .Icon {
+      color: var(--colorError, #ef5350);
+    }
+
+    ul {
+      margin: 4px 0 0;
+      padding-left: 18px;
+      font-size: 12px;
+    }
+
+    li {
+      overflow-wrap: anywhere;
     }
   }
 

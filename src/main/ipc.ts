@@ -16,6 +16,7 @@ import {
   type BrokerConfigRequest,
   type ClusterHealthRequest,
   type DeleteTopicRequest,
+  type DeleteTopicsRequest,
   type DiscoveredKafkaInfo,
   type DiscoverRequest,
   type GroupDetailRequest,
@@ -750,6 +751,17 @@ export class KafkaIpcMain extends Main.Ipc {
       const { connection } = await this.resolveConnection(request, reader, () => undefined);
       try {
         return await connection.deleteTopic(request.topic);
+      } finally {
+        await this.sessions.release(connection);
+      }
+    });
+
+    this.handle(KAFKA_IPC.deleteTopics, async (_event, request: DeleteTopicsRequest) => {
+      this.writeMode.assertEnabled(request.targetId, "Delete topics");
+      const reader = createReader(request);
+      const { connection } = await this.resolveConnection(request, reader, () => undefined);
+      try {
+        return await connection.deleteTopics(request.topics);
       } finally {
         await this.sessions.release(connection);
       }

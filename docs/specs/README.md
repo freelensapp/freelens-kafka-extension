@@ -39,7 +39,7 @@ Specification states: `Draft` → `Accepted` → `Implementing` → `Verified` �
 | [SPEC-006](./006-consumer-groups-lag.md) | Verified | REQ-074–REQ-083 | Consumer group list, Offsets & Lag and Members workspace |
 | [SPEC-007](./007-topic-broker-depth.md) | Verified | REQ-084–REQ-093 | Topic Configuration tab, Topic↔Consumer Group cross-links, Broker config |
 | [SPEC-008](./008-message-browser-enhancements.md) | Verified | REQ-094–REQ-101 | Message browser filtering (key/value/header) and seek-by-timestamp |
-| [SPEC-009](./009-write-operations.md) | Verified | REQ-102–REQ-115 | Write policy, Produce Message and Consumer Group offset reset |
+| [SPEC-009](./009-write-operations.md) | Verified | REQ-102–REQ-115, REQ-194–REQ-197, REQ-203–REQ-205 | Write policy, Produce Message, Consumer Group offset reset, topic deletion (single and batch) and the main-process guard |
 | [SPEC-010](./010-schema-registry.md) | Verified | REQ-116–REQ-125 | Schema Registry integration: subjects, versions, Avro/Protobuf deserialization |
 | [SPEC-011](./011-kafka-connect.md) | Verified | REQ-126–REQ-135 | Kafka Connect: connector list, detail, lifecycle and management |
 | [SPEC-012](./012-acl-security-views.md) | Verified | REQ-136–REQ-143 | ACL list, filtering and write management |
@@ -47,6 +47,6 @@ Specification states: `Draft` → `Accepted` → `Implementing` → `Verified` �
 | [SPEC-014](./014-production-scale-performance.md) | Verified | REQ-152–REQ-191 | Production-scale performance, lossless aggregate-health batching, backend/API/browser gates and explicit final approval |
 | [SPEC-015](./015-topic-size.md) | Implemented | REQ-198–REQ-201 | Topic and partition size on disk through DescribeLogDirs (v1.2.0) |
 
-The next available requirement ID is `REQ-202`. SPEC-007–014 allocate REQ-084–REQ-191 and define
-the complete v1.0.0 scope; the post-release additions use REQ-193 (SPEC-008), REQ-194–REQ-197
-(SPEC-009) and REQ-198–REQ-201 (SPEC-015).
+The next available requirement ID is `REQ-206`. SPEC-007–014 allocate REQ-084–REQ-191 and define
+the complete v1.0.0 scope; the post-release additions use REQ-193 (SPEC-008), REQ-194–REQ-197 and
+REQ-203–REQ-205 (SPEC-009) and REQ-198–REQ-201 (SPEC-015).

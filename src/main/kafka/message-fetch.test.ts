@@ -47,6 +47,7 @@ function fakeCluster({
     ],
   }));
   const cluster: KafkaReadCluster = {
+    targetTopics: new Set<string>(),
     connect: vi.fn(async () => undefined),
     disconnect: vi.fn(async () => undefined),
     addTargetTopic: vi.fn(async () => undefined),

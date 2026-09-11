@@ -107,6 +107,7 @@ interface KafkaReadBroker {
 }
 
 export interface KafkaReadCluster {
+  targetTopics: Set<string>;
   connect(): Promise<void>;
   disconnect(): Promise<void>;
   addTargetTopic(topic: string): Promise<void>;
