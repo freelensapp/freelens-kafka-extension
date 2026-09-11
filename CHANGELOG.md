@@ -1,5 +1,15 @@
 # Changelog
 
+## v1.3.0 - 2026-09-11
+
+### Added
+
+- Delete several topics at once from the Topics list in write mode: a checkbox per topic and one for the visible page (internal topics excluded), a "Delete N topics" action, one confirmation that lists every selected name and requires the typed count plus the switch; the outcome reports the deleted topics and every failure with the full broker error, and the failed topics stay selected (#56).
+
+### Fixed
+
+- After a topic deletion the Size column and the Size summary no longer fall to `n/a`: the shared read connection kept targeting the deleted topic and the next metadata refresh failed with `UNKNOWN_TOPIC_OR_PARTITION`; the size reader now drops the stale names and retries once.
+
 ## v1.2.0 - 2026-09-10
 
 ### Added

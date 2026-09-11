@@ -2318,6 +2318,98 @@ clusterDescribe("Kafka cluster page", () => {
   );
 
   it(
+    "deletes several selected topics in one batch after the typed count",
+    async () => {
+      // SPEC-009 REQ-203–REQ-205: disposable loopback topics only.
+      expect(DIRECT_KAFKA_BROKER).toBe("127.0.0.1:19092");
+      const stamp = Date.now();
+      const batchTopics = [1, 2, 3].map((index) => `freelens-e2e-batch-${stamp}-${index}`);
+      const batchFixture = (action: "create" | "assert-absent") => {
+        execFileSync("pnpm", ["tsx", "test/e2e/direct-topic-fixture.ts"], {
+          cwd: extensionRootForFixtureCommands,
+          env: {
+            ...process.env,
+            KAFKA_LOCAL: DIRECT_KAFKA_BROKER,
+            KAFKA_TOPIC: batchTopics.join(","),
+            KAFKA_TOPIC_ACTION: action,
+          },
+          stdio: "inherit",
+        });
+      };
+      batchFixture("create");
+
+      await openKafkaMenuItem("kafka-clusters");
+      await frame.waitForFunction(() => window.location.pathname.endsWith("/kafka-clusters"));
+      const settingsRow = await ensureKafkaClusterRow(DIRECT_KAFKA_BROKER);
+      await settingsRow.locator(".KafkaIconButton").dispatchEvent("click");
+      const settings = frame.locator('[data-testid="kafka-connection-settings"]');
+      await settings.waitFor({ state: "visible", timeout: 30_000 });
+      const writeToggle = frame.getByLabel("Enable write mode for this Kafka target");
+      if (!(await writeToggle.isChecked())) await writeToggle.click();
+      await frame.waitForFunction(
+        () => (document.querySelector('[data-testid="kafka-write-mode-toggle"]') as HTMLInputElement | null)?.checked,
+        undefined,
+        { timeout: 30_000 },
+      );
+      await settings.locator(".drawer-title .Icon").last().click();
+      await settings.waitFor({ state: "hidden", timeout: 30_000 });
+
+      const directRow = await ensureKafkaClusterRow(DIRECT_KAFKA_BROKER);
+      await directRow.focus();
+      await directRow.press("Enter");
+      await frame.waitForFunction(() => window.location.pathname.endsWith("/kafka-overview"));
+      await openKafkaMenuItem("kafka-topics");
+      await frame.waitForFunction(() => window.location.pathname.endsWith("/kafka-topics"));
+      const topicsPage = frame.locator('[data-testid="kafka-topics-page"]');
+      await topicsPage.waitFor({ state: "visible", timeout: 120_000 });
+      await frame.locator(".KafkaRefreshButton").click();
+      await topicsPage.getByPlaceholder("Filter topics").fill(`e2e-batch-${stamp}`);
+      for (const name of batchTopics) {
+        await topicsPage
+          .locator(`.KafkaTopicPageTable .TableRow[data-topic="${name}"]`)
+          .waitFor({ state: "visible", timeout: 60_000 });
+        const checkbox = frame.getByLabel(`Select topic ${name}`);
+        await checkbox.click();
+        expect(await checkbox.isChecked()).toBe(true);
+      }
+      // Ticking a row selects it without opening its workspace; the page checkbox reflects the full page.
+      expect(await frame.locator('[data-testid="kafka-topic-workspace"]').count()).toBe(0);
+      expect(await frame.getByTestId("kafka-topic-select-page").isChecked()).toBe(true);
+      const deleteButton = frame.getByTestId("kafka-delete-topics-button");
+      expect(await deleteButton.innerText()).toContain("Delete 3 topics");
+      await deleteButton.click();
+
+      const batchDrawer = frame.locator('[data-testid="kafka-delete-topics-drawer"]');
+      await batchDrawer.waitFor({ state: "visible", timeout: 30_000 });
+      const lockedList = await frame.getByTestId("kafka-delete-topics-list").innerText();
+      for (const name of batchTopics) expect(lockedList).toContain(name);
+      const submitBatch = frame.getByTestId("kafka-delete-topics-submit");
+      expect(await submitBatch.isDisabled()).toBe(true);
+      await frame.getByLabel("Confirm topics deletion").check({ force: true });
+      expect(await submitBatch.isDisabled()).toBe(true);
+      const countInput = frame.getByLabel("Type the number of topics to confirm deletion");
+      await countInput.fill("2");
+      expect(await submitBatch.isDisabled()).toBe(true);
+      await countInput.fill("3");
+      expect(await submitBatch.isDisabled()).toBe(false);
+      await submitBatch.click();
+
+      await batchDrawer.waitFor({ state: "hidden", timeout: 60_000 });
+      expect(await frame.getByTestId("kafka-topic-write-status").innerText()).toContain("Deleted 3 topics");
+      expect(await frame.locator('[data-testid="kafka-topic-write-failures"]').count()).toBe(0);
+      await frame.waitForFunction(
+        (names) =>
+          Boolean(document.querySelector(".KafkaTopicPageTable")) &&
+          names.every((name) => !document.querySelector(`.KafkaTopicPageTable .TableRow[data-topic="${name}"]`)),
+        batchTopics,
+        { timeout: 60_000 },
+      );
+      batchFixture("assert-absent");
+    },
+    6 * 60 * 1000,
+  );
+
+  it(
     "shows Consumer Groups detail tabs and Topic cross-link",
     async () => {
       const TEST_GROUP = "freelens-orders-consumer";

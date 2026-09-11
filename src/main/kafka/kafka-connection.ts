@@ -25,6 +25,7 @@ import type {
   ConsumerGroupDetailDto,
   ConsumerGroupSummaryDto,
   DeleteTopicResultDto,
+  DeleteTopicsResultDto,
   MessageBrowseDto,
   MessageBrowseRequest,
   ProduceRequest,
@@ -425,6 +426,31 @@ export class KafkaConnection {
     try {
       await admin.deleteTopics({ topics: [topic] });
       return { topic };
+    } finally {
+      await admin.disconnect();
+    }
+  }
+
+  /**
+   * Delete several topics through one Admin session, one request per topic: a batch DeleteTopics
+   * call surfaces only the first broker error, so the per-topic outcome would be lost (SPEC-009 REQ-205).
+   */
+  async deleteTopics(topics: string[]): Promise<DeleteTopicsResultDto> {
+    const names = [...new Set(topics.filter((topic) => Boolean(topic)))];
+    if (names.length === 0) throw new Error("at least one topic name is required");
+    const admin = this.kafka.admin();
+    await admin.connect();
+    const result: DeleteTopicsResultDto = { deleted: [], failed: [] };
+    try {
+      for (const topic of names) {
+        try {
+          await admin.deleteTopics({ topics: [topic] });
+          result.deleted.push(topic);
+        } catch (error) {
+          result.failed.push({ topic, error: error instanceof Error ? error.message : String(error) });
+        }
+      }
+      return result;
     } finally {
       await admin.disconnect();
     }

@@ -14,6 +14,16 @@ import {
   useKafkaPageParam,
   useKafkaResourcePage,
 } from "./kafka-resource-pages";
+import {
+  describeDeleteTopicsOutcome,
+  formatTopicCount,
+  isInternalTopic,
+  pruneTopicSelection,
+  selectableTopics,
+  selectVisibleTopics,
+  toggleTopicSelection,
+  visibleSelectionState,
+} from "./kafka-topic-selection";
 import { createOperationId, filterTopicNames, kafkaDecimalSortKey } from "./kafka-view-model";
 import { canSubmitWriteAction, getWriteConfirmationLabel } from "./kafka-write-policy";
 import { useKafkaWriteMode } from "./kafka-write-settings";
@@ -23,6 +33,9 @@ import type { CSSProperties, HTMLAttributes } from "react";
 import type {
   DeleteTopicRequest,
   DeleteTopicResultDto,
+  DeleteTopicsFailureDto,
+  DeleteTopicsRequest,
+  DeleteTopicsResultDto,
   KafkaProgressEvent,
   MessageBrowseDto,
   MessageBrowseRequest,
@@ -67,6 +80,52 @@ const TOPIC_CONSUMER_STATE_COLUMN_STYLE: CSSProperties = { flex: "0 0 136px", mi
 const TOPIC_CONSUMER_MEMBERS_COLUMN_STYLE: CSSProperties = { flex: "0 0 90px", minWidth: 90, width: 90 };
 const TOPIC_CONSUMER_LAG_COLUMN_STYLE: CSSProperties = { flex: "0 0 120px", minWidth: 120, width: 120 };
 const TOPIC_CONSUMER_ACTION_COLUMN_STYLE: CSSProperties = { flex: "0 0 44px", minWidth: 44, width: 44 };
+
+/** Keeps checkbox clicks and key presses inside the selection cell, away from the row's open handler. */
+const stopRowEvent = (event: { stopPropagation: () => void }): void => event.stopPropagation();
+
+/**
+ * A selection checkbox that the keyboard can reach: the Freelens Checkbox keeps its input in
+ * `display: none`, so the wrapper carries the checkbox role, the label and the Space/Enter handling.
+ */
+function TopicSelectBox({
+  checked,
+  disabled,
+  label,
+  title,
+  testId,
+  onChange,
+}: {
+  checked: boolean;
+  disabled: boolean;
+  label: string;
+  title?: string;
+  testId?: string;
+  onChange: (checked: boolean) => void;
+}) {
+  return (
+    <span
+      role="checkbox"
+      aria-checked={checked}
+      aria-disabled={disabled || undefined}
+      aria-label={label}
+      title={title}
+      tabIndex={disabled ? -1 : 0}
+      className="KafkaSelectBox"
+      data-testid={testId}
+      onClick={stopRowEvent}
+      onKeyDown={(event) => {
+        event.stopPropagation();
+        if (event.key === " " || event.key === "Enter") {
+          event.preventDefault();
+          if (!disabled) onChange(!checked);
+        }
+      }}
+    >
+      <Renderer.Component.Checkbox value={checked} disabled={disabled} onChange={onChange} />
+    </span>
+  );
+}
 
 interface TopicConfigState {
   topic?: string;
@@ -341,6 +400,7 @@ export interface KafkaTopicsPageProps extends KafkaResourcePageDependencies {
   messagesBrowse: (request: MessageBrowseRequest) => Promise<MessageBrowseDto>;
   produce: (request: ProduceRequest) => Promise<ProduceResultDto>;
   deleteTopic: (request: DeleteTopicRequest) => Promise<DeleteTopicResultDto>;
+  deleteTopics: (request: DeleteTopicsRequest) => Promise<DeleteTopicsResultDto>;
   topicSizes: (request: TopicSizesRequest) => Promise<TopicSizesDto>;
   schemaRegistrySettings: KafkaSchemaRegistrySettingsStore;
   endpointSecrets: KafkaEndpointSecretsStore;
@@ -355,6 +415,7 @@ export function KafkaTopicsPage({
   messagesBrowse,
   produce,
   deleteTopic,
+  deleteTopics,
   topicSizes,
   schemaRegistrySettings,
   endpointSecrets,
@@ -392,6 +453,16 @@ export function KafkaTopicsPage({
   const [writeStatus, setWriteStatus] = useState<string>();
   // The cluster and topic locked when the delete confirmation opened (SPEC-009 REQ-106).
   const deleteTarget = useRef<{ targetId: string; topic: string }>();
+  // Batch deletion from the list (SPEC-009 REQ-203–REQ-205): the selection belongs to one cluster,
+  // the names are locked when the confirmation opens (REQ-106).
+  const [selectedTopics, setSelectedTopics] = useState<ReadonlySet<string>>(() => new Set());
+  const [batchOpen, setBatchOpen] = useState(false);
+  const [batchConfirmed, setBatchConfirmed] = useState(false);
+  const [batchText, setBatchText] = useState("");
+  const [batchBusy, setBatchBusy] = useState(false);
+  const [batchError, setBatchError] = useState<string>();
+  const [batchFailures, setBatchFailures] = useState<DeleteTopicsFailureDto[]>([]);
+  const batchTarget = useRef<{ targetId: string; topics: string[] }>();
   const topicOperationId = useRef<string>();
   const topicConfigOperationId = useRef<string>();
   const topicConsumersOperationId = useRef<string>();
@@ -877,6 +948,81 @@ export function KafkaTopicsPage({
       .finally(() => setDeleteBusy(false));
   };
 
+  // The selection follows the cluster and the write mode: a cluster switch or a write-mode opt-out
+  // drops it, a metadata refresh drops the names that disappeared (REQ-203).
+  useEffect(() => {
+    setSelectedTopics((current) => (current.size === 0 ? current : new Set()));
+    setBatchFailures((current) => (current.length === 0 ? current : []));
+  }, [selectedTargetId]);
+  useEffect(() => {
+    if (!canWrite) setSelectedTopics((current) => (current.size === 0 ? current : new Set()));
+  }, [canWrite]);
+  useEffect(() => {
+    if (metadataTopics) setSelectedTopics((current) => pruneTopicSelection(current, metadataTopics));
+  }, [metadataTopics]);
+
+  useEffect(() => {
+    // Locked context (REQ-106): a cluster change, an opened topic or a write-mode opt-out cancels the batch.
+    const locked = batchTarget.current;
+    if (!batchOpen || !locked) return;
+    if (locked.targetId !== selectedTargetId || topicName || !canWrite) {
+      setBatchOpen(false);
+      setWriteStatus("Topic deletion cancelled: the context changed before confirmation.");
+    }
+  }, [batchOpen, canWrite, selectedTargetId, topicName]);
+
+  const openDeleteTopics = useCallback(() => {
+    const cluster = state.selectedCluster;
+    if (!cluster || selectedTopics.size === 0) return;
+    batchTarget.current = {
+      targetId: cluster.targetId,
+      topics: [...selectedTopics].sort((left, right) => left.localeCompare(right)),
+    };
+    setBatchConfirmed(false);
+    setBatchText("");
+    setBatchError(undefined);
+    setBatchFailures([]);
+    setWriteStatus(undefined);
+    setBatchOpen(true);
+  }, [selectedTopics, state.selectedCluster]);
+
+  const batchCount = batchTarget.current?.topics.length ?? 0;
+  const canSubmitBatch =
+    !batchBusy &&
+    batchCount > 0 &&
+    canSubmitWriteAction({
+      confirmationAccepted: batchConfirmed,
+      requiredResourceName: String(batchCount),
+      enteredResourceName: batchText.trim(),
+    });
+
+  const submitDeleteTopics = () => {
+    const cluster = state.selectedCluster;
+    const locked = batchTarget.current;
+    if (!cluster || !locked || locked.targetId !== cluster.targetId || !canSubmitBatch) return;
+    setBatchBusy(true);
+    setBatchError(undefined);
+    void deleteTopics({
+      targetId: cluster.targetId,
+      source: cluster.source,
+      bootstrap: cluster.bootstrap,
+      tls: cluster.tls,
+      namespace: cluster.namespace,
+      clusterName: cluster.name,
+      topics: locked.topics,
+    })
+      .then((result) => {
+        setBatchOpen(false);
+        setBatchFailures(result.failed);
+        // The topics that failed stay selected, so they can be inspected or retried (REQ-205).
+        setSelectedTopics(new Set(result.failed.map((failure) => failure.topic)));
+        setWriteStatus(describeDeleteTopicsOutcome(result));
+        state.refresh();
+      })
+      .catch((error: unknown) => setBatchError(error instanceof Error ? error.message : String(error)))
+      .finally(() => setBatchBusy(false));
+  };
+
   if (topicName) {
     return (
       <KafkaPageShell
@@ -1212,9 +1358,28 @@ export function KafkaTopicsPage({
     >
       <KafkaResourceState state={state} />
       {writeStatus && (
-        <div className="KafkaWriteStatus" role="status" data-testid="kafka-topic-write-status">
-          <Renderer.Component.Icon material="check_circle" />
+        <div
+          className={batchFailures.length > 0 ? "KafkaWriteStatus warning" : "KafkaWriteStatus"}
+          role="status"
+          data-testid="kafka-topic-write-status"
+        >
+          <Renderer.Component.Icon material={batchFailures.length > 0 ? "warning" : "check_circle"} />
           <span>{writeStatus}</span>
+        </div>
+      )}
+      {batchFailures.length > 0 && (
+        <div className="KafkaWriteFailures" role="alert" data-testid="kafka-topic-write-failures">
+          <Renderer.Component.Icon material="error_outline" />
+          <div>
+            <strong>{formatTopicCount(batchFailures.length)} not deleted</strong>
+            <ul>
+              {batchFailures.map((failure) => (
+                <li key={failure.topic}>
+                  <code>{failure.topic}</code>: {failure.error}
+                </li>
+              ))}
+            </ul>
+          </div>
         </div>
       )}
       {state.selectedCluster && state.metadataState.data && (
@@ -1239,14 +1404,118 @@ export function KafkaTopicsPage({
             </div>
           ) : (
             <>
-              <Renderer.Component.Input
-                className="KafkaTopicSearch"
-                value={query}
-                onChange={(nextQuery) => setQuery(nextQuery, true)}
-                iconLeft="search"
-                placeholder="Filter topics"
-                aria-label="Filter Kafka topics"
-              />
+              <div className="KafkaTopicToolbar">
+                <Renderer.Component.Input
+                  className="KafkaTopicSearch"
+                  value={query}
+                  onChange={(nextQuery) => setQuery(nextQuery, true)}
+                  iconLeft="search"
+                  placeholder="Filter topics"
+                  aria-label="Filter Kafka topics"
+                />
+                {canWrite && (
+                  <div className="KafkaTopicSelectionActions" data-testid="kafka-topic-selection-actions">
+                    <span aria-live="polite">
+                      {selectedTopics.size === 0
+                        ? "No topic selected"
+                        : `${formatTopicCount(selectedTopics.size)} selected`}
+                    </span>
+                    <Renderer.Component.Button
+                      plain
+                      disabled={selectedTopics.size === 0 || batchOpen || batchBusy}
+                      onClick={() => setSelectedTopics(new Set())}
+                      aria-label="Clear the topic selection"
+                    >
+                      Clear
+                    </Renderer.Component.Button>
+                    <Renderer.Component.Button
+                      outlined
+                      className="KafkaDangerButton"
+                      data-testid="kafka-delete-topics-button"
+                      disabled={selectedTopics.size === 0 || batchOpen || batchBusy}
+                      onClick={openDeleteTopics}
+                    >
+                      <Renderer.Component.Icon material="delete_sweep" />
+                      {selectedTopics.size === 0 ? "Delete topics" : `Delete ${formatTopicCount(selectedTopics.size)}`}
+                    </Renderer.Component.Button>
+                  </div>
+                )}
+              </div>
+              {batchOpen && batchTarget.current && (
+                <section
+                  className="KafkaWriteDrawer KafkaTopicBatchDrawer"
+                  data-testid="kafka-delete-topics-drawer"
+                  aria-label="Delete topics confirmation"
+                >
+                  <div className="KafkaPageState warning">
+                    <Renderer.Component.Icon material="delete_forever" />
+                    <div>
+                      <strong>Delete {formatTopicCount(batchCount)}</strong>
+                      <span>
+                        Removes every listed topic with all its partitions and records from the brokers. This cannot be
+                        undone.
+                      </span>
+                    </div>
+                    {batchError && <div role="alert">{batchError}</div>}
+                  </div>
+                  <div className="KafkaWriteForm" style={{ display: "grid", gap: 12 }}>
+                    <div className="KafkaWriteSummary">
+                      <strong>Target</strong>
+                      <span>{state.selectedCluster.name}</span>
+                      <strong>Topics</strong>
+                      <span>{batchCount}</span>
+                    </div>
+                    <ul
+                      className="KafkaTopicSelectionList"
+                      aria-label="Topics to delete"
+                      data-testid="kafka-delete-topics-list"
+                    >
+                      {batchTarget.current.topics.map((name) => (
+                        <li key={name}>
+                          <Renderer.Component.Icon material="topic" />
+                          <span className="KafkaEllipsis" title={name}>
+                            {name}
+                          </span>
+                        </li>
+                      ))}
+                    </ul>
+                    <label style={{ display: "grid", gap: 6 }}>
+                      <span>
+                        Type {batchCount} to confirm the deletion of {formatTopicCount(batchCount)}
+                      </span>
+                      <Renderer.Component.Input
+                        value={batchText}
+                        onChange={setBatchText}
+                        placeholder={String(batchCount)}
+                        aria-label="Type the number of topics to confirm deletion"
+                      />
+                    </label>
+                    <label style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                      <span>I understand that every record of these topics is lost</span>
+                      <Renderer.Component.Switch
+                        aria-label="Confirm topics deletion"
+                        data-testid="kafka-delete-topics-confirmation-switch"
+                        checked={batchConfirmed}
+                        onChange={setBatchConfirmed}
+                      />
+                    </label>
+                    <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}>
+                      <Renderer.Component.Button outlined onClick={() => setBatchOpen(false)}>
+                        Cancel
+                      </Renderer.Component.Button>
+                      <Renderer.Component.Button
+                        primary
+                        className="KafkaDangerButton"
+                        data-testid="kafka-delete-topics-submit"
+                        disabled={!canSubmitBatch}
+                        onClick={submitDeleteTopics}
+                      >
+                        Delete {formatTopicCount(batchCount)}
+                      </Renderer.Component.Button>
+                    </div>
+                  </div>
+                </section>
+              )}
               <Renderer.Component.Table<string>
                 className="KafkaTopicTable KafkaTopicPageTable"
                 tableId="kafka-topics-page"
@@ -1266,6 +1535,23 @@ export function KafkaTopicsPage({
                 }
               >
                 <Renderer.Component.TableHead sticky={false} nowrap>
+                  {canWrite && (
+                    <Renderer.Component.TableCell
+                      className="checkbox topicSelectCell"
+                      onClick={stopRowEvent}
+                      onKeyDown={stopRowEvent}
+                    >
+                      <TopicSelectBox
+                        checked={visibleSelectionState(selectedTopics, topicWindow.items) === "all"}
+                        disabled={batchOpen || batchBusy || selectableTopics(topicWindow.items).length === 0}
+                        label="Select every application topic on this page"
+                        testId="kafka-topic-select-page"
+                        onChange={(checked) =>
+                          setSelectedTopics((current) => selectVisibleTopics(current, topicWindow.items, checked))
+                        }
+                      />
+                    </Renderer.Component.TableCell>
+                  )}
                   <Renderer.Component.TableCell className="topicNameCell" sortBy="name" style={TOPIC_NAME_COLUMN_STYLE}>
                     Topic
                   </Renderer.Component.TableCell>
@@ -1304,6 +1590,23 @@ export function KafkaTopicsPage({
                       data-topic={name}
                       nowrap
                     >
+                      {canWrite && (
+                        <Renderer.Component.TableCell
+                          className="checkbox topicSelectCell"
+                          onClick={stopRowEvent}
+                          onKeyDown={stopRowEvent}
+                        >
+                          <TopicSelectBox
+                            checked={selectedTopics.has(name)}
+                            disabled={batchOpen || batchBusy || isInternalTopic(name)}
+                            label={`Select topic ${name}`}
+                            title={isInternalTopic(name) ? "Internal topics are not deleted in batches" : undefined}
+                            onChange={(checked) =>
+                              setSelectedTopics((current) => toggleTopicSelection(current, name, checked))
+                            }
+                          />
+                        </Renderer.Component.TableCell>
+                      )}
                       <Renderer.Component.TableCell
                         className="topicNameCell"
                         title={name}

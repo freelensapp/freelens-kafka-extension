@@ -70,3 +70,40 @@ describe("KafkaConnection.deleteTopic", () => {
     expect(admin.disconnect).toHaveBeenCalledOnce();
   });
 });
+
+describe("KafkaConnection.deleteTopics", () => {
+  it("deletes the topics one by one in a single admin session and reports each outcome", async () => {
+    const connection = await KafkaConnection.connect({ bootstrap: "127.0.0.1:1" });
+    const admin = {
+      connect: vi.fn(async () => undefined),
+      disconnect: vi.fn(async () => undefined),
+      deleteTopics: vi.fn(async ({ topics }: { topics: string[] }) => {
+        if (topics[0] === "missing") throw new Error("This server does not host this topic-partition");
+      }),
+    };
+    (connection as unknown as { kafka: unknown }).kafka = { admin: () => admin };
+
+    await expect(connection.deleteTopics(["orders", "missing", "orders", "", "payments"])).resolves.toEqual({
+      deleted: ["orders", "payments"],
+      failed: [{ topic: "missing", error: "This server does not host this topic-partition" }],
+    });
+
+    expect(admin.connect).toHaveBeenCalledOnce();
+    expect(admin.deleteTopics.mock.calls.map(([call]) => call)).toEqual([
+      { topics: ["orders"] },
+      { topics: ["missing"] },
+      { topics: ["payments"] },
+    ]);
+    expect(admin.disconnect).toHaveBeenCalledOnce();
+  });
+
+  it("refuses an empty selection without connecting", async () => {
+    const connection = await KafkaConnection.connect({ bootstrap: "127.0.0.1:1" });
+    const admin = { connect: vi.fn(async () => undefined), disconnect: vi.fn(async () => undefined) };
+    (connection as unknown as { kafka: unknown }).kafka = { admin: () => admin };
+
+    await expect(connection.deleteTopics([])).rejects.toThrow("at least one topic name is required");
+    await expect(connection.deleteTopics([""])).rejects.toThrow("at least one topic name is required");
+    expect(admin.connect).not.toHaveBeenCalled();
+  });
+});

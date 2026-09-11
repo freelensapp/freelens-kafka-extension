@@ -16,6 +16,7 @@ export const KAFKA_IPC = {
   groupDetail: "kafka:group:detail",
   produce: "kafka:produce",
   deleteTopic: "kafka:topic:delete",
+  deleteTopics: "kafka:topics:delete",
   writeMode: "kafka:write-mode",
   resetOffsets: "kafka:group:reset-offsets",
   schemaSubjects: "kafka:schema-registry:subjects",
@@ -411,6 +412,22 @@ export interface DeleteTopicRequest extends OverviewRequest {
 
 export interface DeleteTopicResultDto {
   topic: string;
+}
+
+/** Destructive: deletes several topics in one confirmed operation (SPEC-009 REQ-203–REQ-205). */
+export interface DeleteTopicsRequest extends OverviewRequest {
+  topics: string[];
+}
+
+export interface DeleteTopicsFailureDto {
+  topic: string;
+  /** The full broker or client error, never truncated (REQ-205). */
+  error: string;
+}
+
+export interface DeleteTopicsResultDto {
+  deleted: string[];
+  failed: DeleteTopicsFailureDto[];
 }
 
 export type OffsetResetMode = "earliest" | "latest" | "offset" | "timestamp";
