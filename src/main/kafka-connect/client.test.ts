@@ -1,5 +1,5 @@
 import { createServer } from "node:http";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { KafkaConnectClient } from "./client";
 
 let server: ReturnType<typeof createServer> | undefined;
@@ -74,5 +74,25 @@ describe("KafkaConnectClient", () => {
     await expect(client.resumeConnector("orders-source")).resolves.toBeUndefined();
     await expect(client.deleteConnector("orders-source")).resolves.toBeUndefined();
     await expect(client.createConnector({ name: "new-connector" })).resolves.toEqual({ name: "new-connector" });
+  });
+
+  it("retries one transient connection reset while listing connector names", async () => {
+    const fetchImpl = vi
+      .fn<typeof fetch>()
+      .mockRejectedValueOnce(Object.assign(new Error("socket hang up"), { code: "ECONNRESET" }))
+      .mockResolvedValueOnce(new Response(JSON.stringify(["orders-source"]), { status: 200 }));
+    const client = new KafkaConnectClient({ baseUrl: "http://127.0.0.1:18083", fetchImpl });
+
+    await expect(client.listConnectorNames()).resolves.toEqual(["orders-source"]);
+    expect(fetchImpl).toHaveBeenCalledTimes(2);
+  });
+
+  it("does not retry a mutating request after a connection reset", async () => {
+    const error = Object.assign(new Error("socket hang up"), { code: "ECONNRESET" });
+    const fetchImpl = vi.fn<typeof fetch>().mockRejectedValue(error);
+    const client = new KafkaConnectClient({ baseUrl: "http://127.0.0.1:18083", fetchImpl });
+
+    await expect(client.createConnector({ name: "new-connector" })).rejects.toBe(error);
+    expect(fetchImpl).toHaveBeenCalledOnce();
   });
 });
