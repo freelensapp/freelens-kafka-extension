@@ -116,8 +116,14 @@ export class KafkaIpcRenderer extends Renderer.Ipc {
     return this.invoke(KAFKA_IPC.deleteTopic, request) as Promise<DeleteTopicResultDto>;
   }
 
-  deleteTopics(request: DeleteTopicsRequest): Promise<DeleteTopicsResultDto> {
-    return this.invoke(KAFKA_IPC.deleteTopics, request) as Promise<DeleteTopicsResultDto>;
+  async deleteTopics(request: DeleteTopicsRequest): Promise<DeleteTopicsResultDto> {
+    try {
+      return (await this.invoke(KAFKA_IPC.deleteTopics, request)) as DeleteTopicsResultDto;
+    } catch (error) {
+      if (!isMissingIpcHandler(error)) throw error;
+
+      return this.deleteTopicsIndividually(request);
+    }
   }
 
   resetOffsets(request: ResetOffsetsRequest): Promise<ResetOffsetsResultDto> {
@@ -198,4 +204,24 @@ export class KafkaIpcRenderer extends Renderer.Ipc {
   onProgress(listener: (progress: KafkaProgressEvent) => void): () => void {
     return this.listen(KAFKA_IPC.progress, (_event, progress: KafkaProgressEvent) => listener(progress));
   }
+
+  private async deleteTopicsIndividually(request: DeleteTopicsRequest): Promise<DeleteTopicsResultDto> {
+    const topics = [...new Set(request.topics.filter(Boolean))];
+    if (topics.length === 0) throw new Error("at least one topic name is required");
+
+    const result: DeleteTopicsResultDto = { deleted: [], failed: [] };
+    for (const topic of topics) {
+      try {
+        await this.deleteTopic({ ...request, topic });
+        result.deleted.push(topic);
+      } catch (error) {
+        result.failed.push({ topic, error: error instanceof Error ? error.message : String(error) });
+      }
+    }
+    return result;
+  }
+}
+
+function isMissingIpcHandler(error: unknown): boolean {
+  return error instanceof Error && /No handler registered for ['"].*:kafka:topics:delete['"]/.test(error.message);
 }
