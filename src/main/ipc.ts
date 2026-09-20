@@ -9,6 +9,7 @@ import {
   KAFKA_CLUSTER_HEALTH_TIMEOUT_MS,
   KAFKA_TOPIC_CONSUMERS_TIMEOUT_MS,
 } from "../common/constants";
+import { EXTENSION_VERSION } from "../common/extension-version";
 import {
   type AclsRequest,
   type AclWriteRequest,
@@ -68,7 +69,7 @@ import { withFinalizer, withTimeout } from "./operation-timeout";
 import { SchemaRegistryClient } from "./schema-registry/client";
 import { WriteModeRegistry } from "./write-mode";
 
-import type { KafkaSecurityHint, KafkaSecuritySummary } from "../common/ipc";
+import type { ExtensionVersionDto, KafkaSecurityHint, KafkaSecuritySummary } from "../common/ipc";
 import type { ForwarderRequest } from "./forwarder-options";
 import type { KubeForwarderOptions } from "./kafka/kube-forwarder";
 
@@ -329,6 +330,9 @@ export class KafkaIpcMain extends Main.Ipc {
 
   constructor(extension: Main.LensExtension) {
     super(extension);
+
+    // The version of the code that is actually running here, not the one of the manifest (SPEC-016).
+    this.handle(KAFKA_IPC.version, async (): Promise<ExtensionVersionDto> => ({ version: EXTENSION_VERSION }));
 
     this.handle(KAFKA_IPC.discover, async (_event, request: DiscoverRequest) => {
       const reader = createReader(request);

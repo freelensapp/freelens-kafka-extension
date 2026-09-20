@@ -135,6 +135,10 @@ Extensions page.
 You can also build and pack the extension yourself, see
 [Build from the source](#build-from-the-source).
 
+After updating the extension, restart Freelens: the app keeps the background
+part of the previous version loaded until it restarts. The Kafka pages show a
+notice while the two parts differ.
+
 ## Getting started
 
 1. Connect to a cluster. An **Apache Kafka** group with **Clusters**,

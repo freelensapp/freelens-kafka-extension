@@ -66,3 +66,33 @@ describe("KafkaIpcRenderer.deleteTopics", () => {
     expect(invoke).toHaveBeenCalledExactlyOnceWith(KAFKA_IPC.deleteTopics, request);
   });
 });
+
+describe("KafkaIpcRenderer.mainVersion", () => {
+  beforeEach(() => {
+    invoke.mockReset();
+  });
+
+  it("returns the version the main process runs", async () => {
+    invoke.mockResolvedValue({ version: "1.3.1" });
+
+    await expect(client().mainVersion()).resolves.toEqual({ version: "1.3.1" });
+    expect(invoke).toHaveBeenCalledExactlyOnceWith(KAFKA_IPC.version);
+  });
+
+  it("recognises a main process that predates the version probe", async () => {
+    invoke.mockRejectedValue(
+      new Error(
+        "Error invoking remote method 'extensions@abc:kafka:meta:version': Error: No handler registered for 'extensions@abc:kafka:meta:version'",
+      ),
+    );
+
+    await expect(client().mainVersion()).resolves.toEqual({ missing: true });
+  });
+
+  it("does not read a missing handler of another channel as an old main process", async () => {
+    const error = new Error("No handler registered for 'extensions@abc:kafka:topics:delete'");
+    invoke.mockRejectedValue(error);
+
+    await expect(client().mainVersion()).rejects.toBe(error);
+  });
+});

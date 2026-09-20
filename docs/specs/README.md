@@ -46,7 +46,8 @@ Specification states: `Draft` → `Accepted` → `Implementing` → `Verified` �
 | [SPEC-013](./013-ux-performance-v1-gate.md) | Verified | REQ-144–REQ-151 | UX/performance cross-cutting quality and v1.0.0 release gate |
 | [SPEC-014](./014-production-scale-performance.md) | Verified | REQ-152–REQ-191 | Production-scale performance, lossless aggregate-health batching, backend/API/browser gates and explicit final approval |
 | [SPEC-015](./015-topic-size.md) | Implemented | REQ-198–REQ-201 | Topic and partition size on disk through DescribeLogDirs (v1.2.0) |
+| [SPEC-016](./016-update-without-restart.md) | Implemented | REQ-209–REQ-211 | Version probe between the two halves of the extension and restart notice after an in-place update |
 
-The next available requirement ID is `REQ-209`. SPEC-007–014 allocate REQ-084–REQ-191 and define
+The next available requirement ID is `REQ-212`. SPEC-007–014 allocate REQ-084–REQ-191 and define
 the complete v1.0.0 scope; the post-release additions use REQ-193 (SPEC-008), REQ-194–REQ-197 and
-REQ-203–REQ-208 (SPEC-009) and REQ-198–REQ-201 (SPEC-015).
+REQ-203–REQ-208 (SPEC-009), REQ-198–REQ-201 (SPEC-015) and REQ-209–REQ-211 (SPEC-016).
