@@ -1,3 +1,4 @@
+import { readFileSync } from "node:fs";
 import { builtinModules } from "node:module";
 import { resolve } from "node:path";
 import react from "@vitejs/plugin-react";
@@ -12,6 +13,12 @@ const runtimeExternals = [
   ...builtinModules,
   ...builtinModules.map((module) => `node:${module}`),
 ];
+
+// Both halves carry the version they were built from, so the renderer can tell when Freelens still
+// runs the main side of a previous version after an in-place update (SPEC-016).
+const extensionVersion = (JSON.parse(readFileSync(resolve(__dirname, "package.json"), "utf8")) as { version: string })
+  .version;
+const define = { __KAFKA_EXTENSION_VERSION__: JSON.stringify(extensionVersion) };
 
 const mainBuild = {
   lib: {
@@ -50,6 +57,7 @@ export default {
   // main process has full access to Node.js APIs
   main: {
     build: mainBuild,
+    define,
     oxc: {
       decorator: {
         legacy: true,
@@ -67,6 +75,7 @@ export default {
   // with settings for preload script
   preload: {
     build: rendererBuild,
+    define,
     css: {
       modules: {
         localsConvention: "camelCaseOnly",

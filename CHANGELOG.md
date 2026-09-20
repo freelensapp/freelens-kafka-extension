@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+### Added
+
+- Restart notice after an in-place update: Freelens keeps the main side of the previous version loaded until the app restarts, so the pages now ask the main process which version it runs and, when it differs, every Kafka page says to restart Freelens to finish the update instead of failing later with a raw IPC error.
+
 ### Fixed
 
 - Produce message no longer pushes the Messages table out of view: the compose form opens as a panel beside the Topic Workspace (stacked above it on narrow windows), so the table keeps its height and Browse, Tail and the inspector stay usable while a record is composed. The table also keeps a minimum height under the inline confirmations (#66).

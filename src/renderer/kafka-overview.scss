@@ -433,6 +433,34 @@
     }
   }
 
+  // Restart notice while the main process still runs a previous version of the extension (SPEC-016)
+  .KafkaVersionSkewNotice {
+    display: flex;
+    flex: 0 0 auto;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 10px 12px;
+    border: 1px solid color-mix(in srgb, var(--colorWarning, #f9a825) 45%, transparent);
+    background: color-mix(in srgb, var(--colorWarning, #f9a825) 8%, transparent);
+    color: var(--textColorPrimary);
+
+    > .Icon {
+      margin-top: 1px;
+      color: var(--colorWarning, #f9a825);
+    }
+
+    > div {
+      display: grid;
+      min-width: 0;
+      gap: 2px;
+
+      span {
+        color: var(--kafka-muted);
+        font-size: 12px;
+      }
+    }
+  }
+
   // Outcome of a write on the Topics pages (deleted topic, cancelled confirmation)
   .KafkaWriteStatus {
     display: flex;
