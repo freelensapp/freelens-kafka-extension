@@ -220,9 +220,11 @@ Writes are disabled by default. A session-only write mode per target unlocks
 Produce Message, topic deletion (typed confirmation, one topic from its
 workspace or several selected in the list), consumer group offset reset,
 Schema Registry and Kafka Connect management, and ACL create/delete on
-brokers that authorize it, each behind an explicit confirmation. Automated
-tests only ever write to the local `kind` cluster and the disposable Docker
-fixtures.
+brokers that authorize it, each behind an explicit confirmation. Produce
+Message opens as a panel beside the Topic Workspace, so the Messages browser
+stays usable while a record is composed; Value and Headers are multi-line
+(`key=value`, one header per line). Automated tests only ever write to the
+local `kind` cluster and the disposable Docker fixtures.
 
 ### Production-scale performance
 
