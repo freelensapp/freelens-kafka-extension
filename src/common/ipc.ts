@@ -189,6 +189,8 @@ export interface KafkaSecurityOverride {
   authMode: KafkaAuthMode;
   /** AWS region used to create an MSK IAM SASL mechanism. */
   awsRegion?: string;
+  /** Optional AWS shared-config profile used to resolve MSK IAM credentials. */
+  awsProfile?: string;
   username?: string;
   password?: string;
 }

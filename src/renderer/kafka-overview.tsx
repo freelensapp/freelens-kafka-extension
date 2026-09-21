@@ -628,6 +628,7 @@ function ConnectionSettingsDrawer({
   const [username, setUsername] = useState(securityOverride?.username ?? "");
   const [password, setPassword] = useState(securityOverride?.password ?? "");
   const [awsRegion, setAwsRegion] = useState(securityOverride?.awsRegion ?? "");
+  const [awsProfile, setAwsProfile] = useState(securityOverride?.awsProfile ?? "");
   const [settingsError, setSettingsError] = useState<string>();
   const [writeModeEnabled, setWriteModeEnabled] = useState<boolean>(writeSettings.get(kafka.targetId));
   const [registryUrl, setRegistryUrl] = useState(() => schemaRegistrySettings.get(kafka.targetId)?.registryUrl ?? "");
@@ -651,6 +652,7 @@ function ConnectionSettingsDrawer({
     setUsername(securityOverride?.username ?? "");
     setPassword(securityOverride?.password ?? "");
     setAwsRegion(securityOverride?.awsRegion ?? "");
+    setAwsProfile(securityOverride?.awsProfile ?? "");
     setWriteModeEnabled(writeSettings.get(kafka.targetId));
     const registry = schemaRegistrySettings.get(kafka.targetId);
     setRegistryUrl(registry?.registryUrl ?? "");
@@ -690,7 +692,12 @@ function ConnectionSettingsDrawer({
       tlsMode,
       authMode,
       ...(passwordAuth ? { username: username.trim(), password } : {}),
-      ...(awsIamAuth ? { awsRegion: awsRegion.trim() } : {}),
+      ...(awsIamAuth
+        ? {
+            awsRegion: awsRegion.trim(),
+            ...(awsProfile.trim() ? { awsProfile: awsProfile.trim() } : {}),
+          }
+        : {}),
     });
   };
 
@@ -898,25 +905,42 @@ function ConnectionSettingsDrawer({
             </>
           )}
           {awsIamAuth && (
-            <label>
-              <span>AWS region</span>
-              <Renderer.Component.Input
-                value={awsRegion}
-                onChange={(value) => {
-                  setAwsRegion(value);
-                  setSettingsError(undefined);
-                }}
-                disabled={detail.loading}
-                placeholder="us-east-1"
-                autoComplete="off"
-                aria-label="AWS region"
-                aria-required="true"
-              />
-            </label>
+            <>
+              <label>
+                <span>AWS region</span>
+                <Renderer.Component.Input
+                  value={awsRegion}
+                  onChange={(value) => {
+                    setAwsRegion(value);
+                    setSettingsError(undefined);
+                  }}
+                  disabled={detail.loading}
+                  placeholder="us-east-1"
+                  autoComplete="off"
+                  aria-label="AWS region"
+                  aria-required="true"
+                />
+              </label>
+              <label>
+                <span>AWS profile (optional)</span>
+                <Renderer.Component.Input
+                  value={awsProfile}
+                  onChange={(value) => {
+                    setAwsProfile(value);
+                    setSettingsError(undefined);
+                  }}
+                  disabled={detail.loading}
+                  placeholder="default"
+                  autoComplete="off"
+                  aria-label="AWS profile"
+                />
+              </label>
+            </>
           )}
           <p>
             Automatic mode reads matching workload env, ConfigMaps and Secrets. Password overrides stay in memory only.
-            AWS IAM uses your local AWS SDK credential provider chain and never stores access keys.
+            AWS IAM uses your selected local AWS profile, or the AWS SDK default credential provider chain, and never
+            stores access keys.
           </p>
           {settingsError && (
             <div className="KafkaSecurityError" role="alert">

@@ -1,4 +1,5 @@
 import { createHash } from "node:crypto";
+import { fromIni, fromNodeProviderChain } from "@aws-sdk/credential-providers";
 import { createMechanism } from "@jm18457/kafkajs-msk-iam-authentication-mechanism";
 import { splitBootstrap } from "../../common/reachability";
 import {
@@ -94,6 +95,13 @@ function parseJaas(value?: string): { username?: string; password?: string } {
 
 function pem(value?: string): string | undefined {
   return value?.includes("-----BEGIN ") ? value : undefined;
+}
+
+function createMskIamMechanism(region: string, profile?: string): Mechanism {
+  return createMechanism({
+    region,
+    credentials: profile ? fromIni({ profile }) : fromNodeProviderChain(),
+  });
 }
 
 /** Parse a fully resolved container environment. Pure; no value is ever returned to Renderer. */
@@ -294,7 +302,7 @@ export function applySecurityOverride(options: {
       throw new Error("TLS is required for AWS IAM (MSK) authentication");
     }
     ssl = typeof automatic.ssl === "object" ? automatic.ssl : true;
-    sasl = createMechanism({ region });
+    sasl = createMskIamMechanism(region, override.awsProfile?.trim() || undefined);
     auth = "aws-msk-iam";
   } else if (override && override.authMode !== "auto") {
     const username = override.username?.trim();
@@ -312,7 +320,7 @@ export function applySecurityOverride(options: {
       throw new Error("TLS is required for AWS IAM (MSK) authentication");
     }
     ssl = typeof automatic.ssl === "object" ? automatic.ssl : true;
-    sasl = createMechanism({ region });
+    sasl = createMskIamMechanism(region);
   }
   if (!ssl && auth === "mtls") auth = "none";
 

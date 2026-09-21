@@ -276,6 +276,21 @@ describe("applySecurityOverride", () => {
     expect(applied.summary).toEqual({ tls: true, auth: "aws-msk-iam", source: "override" });
   });
 
+  it("accepts an optional AWS profile without persisting credentials", () => {
+    const applied = applySecurityOverride({
+      fallbackTls: true,
+      source: "inferred",
+      override: {
+        tlsMode: "enabled",
+        authMode: "aws-msk-iam",
+        awsRegion: "us-east-1",
+        awsProfile: "yp-us-prod",
+      },
+    });
+
+    expect(applied.sasl).toMatchObject({ mechanism: "AWS_MSK_IAM" });
+  });
+
   it("requires TLS for AWS MSK IAM authentication", () => {
     expect(() =>
       applySecurityOverride({

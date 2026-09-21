@@ -17,7 +17,8 @@ the connection.
 
 - Offer AWS IAM (MSK) as a Connection Settings authentication mode for direct Kafka targets.
 - Create the KafkaJS `AWS_MSK_IAM` mechanism with an explicitly configured AWS region.
-- Resolve AWS credentials only in the Main process through the AWS SDK default provider chain.
+- Resolve AWS credentials only in the Main process through a selected AWS shared-config profile or
+  the AWS SDK default provider chain.
 - Detect workload-provided IAM mode and region when both are present.
 
 ## Non-goals
@@ -34,7 +35,8 @@ the connection.
   `AWS_MSK_IAM` mechanism and TLS settings through the existing connection lifecycle. TLS MUST
   be enabled for IAM even when the detected endpoint did not identify TLS.
 - **REQ-208** — AWS credentials MUST remain in the Main process and be resolved by the AWS SDK
-  default provider chain; access keys MUST NOT be persisted or included in IPC payloads.
+  default provider chain or an optional selected shared-config profile; access keys MUST NOT be
+  persisted or included in IPC payloads.
 - **REQ-209** — Workload configuration specifying `AWS_MSK_IAM`/`awsiam` with an AWS region MUST
   be detected automatically; an IAM configuration without a region MUST fail with an actionable error.
 
