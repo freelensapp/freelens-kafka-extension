@@ -1,4 +1,4 @@
-import { Kafka, logLevel, type SASLOptions } from "kafkajs";
+import { Kafka, logLevel, type Mechanism, type SASLOptions } from "kafkajs";
 import { KafkaConnection } from "./kafka-connection";
 import { type Forwarder, PortForwardManager } from "./port-forward-manager";
 import { createFixedSocketFactory } from "./redirect";
@@ -42,7 +42,7 @@ export interface ConnectDiscoveredOptions {
   clientId?: string;
   discovered: DiscoveredKafka;
   forwarder: Forwarder;
-  sasl?: SASLOptions;
+  sasl?: SASLOptions | Mechanism;
   ssl?: TlsOptions | boolean;
   onRedirect?: (from: string, to: string) => void;
   onPhase?: (phase: "metadata" | "connect", info: string) => void;

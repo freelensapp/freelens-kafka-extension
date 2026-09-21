@@ -180,13 +180,15 @@ export interface KafkaProgressEvent {
   topicConsumerGroup?: TopicConsumerGroupDto;
 }
 
-export type KafkaSaslMechanism = "plain" | "scram-sha-256" | "scram-sha-512";
+export type KafkaSaslMechanism = "plain" | "scram-sha-256" | "scram-sha-512" | "aws-msk-iam";
 export type KafkaTlsMode = "auto" | "enabled" | "disabled";
 export type KafkaAuthMode = "auto" | "none" | KafkaSaslMechanism;
 
 export interface KafkaSecurityOverride {
   tlsMode: KafkaTlsMode;
   authMode: KafkaAuthMode;
+  /** AWS region used to create an MSK IAM SASL mechanism. */
+  awsRegion?: string;
   username?: string;
   password?: string;
 }

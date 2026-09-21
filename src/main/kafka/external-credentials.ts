@@ -1,4 +1,5 @@
 import { createHash } from "node:crypto";
+import { createMechanism } from "@jm18457/kafkajs-msk-iam-authentication-mechanism";
 import { splitBootstrap } from "../../common/reachability";
 import {
   createWorkloadEnvironmentResolver,
@@ -8,7 +9,7 @@ import {
 } from "./workload-environment";
 import type { ConnectionOptions as TlsOptions } from "node:tls";
 
-import type { SASLOptions } from "kafkajs";
+import type { Mechanism, SASLOptions } from "kafkajs";
 
 import type {
   KafkaSaslMechanism,
@@ -21,6 +22,7 @@ import type { ResolvedCredentials } from "./credentials";
 import type { KubeReader } from "./kube-reader";
 
 export interface ParsedWorkloadSecurity extends ResolvedCredentials {
+  awsRegion?: string;
   detected: boolean;
   hint: KafkaSecurityHint;
 }
@@ -30,7 +32,7 @@ export interface ResolvedExternalCredentials extends ParsedWorkloadSecurity {
 }
 
 export interface AppliedSecurity {
-  sasl?: SASLOptions;
+  sasl?: SASLOptions | Mechanism;
   ssl?: TlsOptions | boolean;
   summary: KafkaSecuritySummary;
 }
@@ -79,6 +81,7 @@ function saslMechanism(value?: string): KafkaSaslMechanism | undefined {
   if (normalized === "plain") return "plain";
   if (normalized === "scram-sha-256") return "scram-sha-256";
   if (normalized === "scram-sha-512") return "scram-sha-512";
+  if (normalized === "aws-msk-iam" || normalized === "awsiam") return "aws-msk-iam";
   return undefined;
 }
 
@@ -115,6 +118,7 @@ export function parseWorkloadSecurityEnvironment(environment: Record<string, str
   const username = first(env, ["KAFKA_SASL_USERNAME", "SASL_USERNAME", "KAFKA_USERNAME"]) ?? apiKey ?? jaas.username;
   const password = first(env, ["KAFKA_SASL_PASSWORD", "SASL_PASSWORD", "KAFKA_PASSWORD"]) ?? apiSecret ?? jaas.password;
   const mechanism = saslMechanism(mechanismValue) ?? (apiKey && apiSecret ? "plain" : undefined);
+  const awsRegion = first(env, ["KAFKA_AWS_REGION", "AWS_REGION", "AWS_DEFAULT_REGION"]);
 
   const ca = pem(first(env, ["KAFKA_SSL_CA", "KAFKA_CA_CERT", "KAFKA_SSL_CA_CERT", "SSL_CA", "CA_CERT"]));
   const cert = pem(
@@ -132,7 +136,7 @@ export function parseWorkloadSecurityEnvironment(environment: Record<string, str
         : true
       : undefined;
   const sasl =
-    mechanism && username !== undefined && password !== undefined
+    mechanism && mechanism !== "aws-msk-iam" && username !== undefined && password !== undefined
       ? ({ mechanism, username, password } as SASLOptions)
       : undefined;
   const detected = Boolean(protocol || mechanismValue || username || password || ca || cert || key);
@@ -141,6 +145,7 @@ export function parseWorkloadSecurityEnvironment(environment: Record<string, str
     detected,
     ssl,
     sasl,
+    awsRegion,
     hint: {
       tls,
       auth: mtls ? "mtls" : (mechanism ?? "none"),
@@ -254,9 +259,10 @@ export function applySecurityOverride(options: {
   source: KafkaSecuritySummary["source"];
 }): AppliedSecurity {
   const automatic = options.automatic ?? {};
+  const detectedHint = (automatic as ParsedWorkloadSecurity).hint;
   const automaticHint = options.automaticHint ?? {
-    tls: Boolean(automatic.ssl) || options.fallbackTls,
-    auth: automatic.sasl ? (automatic.sasl.mechanism as KafkaSaslMechanism) : "none",
+    tls: detectedHint?.tls ?? (Boolean(automatic.ssl) || options.fallbackTls),
+    auth: detectedHint?.auth ?? (automatic.sasl ? (automatic.sasl.mechanism as KafkaSaslMechanism) : "none"),
   };
   const override = options.override;
 
@@ -269,7 +275,7 @@ export function applySecurityOverride(options: {
           : true
         : (automatic.ssl ?? (options.fallbackTls ? true : undefined));
 
-  let sasl = automatic.sasl;
+  let sasl: SASLOptions | Mechanism | undefined = automatic.sasl;
   let auth = automaticHint.auth;
   if (override?.authMode !== undefined && override.authMode !== "auto" && automaticHint.auth === "mtls") {
     if (typeof ssl === "object") {
@@ -281,6 +287,11 @@ export function applySecurityOverride(options: {
   if (override?.authMode === "none") {
     sasl = undefined;
     auth = "none";
+  } else if (override?.authMode === "aws-msk-iam") {
+    const region = override.awsRegion?.trim();
+    if (!region) throw new Error("AWS region is required for AWS IAM (MSK) authentication");
+    sasl = createMechanism({ region });
+    auth = "aws-msk-iam";
   } else if (override && override.authMode !== "auto") {
     const username = override.username?.trim();
     const password = override.password;
@@ -289,6 +300,11 @@ export function applySecurityOverride(options: {
     }
     sasl = { mechanism: override.authMode, username, password } as SASLOptions;
     auth = override.authMode;
+  }
+  if ((override?.authMode ?? "auto") === "auto" && auth === "aws-msk-iam") {
+    const region = (automatic as ParsedWorkloadSecurity).awsRegion?.trim();
+    if (!region) throw new Error("AWS region is required for AWS IAM (MSK) authentication");
+    sasl = createMechanism({ region });
   }
   if (!ssl && auth === "mtls") auth = "none";
 

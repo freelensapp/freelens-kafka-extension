@@ -60,6 +60,22 @@ describe("parseWorkloadSecurityEnvironment", () => {
     });
   });
 
+  it("detects AWS IAM and its region from a workload environment without reading credentials", () => {
+    expect(
+      parseWorkloadSecurityEnvironment({
+        KAFKA_SECURITY_PROTOCOL: "SASL_SSL",
+        KAFKA_SASL_MECHANISM: "AWS_MSK_IAM",
+        AWS_REGION: "us-east-1",
+      }),
+    ).toMatchObject({
+      detected: true,
+      ssl: true,
+      sasl: undefined,
+      awsRegion: "us-east-1",
+      hint: { tls: true, auth: "aws-msk-iam" },
+    });
+  });
+
   it("parses mTLS PEM material", () => {
     const parsed = parseWorkloadSecurityEnvironment({
       KAFKA_SSL_CA: "-----BEGIN CERTIFICATE-----\nCA\n-----END CERTIFICATE-----",
@@ -246,6 +262,44 @@ describe("applySecurityOverride", () => {
         override: { tlsMode: "auto", authMode: "plain", username: "alice" },
       }),
     ).toThrow("username and password are required");
+  });
+
+  it("creates an AWS MSK IAM mechanism without username or password", () => {
+    const applied = applySecurityOverride({
+      fallbackTls: true,
+      source: "inferred",
+      override: { tlsMode: "enabled", authMode: "aws-msk-iam", awsRegion: "us-east-1" },
+    });
+
+    expect(applied.ssl).toBe(true);
+    expect(applied.sasl).toMatchObject({ mechanism: "AWS_MSK_IAM" });
+    expect(applied.summary).toEqual({ tls: true, auth: "aws-msk-iam", source: "override" });
+  });
+
+  it("creates an AWS MSK IAM mechanism from an automatic workload profile", () => {
+    const applied = applySecurityOverride({
+      automatic: {
+        detected: true,
+        ssl: true,
+        awsRegion: "us-east-1",
+        hint: { tls: true, auth: "aws-msk-iam" },
+      },
+      fallbackTls: false,
+      source: "workload",
+    });
+
+    expect(applied.sasl).toMatchObject({ mechanism: "AWS_MSK_IAM" });
+    expect(applied.summary).toEqual({ tls: true, auth: "aws-msk-iam", source: "workload" });
+  });
+
+  it("requires an AWS region for AWS MSK IAM authentication", () => {
+    expect(() =>
+      applySecurityOverride({
+        fallbackTls: true,
+        source: "inferred",
+        override: { tlsMode: "enabled", authMode: "aws-msk-iam" },
+      }),
+    ).toThrow("AWS region is required");
   });
 
   it("removes automatic mTLS client material for a no-auth override but preserves the CA", () => {

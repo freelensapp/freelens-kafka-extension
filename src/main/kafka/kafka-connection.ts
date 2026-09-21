@@ -1,4 +1,4 @@
-import { type Admin, Kafka, logLevel, type SASLOptions } from "kafkajs";
+import { type Admin, Kafka, logLevel, type Mechanism, type SASLOptions } from "kafkajs";
 import { splitBootstrap } from "../../common/reachability";
 import { fetchAcls, probeAclSupport } from "./acl";
 import { fetchBrokerConfig } from "./broker-config";
@@ -49,7 +49,7 @@ export interface ConnectOptions {
   bootstrap: string;
   /** How local sockets reach broker pods (port-forward strategy). Omit for a direct connection. */
   forwarder?: Forwarder;
-  sasl?: SASLOptions;
+  sasl?: SASLOptions | Mechanism;
   ssl?: TlsOptions | boolean;
   onRedirect?: (from: string, to: string) => void;
 }
@@ -545,7 +545,7 @@ export function connectDirect(options: {
   clientId?: string;
   bootstrap: string;
   ssl?: TlsOptions | boolean;
-  sasl?: SASLOptions;
+  sasl?: SASLOptions | Mechanism;
 }): Promise<KafkaConnection> {
   return KafkaConnection.connect({
     clientId: options.clientId ?? "freelens-kafka-direct",

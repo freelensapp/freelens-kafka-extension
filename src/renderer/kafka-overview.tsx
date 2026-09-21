@@ -101,6 +101,7 @@ const AUTH_MODE_OPTIONS: Renderer.Component.SelectOption<KafkaAuthMode>[] = [
   { value: "plain", label: "SASL/PLAIN" },
   { value: "scram-sha-256", label: "SCRAM-SHA-256" },
   { value: "scram-sha-512", label: "SCRAM-SHA-512" },
+  { value: "aws-msk-iam", label: "AWS IAM (MSK)" },
 ];
 
 const sourceLabel = (kafka: DiscoveredKafkaInfo): string => kafka.provider ?? kafka.source;
@@ -626,6 +627,7 @@ function ConnectionSettingsDrawer({
   const [authMode, setAuthMode] = useState<KafkaAuthMode>(securityOverride?.authMode ?? "auto");
   const [username, setUsername] = useState(securityOverride?.username ?? "");
   const [password, setPassword] = useState(securityOverride?.password ?? "");
+  const [awsRegion, setAwsRegion] = useState(securityOverride?.awsRegion ?? "");
   const [settingsError, setSettingsError] = useState<string>();
   const [writeModeEnabled, setWriteModeEnabled] = useState<boolean>(writeSettings.get(kafka.targetId));
   const [registryUrl, setRegistryUrl] = useState(() => schemaRegistrySettings.get(kafka.targetId)?.registryUrl ?? "");
@@ -648,6 +650,7 @@ function ConnectionSettingsDrawer({
     setAuthMode(securityOverride?.authMode ?? "auto");
     setUsername(securityOverride?.username ?? "");
     setPassword(securityOverride?.password ?? "");
+    setAwsRegion(securityOverride?.awsRegion ?? "");
     setWriteModeEnabled(writeSettings.get(kafka.targetId));
     const registry = schemaRegistrySettings.get(kafka.targetId);
     setRegistryUrl(registry?.registryUrl ?? "");
@@ -666,11 +669,16 @@ function ConnectionSettingsDrawer({
   const strategyLabel =
     strategy === "direct" ? "Direct" : strategy === "portForward" ? "Port-forward" : "Relay required";
   const security = detail.data?.security ?? kafka.securityHint ?? { tls: kafka.tls, auth: "none" };
-  const explicitAuth = authMode !== "auto" && authMode !== "none";
+  const passwordAuth = authMode === "plain" || authMode === "scram-sha-256" || authMode === "scram-sha-512";
+  const awsIamAuth = authMode === "aws-msk-iam";
 
   const applySettings = (): void => {
-    if (explicitAuth && (!username.trim() || !password)) {
+    if (passwordAuth && (!username.trim() || !password)) {
       setSettingsError("Username and password are required for explicit SASL authentication.");
+      return;
+    }
+    if (awsIamAuth && !awsRegion.trim()) {
+      setSettingsError("AWS region is required for AWS IAM (MSK) authentication.");
       return;
     }
     setSettingsError(undefined);
@@ -681,7 +689,8 @@ function ConnectionSettingsDrawer({
     onApplySecurity({
       tlsMode,
       authMode,
-      ...(explicitAuth ? { username: username.trim(), password } : {}),
+      ...(passwordAuth ? { username: username.trim(), password } : {}),
+      ...(awsIamAuth ? { awsRegion: awsRegion.trim() } : {}),
     });
   };
 
@@ -855,7 +864,7 @@ function ConnectionSettingsDrawer({
               menuPosition="fixed"
             />
           </label>
-          {explicitAuth && (
+          {passwordAuth && (
             <>
               <label>
                 <span>Username</span>
@@ -888,8 +897,26 @@ function ConnectionSettingsDrawer({
               </label>
             </>
           )}
+          {awsIamAuth && (
+            <label>
+              <span>AWS region</span>
+              <Renderer.Component.Input
+                value={awsRegion}
+                onChange={(value) => {
+                  setAwsRegion(value);
+                  setSettingsError(undefined);
+                }}
+                disabled={detail.loading}
+                placeholder="us-east-1"
+                autoComplete="off"
+                aria-label="AWS region"
+                aria-required="true"
+              />
+            </label>
+          )}
           <p>
             Automatic mode reads matching workload env, ConfigMaps and Secrets. Password overrides stay in memory only.
+            AWS IAM uses your local AWS SDK credential provider chain and never stores access keys.
           </p>
           {settingsError && (
             <div className="KafkaSecurityError" role="alert">
