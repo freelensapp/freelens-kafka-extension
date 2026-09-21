@@ -77,7 +77,7 @@ jobs:
         run: pnpm pack
 
       - name: Get extension path
-        run: echo "EXTENSION_PATH=$(find $(pwd) -name '*.tgz')" >> ${GITHUB_ENV}
+        run: echo "EXTENSION_PATH=$(find "$(pwd)" -maxdepth 1 -type f -name '*.tgz' -print -quit)" >> ${GITHUB_ENV}
 
       - name: Start disposable Kafka topic fixture
         run: pnpm kafka:direct:up
