@@ -290,6 +290,10 @@ export function applySecurityOverride(options: {
   } else if (override?.authMode === "aws-msk-iam") {
     const region = override.awsRegion?.trim();
     if (!region) throw new Error("AWS region is required for AWS IAM (MSK) authentication");
+    if (override.tlsMode === "disabled") {
+      throw new Error("TLS is required for AWS IAM (MSK) authentication");
+    }
+    ssl = typeof automatic.ssl === "object" ? automatic.ssl : true;
     sasl = createMechanism({ region });
     auth = "aws-msk-iam";
   } else if (override && override.authMode !== "auto") {
@@ -304,6 +308,10 @@ export function applySecurityOverride(options: {
   if ((override?.authMode ?? "auto") === "auto" && auth === "aws-msk-iam") {
     const region = (automatic as ParsedWorkloadSecurity).awsRegion?.trim();
     if (!region) throw new Error("AWS region is required for AWS IAM (MSK) authentication");
+    if (override?.tlsMode === "disabled") {
+      throw new Error("TLS is required for AWS IAM (MSK) authentication");
+    }
+    ssl = typeof automatic.ssl === "object" ? automatic.ssl : true;
     sasl = createMechanism({ region });
   }
   if (!ssl && auth === "mtls") auth = "none";

@@ -276,6 +276,20 @@ describe("applySecurityOverride", () => {
     expect(applied.summary).toEqual({ tls: true, auth: "aws-msk-iam", source: "override" });
   });
 
+  it("requires TLS for AWS MSK IAM authentication", () => {
+    expect(() =>
+      applySecurityOverride({
+        fallbackTls: false,
+        source: "inferred",
+        override: {
+          tlsMode: "disabled",
+          authMode: "aws-msk-iam",
+          awsRegion: "us-east-1",
+        },
+      }),
+    ).toThrow("TLS is required");
+  });
+
   it("creates an AWS MSK IAM mechanism from an automatic workload profile", () => {
     const applied = applySecurityOverride({
       automatic: {

@@ -31,7 +31,8 @@ the connection.
 - **REQ-206** — The Connection Settings drawer MUST offer AWS IAM (MSK), require an AWS region,
   and MUST NOT request a username or password for this mode.
 - **REQ-207** — A direct connection configured with AWS IAM (MSK) MUST pass KafkaJS an
-  `AWS_MSK_IAM` mechanism and TLS settings through the existing connection lifecycle.
+  `AWS_MSK_IAM` mechanism and TLS settings through the existing connection lifecycle. TLS MUST
+  be enabled for IAM even when the detected endpoint did not identify TLS.
 - **REQ-208** — AWS credentials MUST remain in the Main process and be resolved by the AWS SDK
   default provider chain; access keys MUST NOT be persisted or included in IPC payloads.
 - **REQ-209** — Workload configuration specifying `AWS_MSK_IAM`/`awsiam` with an AWS region MUST
