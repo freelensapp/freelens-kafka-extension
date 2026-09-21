@@ -2,7 +2,7 @@
 
 | Field | Value |
 | --- | --- |
-| Status | Implementing |
+| Status | Verified |
 | Date | 2026-09-21 |
 | Source | Issue #62 and its 2026-09-21 reporter validation offer |
 | Safety | Read-only connection and metadata verification; governed by `TESTING-SAFETY.md` |
@@ -55,5 +55,5 @@ the connection.
 
 | Requirement range | Evidence |
 | --- | --- |
-| REQ-206–REQ-209, SC-117 | `pnpm type:check`, `pnpm lint:check`, `pnpm build`, and focused Vitest coverage in `src/main/kafka/external-credentials.test.ts` passed on 2026-09-21 |
-| SC-118 | Pending authorized reporter validation against the MSK Express cluster |
+| REQ-206–REQ-211, SC-117 | `pnpm type:check`, `pnpm lint:check`, focused Vitest coverage, and `pnpm build` passed on 2026-09-21 |
+| SC-118 | Authorized reporter validation on 2026-09-21: an MSK Express broker was reached through VPN with TLS and AWS IAM; Kafka metadata reads completed without Kafka writes |
