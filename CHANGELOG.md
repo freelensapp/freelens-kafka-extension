@@ -1,5 +1,17 @@
 # Changelog
 
+## v1.3.1 - 2026-09-20
+
+### Added
+
+- Restart notice after an in-place update: Freelens keeps the main side of the previous version loaded until the app restarts, so the pages now ask the main process which version it runs and, when it differs, every Kafka page says to restart Freelens to finish the update instead of failing later with a raw IPC error.
+
+### Fixed
+
+- Produce message no longer pushes the Messages table out of view: the compose form opens as a panel beside the Topic Workspace (stacked above it on narrow windows), so the table keeps its height and Browse, Tail and the inspector stay usable while a record is composed. The table also keeps a minimum height under the inline confirmations (#66).
+- The Produce form accepts what it documents: Value and Headers are multi-line, a header value may contain `=` (it was cut at the second `=`), a line that is not `key=value` or a partition the topic does not have blocks the send with an explicit message, every send needs its own confirmation, and leaving the topic or the cluster cancels the compose with a notice.
+- Batch topic deletion works right after an in-place update of the extension, when Freelens still runs the main side of the previous version until it restarts: the list falls back to one deletion per topic and keeps the per-topic outcome (#61).
+
 ## v1.3.0 - 2026-09-11
 
 ### Added

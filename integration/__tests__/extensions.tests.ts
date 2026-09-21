@@ -2185,16 +2185,38 @@ clusterDescribe("Kafka cluster page", () => {
       await topicRow.press("Enter");
       const topicWorkspace = frame.locator('[data-testid="kafka-topic-workspace"]');
       await topicWorkspace.waitFor({ state: "visible", timeout: 120_000 });
+      // SPEC-009 REQ-206, SC-119 (#66): the compose panel must not take the height of the Messages table.
+      await frame.getByRole("tab", { name: "Messages" }).click();
+      await frame.locator('.KafkaMessageStartModes button:has-text("Earliest")').first().click();
+      await frame.locator('.KafkaMessageControls button:has-text("Browse")').first().click();
+      const messageTable = frame.locator(".KafkaMessageTable");
+      await messageTable.locator(".TableRow").first().waitFor({ state: "visible", timeout: 60_000 });
       await frame.getByTestId("kafka-produce-message-button").click();
       const produceDrawer = frame.locator('[data-testid="kafka-produce-message-drawer"]');
       await produceDrawer.waitFor({ state: "visible", timeout: 30_000 });
-      await frame.getByLabel("Message value").fill(`e2e-write-${Date.now()}`);
-      const produceButton = frame.getByRole("button", { name: "Send message" });
+      const tableBox = await messageTable.boundingBox();
+      expect(tableBox?.height ?? 0).toBeGreaterThanOrEqual(150);
+
+      // REQ-207: headers are one per line and only the first "=" splits; an invalid line blocks the send.
+      await produceDrawer.getByLabel("Message value", { exact: true }).fill(`e2e-write-${Date.now()}\nsecond line`);
+      const produceHeaders = produceDrawer.getByLabel("Message headers", { exact: true });
+      await produceHeaders.fill("signature=YWJjZA==\nbroken-line");
+      const produceButton = produceDrawer.getByRole("button", { name: "Send message" });
+      const produceConfirmation = produceDrawer.getByLabel("Confirm produce message", { exact: true });
       expect(await produceButton.isDisabled()).toBe(true);
-      await frame.getByLabel("Confirm produce message").check({ force: true });
+      await produceConfirmation.check({ force: true });
+      expect(await produceButton.isDisabled()).toBe(true);
+      expect(await produceDrawer.getByTestId("kafka-produce-headers-error").innerText()).toContain("Line 2");
+      await produceHeaders.fill("signature=YWJjZA==");
       expect(await produceButton.isDisabled()).toBe(false);
       await produceButton.click();
+      await produceDrawer.getByRole("status").waitFor({ state: "visible", timeout: 60_000 });
       expect(await produceDrawer.getByRole("status").innerText()).toContain("Sent to partition");
+      // REQ-208: every send is confirmed on its own.
+      expect(await produceConfirmation.isChecked()).toBe(false);
+      expect(await produceButton.isDisabled()).toBe(true);
+      await produceDrawer.getByTestId("kafka-produce-close").click();
+      await produceDrawer.waitFor({ state: "hidden", timeout: 10_000 });
 
       await openKafkaMenuItem("kafka-groups");
       await frame.waitForFunction(() => window.location.pathname.endsWith("/kafka-groups"));

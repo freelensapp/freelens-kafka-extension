@@ -1,5 +1,6 @@
 import { Renderer } from "@freelensapp/extensions";
 import { computed } from "mobx";
+import { EXTENSION_VERSION } from "../common/extension-version";
 import { kafkaPersistentStateStore } from "../common/kafka-persistent-state-store";
 import { KafkaIcon } from "./icon";
 import { KafkaAclAvailabilityStore } from "./kafka-acl-availability";
@@ -31,6 +32,7 @@ import {
 import { KafkaSchemaRegistryPage, type KafkaSchemaRegistryPageProps } from "./kafka-schema-registry-pages";
 import { KafkaSchemaRegistrySettingsStore } from "./kafka-schema-registry-settings";
 import { KafkaTopicsPage, type KafkaTopicsPageProps } from "./kafka-topic-pages";
+import { kafkaVersionSkewStore } from "./kafka-version-skew";
 import { createOperationId } from "./kafka-view-model";
 import { KafkaWriteSettingsStore } from "./kafka-write-settings";
 
@@ -87,6 +89,8 @@ export default class KafkaExtensionRenderer extends Renderer.LensExtension {
     ]);
     this.mirrorWriteMode();
     this.writeSettings.subscribe(() => this.mirrorWriteMode());
+    // After an in-place update Freelens keeps the previous main side until it restarts (SPEC-016).
+    void kafkaVersionSkewStore.check(EXTENSION_VERSION, () => this.client.mainVersion());
   }
 
   /** Tell the main process which targets have write mode on, so it can refuse other writes. */

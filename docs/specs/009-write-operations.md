@@ -132,6 +132,21 @@ confirming, **then** the compose view closes and no message is produced.
   (enable.idempotence = true). This does not guarantee exactly-once to the user; REQ-107 applies.
 - **REQ-111** — After a confirmed produce, the extension MUST show the resulting partition and offset
   on success, or the full error message on failure, without truncation.
+- **REQ-206** — The Produce compose view MUST open beside the Topic Workspace, not above it. While
+  it is open the active tab keeps its height: the Messages table keeps at least its header plus
+  three rows and stays interactive (Browse, Tail, inspector), and the draft survives those
+  interactions. On frames narrower than 1100 px the panel stacks above the workspace and scrolls
+  inside its own height. The same minimum table height holds under the inline confirmations.
+- **REQ-207** — Value and Headers MUST be multi-line. Headers are `key=value`, one per line: only
+  the first `=` separates key and value, blank lines are skipped and an empty value is valid. A
+  non-empty line without a key or without `=` blocks the send and is named by its line number. The
+  optional partition MUST be a whole number within the partitions of the topic, otherwise the send
+  is blocked with an explicit message.
+- **REQ-208** — Every send MUST be confirmed on its own: after a successful send the confirmation
+  resets while the draft stays, and the send control is disabled while a send is in flight. The
+  compose context is locked (REQ-106): a cluster change, another topic or a write-mode opt-out
+  closes the panel with a cancellation notice. Only one confirmation is open at a time: opening
+  the topic deletion closes the compose panel and the reverse.
 
 ### Consumer Group offset reset
 
@@ -219,6 +234,16 @@ confirming, **then** the compose view closes and no message is produced.
   are gone and the status reads "Deleted 3 topics".
 - **SC-118** — With write mode disabled, the Topics list shows no selection column and no batch
   action.
+- **SC-119** — With 40 loaded records on the Messages tab of a 1365×839 frame, opening Produce
+  leaves the table at 75% or more of its height with at least five rows visible, and the panel
+  does not overlap it (v1.3.0: the table fell to 2 px with no visible row).
+- **SC-120** — A record sent with a multi-line JSON value and the headers `signature=YWJjZA==` and
+  `source=freelens` reaches the local broker byte-identical (key, value and both headers). A
+  `broken-line` header or partition `9` on a three-partition topic keeps the send disabled with
+  the explicit messages, even with the confirmation accepted.
+- **SC-121** — Leaving the topic with the panel open shows "Produce cancelled: the context changed
+  before confirmation." and the panel does not reopen on the next topic. After a send the
+  confirmation is off again and a second send stays disabled until it is accepted again.
 
 ## Decision Log
 
@@ -240,6 +265,14 @@ confirming, **then** the compose view closes and no message is produced.
   request per topic was chosen over a single multi-topic `DeleteTopics` call because KafkaJS
   surfaces only the first per-topic error of a batch response.
 
+- **2026-09-20** — Compose panel beside the workspace (REQ-206–REQ-208) after a user report (#66):
+  the inline form above the tabs took the height of the Messages table. The native `Drawer` was
+  considered and rejected: it asks to close on every click outside of it, so the table could not
+  be used while composing; the panel is an in-page column built from the native inputs, and the
+  inspector `Drawer` still opens over it. The header parser moved to a pure module because the
+  previous `split("=", 2)` dropped everything after a second `=` and the single-line field could
+  not hold the documented one header per line.
+
 ## Verification Evidence
 
 | Requirement range | Evidence |
@@ -251,4 +284,5 @@ confirming, **then** the compose view closes and no message is produced.
 | REQ-197, SC-114 | `src/main/write-mode.test.ts`: unknown, disabled and missing targets are refused, enabled ones pass; the packaged write E2E scenarios run through the renderer mirror. |
 | REQ-194–REQ-196, SC-112 | `src/main/kafka/kafka-connection.test.ts` (`deleteTopic`) plus packaged E2E: a disposable loopback topic is deleted only after the typed name and the switch, then it is absent from the list and the broker. |
 | REQ-203–REQ-205, SC-117 | `src/renderer/kafka-topic-selection.test.ts` (page selection without internal topics, pruning, outcome wording), `src/main/kafka/kafka-connection.test.ts` (`deleteTopics`: one session, one request per topic, per-topic failures) plus packaged E2E: three disposable loopback topics ticked in the list, gate enforced on the switch and on a wrong count, then absent from the list and the broker. |
+| REQ-206–REQ-208, SC-119–SC-121 | `src/renderer/kafka-produce-draft.test.ts` (header lines with `=` in the value, blank and invalid lines, partition bounds) plus packaged E2E (Messages table height with the panel open, scoped compose fields, confirmation reset after the send). Verified on 2026-09-20 in the packaged Freelens 1.10.3, dark and light themes, against the loopback Docker fixture: table 320 px with six visible rows beside the panel (v1.3.0: 2 px), record read back from the broker with both headers intact, cancellation notice on leaving the topic, stacked layout on a 925 px frame. |
 | SC-058–SC-064 | Packaged Electron Playwright suite: **7/7 tests passed** on 2026-08-18 using only `127.0.0.1:19092` and the local KinD fixture; typecheck, 122 unit tests and Prettier also passed. |

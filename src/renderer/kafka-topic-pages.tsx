@@ -7,6 +7,7 @@ import { KafkaMessagesBrowser } from "./kafka-messages";
 import { implementedKafkaTopicView, rememberKafkaClusterSelection, saveKafkaReloadRoute } from "./kafka-navigation";
 import { OperationProgress, TopicMetadata, type TopicState } from "./kafka-overview";
 import { KafkaMetricStrip, KafkaPageShell } from "./kafka-page-shell";
+import { type KafkaProduceDraft, KafkaProducePanel } from "./kafka-produce-panel";
 import {
   KafkaResourceActions,
   type KafkaResourcePageDependencies,
@@ -438,13 +439,8 @@ export function KafkaTopicsPage({
   const [topicConsumersState, setTopicConsumersState] = useState<TopicConsumersState>({ loading: false });
   const [sizesState, setSizesState] = useState<TopicSizesState>({ loading: false });
   const [produceOpen, setProduceOpen] = useState(false);
-  const [produceConfirmed, setProduceConfirmed] = useState(false);
-  const [produceKey, setProduceKey] = useState("");
-  const [produceValue, setProduceValue] = useState("");
-  const [produceHeaders, setProduceHeaders] = useState("");
-  const [producePartition, setProducePartition] = useState("");
-  const [produceResult, setProduceResult] = useState<ProduceResultDto>();
-  const [produceError, setProduceError] = useState<string>();
+  // The cluster and topic locked when the compose panel opened (SPEC-009 REQ-106).
+  const produceTarget = useRef<{ targetId: string; topic: string }>();
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [deleteConfirmed, setDeleteConfirmed] = useState(false);
   const [deleteText, setDeleteText] = useState("");
@@ -882,15 +878,36 @@ export function KafkaTopicsPage({
     state.selectCluster(targetId);
   };
 
-  const resetProduceDraft = useCallback(() => {
-    setProduceConfirmed(false);
-    setProduceKey("");
-    setProduceValue("");
-    setProduceHeaders("");
-    setProducePartition("");
-    setProduceResult(undefined);
-    setProduceError(undefined);
-  }, []);
+  const openProduce = useCallback(() => {
+    if (!state.selectedCluster || !topicName) return;
+    produceTarget.current = { targetId: state.selectedCluster.targetId, topic: topicName };
+    setWriteStatus(undefined);
+    // One confirmation at a time: the compose panel replaces a pending topic deletion.
+    setDeleteOpen(false);
+    setProduceOpen(true);
+  }, [state.selectedCluster, topicName]);
+
+  const sendProduce = (draft: KafkaProduceDraft): Promise<ProduceResultDto> => {
+    const cluster = state.selectedCluster;
+    const locked = produceTarget.current;
+    if (!cluster || !locked || locked.targetId !== cluster.targetId || locked.topic !== topicName) {
+      return Promise.reject(new Error("Produce cancelled: the context changed before confirmation."));
+    }
+
+    return produce({
+      targetId: cluster.targetId,
+      source: cluster.source,
+      bootstrap: cluster.bootstrap,
+      tls: cluster.tls,
+      namespace: cluster.namespace,
+      clusterName: cluster.name,
+      topic: locked.topic,
+      key: draft.key,
+      value: draft.value,
+      headers: draft.headers,
+      partition: draft.partition,
+    });
+  };
 
   const openDeleteTopic = useCallback(() => {
     if (!state.selectedCluster || !topicName) return;
@@ -899,10 +916,22 @@ export function KafkaTopicsPage({
     setDeleteText("");
     setDeleteError(undefined);
     setWriteStatus(undefined);
+    // One confirmation at a time: the deletion replaces an open compose panel.
+    setProduceOpen(false);
     setDeleteOpen(true);
   }, [state.selectedCluster, topicName]);
 
   const selectedTargetId = state.selectedCluster?.targetId;
+  useEffect(() => {
+    // Locked context (REQ-106): a cluster change, another topic or a write-mode opt-out cancels the compose.
+    const locked = produceTarget.current;
+    if (!produceOpen || !locked) return;
+    if (locked.targetId !== selectedTargetId || locked.topic !== topicName || !canWrite) {
+      setProduceOpen(false);
+      setWriteStatus("Produce cancelled: the context changed before confirmation.");
+    }
+  }, [canWrite, produceOpen, selectedTargetId, topicName]);
+
   useEffect(() => {
     // Locked context (REQ-106): a cluster or topic change cancels the pending deletion.
     const locked = deleteTarget.current;
@@ -1041,14 +1070,7 @@ export function KafkaTopicsPage({
               Topics
             </Renderer.Component.Button>
             {canWrite && (
-              <Renderer.Component.Button
-                outlined
-                data-testid="kafka-produce-message-button"
-                onClick={() => {
-                  resetProduceDraft();
-                  setProduceOpen(true);
-                }}
-              >
+              <Renderer.Component.Button outlined data-testid="kafka-produce-message-button" onClick={openProduce}>
                 <Renderer.Component.Icon material="edit" />
                 Produce message
               </Renderer.Component.Button>
@@ -1076,259 +1098,165 @@ export function KafkaTopicsPage({
           </div>
         )}
         {state.selectedCluster && state.metadataState.data && (
-          <main className="KafkaResourcePage KafkaTopicWorkspace" data-testid="kafka-topic-workspace">
-            {produceOpen && (
-              <section
-                className="KafkaWriteDrawer"
-                data-testid="kafka-produce-message-drawer"
-                aria-label="Produce message confirmation"
-              >
-                <div className="KafkaPageState warning">
-                  <Renderer.Component.Icon material="edit" />
-                  <div>
-                    <strong>Produce message</strong>
-                    <span>Write operations must be confirmed before any Kafka call is made.</span>
-                  </div>
-                  {produceResult && (
-                    <div role="status">
-                      Sent to partition {produceResult.partition} at offset {produceResult.offset}
-                    </div>
-                  )}
-                  {produceError && <div role="alert">{produceError}</div>}
-                </div>
-                <div className="KafkaWriteForm" style={{ display: "grid", gap: 12 }}>
-                  <Renderer.Component.Input
-                    value={produceKey}
-                    onChange={setProduceKey}
-                    placeholder="Key (optional)"
-                    aria-label="Message key"
-                  />
-                  <Renderer.Component.Input
-                    value={produceValue}
-                    onChange={setProduceValue}
-                    placeholder="Value"
-                    aria-label="Message value"
-                  />
-                  <Renderer.Component.Input
-                    value={produceHeaders}
-                    onChange={setProduceHeaders}
-                    placeholder="Headers (key=value, one per line)"
-                    aria-label="Message headers"
-                  />
-                  <Renderer.Component.Input
-                    value={producePartition}
-                    onChange={setProducePartition}
-                    placeholder="Partition (optional)"
-                    aria-label="Message partition"
-                  />
-                  <div className="KafkaWriteSummary">
-                    <strong>Target</strong>
-                    <span>{state.selectedCluster.name}</span>
-                    <strong>Topic</strong>
-                    <span>{topicName}</span>
-                  </div>
-                  <label style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                    <span>{getWriteConfirmationLabel({ destructive: false, resourceName: topicName })}</span>
-                    <Renderer.Component.Switch
-                      aria-label="Confirm produce message"
-                      data-testid="kafka-produce-confirmation-switch"
-                      checked={produceConfirmed}
-                      onChange={setProduceConfirmed}
-                    />
-                  </label>
-                  <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}>
-                    <Renderer.Component.Button outlined onClick={() => setProduceOpen(false)}>
-                      Cancel
-                    </Renderer.Component.Button>
-                    <Renderer.Component.Button
-                      primary
-                      disabled={
-                        !canSubmitWriteAction({
-                          confirmationAccepted: produceConfirmed,
-                          requiredResourceName: undefined,
-                        })
-                      }
-                      onClick={() => {
-                        if (
-                          !canSubmitWriteAction({
-                            confirmationAccepted: produceConfirmed,
-                            requiredResourceName: undefined,
-                          })
-                        ) {
-                          return;
-                        }
-                        if (!state.selectedCluster || !topicName) return;
-                        setProduceError(undefined);
-                        void produce({
-                          targetId: state.selectedCluster.targetId,
-                          source: state.selectedCluster.source,
-                          bootstrap: state.selectedCluster.bootstrap,
-                          tls: state.selectedCluster.tls,
-                          namespace: state.selectedCluster.namespace,
-                          clusterName: state.selectedCluster.name,
-                          topic: topicName,
-                          key: produceKey || undefined,
-                          value: produceValue,
-                          headers: Object.fromEntries(
-                            produceHeaders
-                              .split("\n")
-                              .map((line) => line.split("=", 2))
-                              .filter(([key, value]) => key && value),
-                          ),
-                          partition: producePartition ? Number(producePartition) : undefined,
-                        })
-                          .then((result) => setProduceResult(result))
-                          .catch((error: unknown) =>
-                            setProduceError(error instanceof Error ? error.message : String(error)),
-                          );
-                      }}
-                    >
-                      Send message
-                    </Renderer.Component.Button>
-                  </div>
-                </div>
-              </section>
-            )}
-            {deleteOpen && (
-              <section
-                className="KafkaWriteDrawer"
-                data-testid="kafka-delete-topic-drawer"
-                aria-label="Delete topic confirmation"
-              >
-                <div className="KafkaPageState warning">
-                  <Renderer.Component.Icon material="delete_forever" />
-                  <div>
-                    <strong>Delete topic</strong>
-                    <span>
-                      Removes the topic with all its partitions and records from the brokers. This cannot be undone.
-                    </span>
-                  </div>
-                  {deleteError && <div role="alert">{deleteError}</div>}
-                </div>
-                <div className="KafkaWriteForm" style={{ display: "grid", gap: 12 }}>
-                  <div className="KafkaWriteSummary">
-                    <strong>Target</strong>
-                    <span>{state.selectedCluster.name}</span>
-                    <strong>Topic</strong>
-                    <span>{topicName}</span>
-                    <strong>Partitions</strong>
-                    <span>{topicState.data?.partitions.length ?? "unknown"}</span>
-                  </div>
-                  <label style={{ display: "grid", gap: 6 }}>
-                    <span>{getWriteConfirmationLabel({ destructive: true, resourceName: topicName })}</span>
-                    <Renderer.Component.Input
-                      value={deleteText}
-                      onChange={setDeleteText}
-                      placeholder={topicName}
-                      aria-label="Type topic to confirm deletion"
-                    />
-                  </label>
-                  <label style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                    <span>I understand that every record of this topic is lost</span>
-                    <Renderer.Component.Switch
-                      aria-label="Confirm topic deletion"
-                      data-testid="kafka-delete-topic-confirmation-switch"
-                      checked={deleteConfirmed}
-                      onChange={setDeleteConfirmed}
-                    />
-                  </label>
-                  <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}>
-                    <Renderer.Component.Button outlined onClick={() => setDeleteOpen(false)}>
-                      Cancel
-                    </Renderer.Component.Button>
-                    <Renderer.Component.Button
-                      primary
-                      className="KafkaDangerButton"
-                      data-testid="kafka-delete-topic-submit"
-                      disabled={!canSubmitDelete}
-                      onClick={submitDeleteTopic}
-                    >
-                      Delete topic
-                    </Renderer.Component.Button>
-                  </div>
-                </div>
-              </section>
-            )}
-            <nav className="KafkaEntityTabs" role="tablist" aria-label="Topic sections">
-              {(["overview", "messages", "partitions", "consumers", "configuration"] as const).map((tab) => (
-                <Renderer.Component.Button
-                  key={tab}
-                  plain
-                  role="tab"
-                  active={view === tab}
-                  aria-selected={view === tab}
-                  onClick={() => setRawView(tab)}
+          <main
+            className={
+              produceOpen
+                ? "KafkaResourcePage KafkaTopicWorkspace withCompose"
+                : "KafkaResourcePage KafkaTopicWorkspace"
+            }
+            data-testid="kafka-topic-workspace"
+          >
+            <div className="KafkaTopicWorkspaceMain">
+              {deleteOpen && (
+                <section
+                  className="KafkaWriteDrawer"
+                  data-testid="kafka-delete-topic-drawer"
+                  aria-label="Delete topic confirmation"
                 >
-                  {tab === "overview"
-                    ? "Overview"
-                    : tab === "messages"
-                      ? "Messages"
-                      : tab === "partitions"
-                        ? "Partitions"
-                        : tab === "consumers"
-                          ? "Consumers"
-                          : "Configuration"}
-                </Renderer.Component.Button>
-              ))}
-            </nav>
-            {view === "messages" ? (
-              <KafkaMessagesBrowser
-                cluster={state.selectedCluster}
-                topic={topicName}
-                partitions={topicState.data?.partitions ?? []}
-                metadataLoading={topicState.loading}
-                metadataError={topicState.error}
-                metadataProgress={topicState.progress}
-                security={dependencies.connectionSettings.get(
-                  dependencies.kubernetesClusterId ?? "active",
-                  state.selectedCluster.targetId,
-                )}
-                schemaRegistry={
-                  state.selectedCluster
-                    ? (() => {
-                        const configured = schemaRegistrySettings.get(state.selectedCluster.targetId);
-                        return configured
-                          ? {
-                              registryUrl: configured.registryUrl,
-                              username: configured.username,
-                              password: endpointSecrets.get(state.selectedCluster.targetId)?.registryPassword,
-                            }
-                          : undefined;
-                      })()
-                    : undefined
-                }
-                browse={messagesBrowse}
-                subscribeProgress={dependencies.subscribeProgress}
-                onRetryMetadata={loadTopic}
-                filters={{ key: keyFilter, value: valueFilter, headerKey, headerValue }}
-                timestamp={timestamp}
-                onTimestampChange={(value) => setTimestamp(value, true)}
-                onFilterChange={(name, value) => {
-                  const setters = {
-                    key: setKeyFilter,
-                    value: setValueFilter,
-                    headerKey: setHeaderKey,
-                    headerValue: setHeaderValue,
-                  };
-                  setters[name](value, true);
-                }}
-              />
-            ) : view === "configuration" ? (
-              <TopicConfiguration topic={topicName} state={topicConfigState} onRetry={loadTopicConfig} />
-            ) : view === "consumers" ? (
-              <TopicConsumers
-                state={topicConsumersState}
-                onRetry={loadTopicConsumers}
-                onOpenGroup={(groupId) => onOpenGroup(state.selectedCluster?.targetId ?? "", groupId)}
-              />
-            ) : (
-              <TopicMetadata
-                state={topicState}
-                onRetry={loadTopic}
-                view={view === "partitions" ? "partitions" : "overview"}
-                showHeader={false}
-                sizes={topicName ? currentSizes?.topics[topicName] : undefined}
-                sizesSupported={currentSizes?.supported}
+                  <div className="KafkaPageState warning">
+                    <Renderer.Component.Icon material="delete_forever" />
+                    <div>
+                      <strong>Delete topic</strong>
+                      <span>
+                        Removes the topic with all its partitions and records from the brokers. This cannot be undone.
+                      </span>
+                    </div>
+                    {deleteError && <div role="alert">{deleteError}</div>}
+                  </div>
+                  <div className="KafkaWriteForm" style={{ display: "grid", gap: 12 }}>
+                    <div className="KafkaWriteSummary">
+                      <strong>Target</strong>
+                      <span>{state.selectedCluster.name}</span>
+                      <strong>Topic</strong>
+                      <span>{topicName}</span>
+                      <strong>Partitions</strong>
+                      <span>{topicState.data?.partitions.length ?? "unknown"}</span>
+                    </div>
+                    <label style={{ display: "grid", gap: 6 }}>
+                      <span>{getWriteConfirmationLabel({ destructive: true, resourceName: topicName })}</span>
+                      <Renderer.Component.Input
+                        value={deleteText}
+                        onChange={setDeleteText}
+                        placeholder={topicName}
+                        aria-label="Type topic to confirm deletion"
+                      />
+                    </label>
+                    <label style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                      <span>I understand that every record of this topic is lost</span>
+                      <Renderer.Component.Switch
+                        aria-label="Confirm topic deletion"
+                        data-testid="kafka-delete-topic-confirmation-switch"
+                        checked={deleteConfirmed}
+                        onChange={setDeleteConfirmed}
+                      />
+                    </label>
+                    <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}>
+                      <Renderer.Component.Button outlined onClick={() => setDeleteOpen(false)}>
+                        Cancel
+                      </Renderer.Component.Button>
+                      <Renderer.Component.Button
+                        primary
+                        className="KafkaDangerButton"
+                        data-testid="kafka-delete-topic-submit"
+                        disabled={!canSubmitDelete}
+                        onClick={submitDeleteTopic}
+                      >
+                        Delete topic
+                      </Renderer.Component.Button>
+                    </div>
+                  </div>
+                </section>
+              )}
+              <nav className="KafkaEntityTabs" role="tablist" aria-label="Topic sections">
+                {(["overview", "messages", "partitions", "consumers", "configuration"] as const).map((tab) => (
+                  <Renderer.Component.Button
+                    key={tab}
+                    plain
+                    role="tab"
+                    active={view === tab}
+                    aria-selected={view === tab}
+                    onClick={() => setRawView(tab)}
+                  >
+                    {tab === "overview"
+                      ? "Overview"
+                      : tab === "messages"
+                        ? "Messages"
+                        : tab === "partitions"
+                          ? "Partitions"
+                          : tab === "consumers"
+                            ? "Consumers"
+                            : "Configuration"}
+                  </Renderer.Component.Button>
+                ))}
+              </nav>
+              {view === "messages" ? (
+                <KafkaMessagesBrowser
+                  cluster={state.selectedCluster}
+                  topic={topicName}
+                  partitions={topicState.data?.partitions ?? []}
+                  metadataLoading={topicState.loading}
+                  metadataError={topicState.error}
+                  metadataProgress={topicState.progress}
+                  security={dependencies.connectionSettings.get(
+                    dependencies.kubernetesClusterId ?? "active",
+                    state.selectedCluster.targetId,
+                  )}
+                  schemaRegistry={
+                    state.selectedCluster
+                      ? (() => {
+                          const configured = schemaRegistrySettings.get(state.selectedCluster.targetId);
+                          return configured
+                            ? {
+                                registryUrl: configured.registryUrl,
+                                username: configured.username,
+                                password: endpointSecrets.get(state.selectedCluster.targetId)?.registryPassword,
+                              }
+                            : undefined;
+                        })()
+                      : undefined
+                  }
+                  browse={messagesBrowse}
+                  subscribeProgress={dependencies.subscribeProgress}
+                  onRetryMetadata={loadTopic}
+                  filters={{ key: keyFilter, value: valueFilter, headerKey, headerValue }}
+                  timestamp={timestamp}
+                  onTimestampChange={(value) => setTimestamp(value, true)}
+                  onFilterChange={(name, value) => {
+                    const setters = {
+                      key: setKeyFilter,
+                      value: setValueFilter,
+                      headerKey: setHeaderKey,
+                      headerValue: setHeaderValue,
+                    };
+                    setters[name](value, true);
+                  }}
+                />
+              ) : view === "configuration" ? (
+                <TopicConfiguration topic={topicName} state={topicConfigState} onRetry={loadTopicConfig} />
+              ) : view === "consumers" ? (
+                <TopicConsumers
+                  state={topicConsumersState}
+                  onRetry={loadTopicConsumers}
+                  onOpenGroup={(groupId) => onOpenGroup(state.selectedCluster?.targetId ?? "", groupId)}
+                />
+              ) : (
+                <TopicMetadata
+                  state={topicState}
+                  onRetry={loadTopic}
+                  view={view === "partitions" ? "partitions" : "overview"}
+                  showHeader={false}
+                  sizes={topicName ? currentSizes?.topics[topicName] : undefined}
+                  sizesSupported={currentSizes?.supported}
+                />
+              )}
+            </div>
+            {produceOpen && (
+              <KafkaProducePanel
+                clusterName={state.selectedCluster.name}
+                topicName={topicName}
+                partitionCount={topicState.data?.partitions.length}
+                onSend={sendProduce}
+                onClose={() => setProduceOpen(false)}
               />
             )}
           </main>

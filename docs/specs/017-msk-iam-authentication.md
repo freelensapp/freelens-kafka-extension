@@ -1,4 +1,4 @@
-# SPEC-016 - Amazon MSK IAM Authentication
+# SPEC-017 - Amazon MSK IAM Authentication
 
 | Field | Value |
 | --- | --- |
@@ -29,19 +29,19 @@ the connection.
 
 ## Functional Requirements
 
-- **REQ-206** — The Connection Settings drawer MUST offer AWS IAM (MSK), require an AWS region,
+- **REQ-212** — The Connection Settings drawer MUST offer AWS IAM (MSK), require an AWS region,
   and MUST NOT request a username or password for this mode.
-- **REQ-207** — A direct connection configured with AWS IAM (MSK) MUST pass KafkaJS an
+- **REQ-213** — A direct connection configured with AWS IAM (MSK) MUST pass KafkaJS an
   `AWS_MSK_IAM` mechanism and TLS settings through the existing connection lifecycle. TLS MUST
   be enabled for IAM even when the detected endpoint did not identify TLS.
-- **REQ-208** — AWS credentials MUST remain in the Main process and be resolved by the AWS SDK
+- **REQ-214** — AWS credentials MUST remain in the Main process and be resolved by the AWS SDK
   default provider chain or an optional selected shared-config profile; access keys MUST NOT be
   persisted or included in IPC payloads.
-- **REQ-209** — Workload configuration specifying `AWS_MSK_IAM`/`awsiam` with an AWS region MUST
+- **REQ-215** — Workload configuration specifying `AWS_MSK_IAM`/`awsiam` with an AWS region MUST
   be detected automatically; an IAM configuration without a region MUST fail with an actionable error.
-- **REQ-210** — A failed or in-flight Automatic connection MUST NOT disable the security override
+- **REQ-216** — A failed or in-flight Automatic connection MUST NOT disable the security override
   controls; operators MUST be able to select AWS IAM and reconnect without closing the drawer.
-- **REQ-211** — The Security override authentication menu MUST render above the Connection Settings
+- **REQ-217** — The Security override authentication menu MUST render above the Connection Settings
   drawer so every supported authentication mode is selectable.
 
 ## Success Criteria
@@ -55,5 +55,5 @@ the connection.
 
 | Requirement range | Evidence |
 | --- | --- |
-| REQ-206–REQ-211, SC-117 | `pnpm type:check`, `pnpm lint:check`, focused Vitest coverage, and `pnpm build` passed on 2026-09-21 |
+| REQ-212–REQ-217, SC-117 | `pnpm type:check`, `pnpm lint:check`, focused Vitest coverage, and `pnpm build` passed on 2026-09-21 |
 | SC-118 | Authorized reporter validation on 2026-09-21: an MSK Express broker was reached through VPN with TLS and AWS IAM; Kafka metadata reads completed without Kafka writes |

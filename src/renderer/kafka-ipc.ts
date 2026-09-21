@@ -18,6 +18,7 @@ import {
   type DeleteTopicsResultDto,
   type DiscoveredKafkaInfo,
   type DiscoverRequest,
+  type ExtensionVersionDto,
   type GroupDetailRequest,
   type GroupsRequest,
   KAFKA_IPC,
@@ -52,12 +53,26 @@ import {
 } from "../common/ipc";
 import { createIpcRequestDeduper, type IpcRequest } from "./kafka-ipc-deduper";
 
+import type { MainVersionProbe } from "./kafka-version-skew";
+
 /** Renderer-side client for the Kafka extension's Main IPC handlers. */
 export class KafkaIpcRenderer extends Renderer.Ipc {
   private readonly dedupe = createIpcRequestDeduper();
 
   private read<T>(channel: string, request: IpcRequest): Promise<T> {
     return this.dedupe(channel, request, () => this.invoke(channel, request) as Promise<T>);
+  }
+
+  /** Version of the main bundle Freelens is running, or the fact that it predates the probe (SPEC-016). */
+  async mainVersion(): Promise<MainVersionProbe> {
+    try {
+      const answer = (await this.invoke(KAFKA_IPC.version)) as ExtensionVersionDto;
+
+      return { version: answer.version };
+    } catch (error) {
+      if (isMissingIpcHandler(error, KAFKA_IPC.version)) return { missing: true };
+      throw error;
+    }
   }
 
   discover(request: DiscoverRequest = {}): Promise<DiscoveredKafkaInfo[]> {
@@ -116,8 +131,14 @@ export class KafkaIpcRenderer extends Renderer.Ipc {
     return this.invoke(KAFKA_IPC.deleteTopic, request) as Promise<DeleteTopicResultDto>;
   }
 
-  deleteTopics(request: DeleteTopicsRequest): Promise<DeleteTopicsResultDto> {
-    return this.invoke(KAFKA_IPC.deleteTopics, request) as Promise<DeleteTopicsResultDto>;
+  async deleteTopics(request: DeleteTopicsRequest): Promise<DeleteTopicsResultDto> {
+    try {
+      return (await this.invoke(KAFKA_IPC.deleteTopics, request)) as DeleteTopicsResultDto;
+    } catch (error) {
+      if (!isMissingIpcHandler(error, KAFKA_IPC.deleteTopics)) throw error;
+
+      return this.deleteTopicsIndividually(request);
+    }
   }
 
   resetOffsets(request: ResetOffsetsRequest): Promise<ResetOffsetsResultDto> {
@@ -198,4 +219,28 @@ export class KafkaIpcRenderer extends Renderer.Ipc {
   onProgress(listener: (progress: KafkaProgressEvent) => void): () => void {
     return this.listen(KAFKA_IPC.progress, (_event, progress: KafkaProgressEvent) => listener(progress));
   }
+
+  private async deleteTopicsIndividually(request: DeleteTopicsRequest): Promise<DeleteTopicsResultDto> {
+    const topics = [...new Set(request.topics.filter(Boolean))];
+    if (topics.length === 0) throw new Error("at least one topic name is required");
+
+    const result: DeleteTopicsResultDto = { deleted: [], failed: [] };
+    for (const topic of topics) {
+      try {
+        await this.deleteTopic({ ...request, topic });
+        result.deleted.push(topic);
+      } catch (error) {
+        result.failed.push({ topic, error: error instanceof Error ? error.message : String(error) });
+      }
+    }
+    return result;
+  }
+}
+
+/** Electron's answer when the running main process never registered `channel` (an older main). */
+function isMissingIpcHandler(error: unknown, channel: string): boolean {
+  if (!(error instanceof Error)) return false;
+  const escaped = channel.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
+  return new RegExp(`No handler registered for ['"].*:${escaped}['"]`).test(error.message);
 }

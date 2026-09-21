@@ -2,6 +2,7 @@
 import type { KafkaEtaStatus } from "./kafka-phase-progress";
 
 export const KAFKA_IPC = {
+  version: "kafka:meta:version",
   discover: "kafka:discover",
   overview: "kafka:overview",
   health: "kafka:health",
@@ -401,6 +402,11 @@ export interface ProduceResultDto {
   topic: string;
   partition: number;
   offset: string;
+}
+
+/** Version the running main bundle was built from (SPEC-016). */
+export interface ExtensionVersionDto {
+  version: string;
 }
 
 /** Renderer -> Main mirror of the per-target write mode switch (SPEC-009 REQ-197). */
