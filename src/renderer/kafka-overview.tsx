@@ -104,6 +104,10 @@ const AUTH_MODE_OPTIONS: Renderer.Component.SelectOption<KafkaAuthMode>[] = [
   { value: "aws-msk-iam", label: "AWS IAM (MSK)" },
 ];
 
+const SECURITY_SELECT_STYLES = {
+  menuPortal: (styles: Record<string, unknown>) => ({ ...styles, zIndex: 10_000 }),
+};
+
 const sourceLabel = (kafka: DiscoveredKafkaInfo): string => kafka.provider ?? kafka.source;
 
 export function ReachabilityBadge({ value, label }: { value?: boolean; label?: boolean }) {
@@ -854,6 +858,7 @@ function ConnectionSettingsDrawer({
               }}
               themeName="lens"
               menuPosition="fixed"
+              styles={SECURITY_SELECT_STYLES}
             />
           </label>
           <label>
@@ -867,6 +872,7 @@ function ConnectionSettingsDrawer({
               }}
               themeName="lens"
               menuPosition="fixed"
+              styles={SECURITY_SELECT_STYLES}
             />
           </label>
           {passwordAuth && (

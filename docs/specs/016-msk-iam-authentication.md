@@ -41,6 +41,8 @@ the connection.
   be detected automatically; an IAM configuration without a region MUST fail with an actionable error.
 - **REQ-210** — A failed or in-flight Automatic connection MUST NOT disable the security override
   controls; operators MUST be able to select AWS IAM and reconnect without closing the drawer.
+- **REQ-211** — The Security override authentication menu MUST render above the Connection Settings
+  drawer so every supported authentication mode is selectable.
 
 ## Success Criteria
 

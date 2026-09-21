@@ -1,6 +1,6 @@
 {
   "name": "@freelensapp/kafka-extension",
-  "version": "1.3.2",
+  "version": "1.3.3",
   "description": "Freelens extension for Apache Kafka",
   "repository": {
     "type": "git",
