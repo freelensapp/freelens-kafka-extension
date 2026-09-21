@@ -39,6 +39,8 @@ the connection.
   persisted or included in IPC payloads.
 - **REQ-209** — Workload configuration specifying `AWS_MSK_IAM`/`awsiam` with an AWS region MUST
   be detected automatically; an IAM configuration without a region MUST fail with an actionable error.
+- **REQ-210** — A failed or in-flight Automatic connection MUST NOT disable the security override
+  controls; operators MUST be able to select AWS IAM and reconnect without closing the drawer.
 
 ## Success Criteria
 

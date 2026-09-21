@@ -852,7 +852,6 @@ function ConnectionSettingsDrawer({
                 setTlsMode(option?.value ?? "auto");
                 setSettingsError(undefined);
               }}
-              isDisabled={detail.loading}
               themeName="lens"
               menuPosition="fixed"
             />
@@ -866,7 +865,6 @@ function ConnectionSettingsDrawer({
                 setAuthMode(option?.value ?? "auto");
                 setSettingsError(undefined);
               }}
-              isDisabled={detail.loading}
               themeName="lens"
               menuPosition="fixed"
             />
@@ -881,7 +879,6 @@ function ConnectionSettingsDrawer({
                     setUsername(value);
                     setSettingsError(undefined);
                   }}
-                  disabled={detail.loading}
                   autoComplete="username"
                   aria-label="Kafka SASL username"
                   aria-required="true"
@@ -896,7 +893,6 @@ function ConnectionSettingsDrawer({
                     setPassword(value);
                     setSettingsError(undefined);
                   }}
-                  disabled={detail.loading}
                   autoComplete="current-password"
                   aria-label="Kafka SASL password"
                   aria-required="true"
@@ -914,7 +910,6 @@ function ConnectionSettingsDrawer({
                     setAwsRegion(value);
                     setSettingsError(undefined);
                   }}
-                  disabled={detail.loading}
                   placeholder="us-east-1"
                   autoComplete="off"
                   aria-label="AWS region"
@@ -929,7 +924,6 @@ function ConnectionSettingsDrawer({
                     setAwsProfile(value);
                     setSettingsError(undefined);
                   }}
-                  disabled={detail.loading}
                   placeholder="default"
                   autoComplete="off"
                   aria-label="AWS profile"
