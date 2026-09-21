@@ -1,5 +1,5 @@
 import { createHash } from "node:crypto";
-import { fromIni, fromNodeProviderChain } from "@aws-sdk/credential-providers";
+import { fromIni } from "@aws-sdk/credential-provider-ini";
 import { createMechanism } from "@jm18457/kafkajs-msk-iam-authentication-mechanism";
 import { splitBootstrap } from "../../common/reachability";
 import {
@@ -98,10 +98,7 @@ function pem(value?: string): string | undefined {
 }
 
 function createMskIamMechanism(region: string, profile?: string): Mechanism {
-  return createMechanism({
-    region,
-    credentials: profile ? fromIni({ profile }) : fromNodeProviderChain(),
-  });
+  return createMechanism(profile ? { region, credentials: fromIni({ profile }) } : { region });
 }
 
 /** Parse a fully resolved container environment. Pure; no value is ever returned to Renderer. */

@@ -8,9 +8,9 @@ importers:
 
   .:
     devDependencies:
-      '@aws-sdk/credential-providers':
-        specifier: ^3.1136.0
-        version: 3.1136.0
+      '@aws-sdk/credential-provider-ini':
+        specifier: 3.973.16
+        version: 3.973.16
       '@electron-toolkit/tsconfig':
         specifier: ^2.0.0
         version: 2.0.0(@types/node@24.12.4)

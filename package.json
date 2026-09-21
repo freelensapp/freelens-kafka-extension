@@ -52,7 +52,7 @@
     "type:check": "tsc --noEmit -p tsconfig.json --composite false",
     "prebuild": "pnpm type:check",
     "build": "electron-vite build && pnpm smoke:main",
-    "build:production": "VITE_PRESERVE_MODULES=false electron-vite build && pnpm smoke:main",
+    "build:production": "VITE_PRESERVE_MODULES=true electron-vite build && pnpm smoke:main",
     "build:force": "electron-vite build",
     "bump-version": "pnpm version --no-commit-hooks --no-git-tag-version",
     "pack:dev": "pnpm bump-version prerelease && pnpm build:force && pnpm build && pnpm clean:tgz && pnpm pack && pnpm dlx shx@0.4.0 ls \"$PWD/*.tgz\"",
@@ -102,7 +102,7 @@
     "itest:p25:kind": "tsx test/e2e/integration.connect.kind.ts"
   },
   "devDependencies": {
-    "@aws-sdk/credential-providers": "^3.1136.0",
+    "@aws-sdk/credential-provider-ini": "3.973.16",
     "@electron-toolkit/tsconfig": "^2.0.0",
     "@freelensapp/extensions": "^1.10.3",
     "@jm18457/kafkajs-msk-iam-authentication-mechanism": "^4.0.0",
