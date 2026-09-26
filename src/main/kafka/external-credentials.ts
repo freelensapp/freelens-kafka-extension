@@ -1,7 +1,6 @@
 import { createHash } from "node:crypto";
-import { fromIni } from "@aws-sdk/credential-provider-ini";
-import { createMechanism } from "@jm18457/kafkajs-msk-iam-authentication-mechanism";
 import { splitBootstrap } from "../../common/reachability";
+import { createMskIamSasl } from "./msk-iam";
 import {
   createWorkloadEnvironmentResolver,
   forEachConcurrent,
@@ -10,7 +9,7 @@ import {
 } from "./workload-environment";
 import type { ConnectionOptions as TlsOptions } from "node:tls";
 
-import type { Mechanism, SASLOptions } from "kafkajs";
+import type { SASLOptions } from "kafkajs";
 
 import type {
   KafkaSaslMechanism,
@@ -33,7 +32,7 @@ export interface ResolvedExternalCredentials extends ParsedWorkloadSecurity {
 }
 
 export interface AppliedSecurity {
-  sasl?: SASLOptions | Mechanism;
+  sasl?: SASLOptions;
   ssl?: TlsOptions | boolean;
   summary: KafkaSecuritySummary;
 }
@@ -95,10 +94,6 @@ function parseJaas(value?: string): { username?: string; password?: string } {
 
 function pem(value?: string): string | undefined {
   return value?.includes("-----BEGIN ") ? value : undefined;
-}
-
-function createMskIamMechanism(region: string, profile?: string): Mechanism {
-  return createMechanism(profile ? { region, credentials: fromIni({ profile }) } : { region });
 }
 
 /** Parse a fully resolved container environment. Pure; no value is ever returned to Renderer. */
@@ -280,7 +275,7 @@ export function applySecurityOverride(options: {
           : true
         : (automatic.ssl ?? (options.fallbackTls ? true : undefined));
 
-  let sasl: SASLOptions | Mechanism | undefined = automatic.sasl;
+  let sasl: SASLOptions | undefined = automatic.sasl;
   let auth = automaticHint.auth;
   if (override?.authMode !== undefined && override.authMode !== "auto" && automaticHint.auth === "mtls") {
     if (typeof ssl === "object") {
@@ -299,7 +294,7 @@ export function applySecurityOverride(options: {
       throw new Error("TLS is required for AWS IAM (MSK) authentication");
     }
     ssl = typeof automatic.ssl === "object" ? automatic.ssl : true;
-    sasl = createMskIamMechanism(region, override.awsProfile?.trim() || undefined);
+    sasl = createMskIamSasl({ region, profile: override.awsProfile?.trim() || undefined });
     auth = "aws-msk-iam";
   } else if (override && override.authMode !== "auto") {
     const username = override.username?.trim();
@@ -317,7 +312,7 @@ export function applySecurityOverride(options: {
       throw new Error("TLS is required for AWS IAM (MSK) authentication");
     }
     ssl = typeof automatic.ssl === "object" ? automatic.ssl : true;
-    sasl = createMskIamMechanism(region);
+    sasl = createMskIamSasl({ region });
   }
   if (!ssl && auth === "mtls") auth = "none";
 

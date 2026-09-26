@@ -264,7 +264,7 @@ describe("applySecurityOverride", () => {
     ).toThrow("username and password are required");
   });
 
-  it("creates an AWS MSK IAM mechanism without username or password", () => {
+  it("creates an OAUTHBEARER MSK IAM configuration without username or password", () => {
     const applied = applySecurityOverride({
       fallbackTls: true,
       source: "inferred",
@@ -272,7 +272,7 @@ describe("applySecurityOverride", () => {
     });
 
     expect(applied.ssl).toBe(true);
-    expect(applied.sasl).toMatchObject({ mechanism: "AWS_MSK_IAM" });
+    expect(applied.sasl).toMatchObject({ mechanism: "oauthbearer", oauthBearerProvider: expect.any(Function) });
     expect(applied.summary).toEqual({ tls: true, auth: "aws-msk-iam", source: "override" });
   });
 
@@ -288,7 +288,7 @@ describe("applySecurityOverride", () => {
       },
     });
 
-    expect(applied.sasl).toMatchObject({ mechanism: "AWS_MSK_IAM" });
+    expect(applied.sasl).toMatchObject({ mechanism: "oauthbearer", oauthBearerProvider: expect.any(Function) });
   });
 
   it("requires TLS for AWS MSK IAM authentication", () => {
@@ -317,7 +317,7 @@ describe("applySecurityOverride", () => {
       source: "workload",
     });
 
-    expect(applied.sasl).toMatchObject({ mechanism: "AWS_MSK_IAM" });
+    expect(applied.sasl).toMatchObject({ mechanism: "oauthbearer", oauthBearerProvider: expect.any(Function) });
     expect(applied.summary).toEqual({ tls: true, auth: "aws-msk-iam", source: "workload" });
   });
 

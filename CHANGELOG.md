@@ -1,5 +1,15 @@
 # Changelog
 
+## Unreleased
+
+### Added
+
+- AWS IAM authentication for direct Amazon MSK connections: `AWS IAM (MSK)` in the Security override with the AWS region and an optional AWS profile, automatic detection from a workload that declares `AWS_MSK_IAM` with its region, and the token minted in the main process from the AWS SDK default credential chain, so no access key is ever typed or stored (#62, #72).
+
+### Fixed
+
+- The Security override stays usable while the automatic connection is loading or has failed, and its menus open above the Connection Settings drawer, so every authentication mode can be selected (#62, #72).
+
 ## v1.3.1 - 2026-09-20
 
 ### Added
