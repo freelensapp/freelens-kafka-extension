@@ -101,7 +101,12 @@ const AUTH_MODE_OPTIONS: Renderer.Component.SelectOption<KafkaAuthMode>[] = [
   { value: "plain", label: "SASL/PLAIN" },
   { value: "scram-sha-256", label: "SCRAM-SHA-256" },
   { value: "scram-sha-512", label: "SCRAM-SHA-512" },
+  { value: "aws-msk-iam", label: "AWS IAM (MSK)" },
 ];
+
+const SECURITY_SELECT_STYLES = {
+  menuPortal: (styles: Record<string, unknown>) => ({ ...styles, zIndex: 10_000 }),
+};
 
 const sourceLabel = (kafka: DiscoveredKafkaInfo): string => kafka.provider ?? kafka.source;
 
@@ -626,6 +631,8 @@ function ConnectionSettingsDrawer({
   const [authMode, setAuthMode] = useState<KafkaAuthMode>(securityOverride?.authMode ?? "auto");
   const [username, setUsername] = useState(securityOverride?.username ?? "");
   const [password, setPassword] = useState(securityOverride?.password ?? "");
+  const [awsRegion, setAwsRegion] = useState(securityOverride?.awsRegion ?? "");
+  const [awsProfile, setAwsProfile] = useState(securityOverride?.awsProfile ?? "");
   const [settingsError, setSettingsError] = useState<string>();
   const [writeModeEnabled, setWriteModeEnabled] = useState<boolean>(writeSettings.get(kafka.targetId));
   const [registryUrl, setRegistryUrl] = useState(() => schemaRegistrySettings.get(kafka.targetId)?.registryUrl ?? "");
@@ -648,6 +655,8 @@ function ConnectionSettingsDrawer({
     setAuthMode(securityOverride?.authMode ?? "auto");
     setUsername(securityOverride?.username ?? "");
     setPassword(securityOverride?.password ?? "");
+    setAwsRegion(securityOverride?.awsRegion ?? "");
+    setAwsProfile(securityOverride?.awsProfile ?? "");
     setWriteModeEnabled(writeSettings.get(kafka.targetId));
     const registry = schemaRegistrySettings.get(kafka.targetId);
     setRegistryUrl(registry?.registryUrl ?? "");
@@ -666,11 +675,16 @@ function ConnectionSettingsDrawer({
   const strategyLabel =
     strategy === "direct" ? "Direct" : strategy === "portForward" ? "Port-forward" : "Relay required";
   const security = detail.data?.security ?? kafka.securityHint ?? { tls: kafka.tls, auth: "none" };
-  const explicitAuth = authMode !== "auto" && authMode !== "none";
+  const passwordAuth = authMode === "plain" || authMode === "scram-sha-256" || authMode === "scram-sha-512";
+  const awsIamAuth = authMode === "aws-msk-iam";
 
   const applySettings = (): void => {
-    if (explicitAuth && (!username.trim() || !password)) {
+    if (passwordAuth && (!username.trim() || !password)) {
       setSettingsError("Username and password are required for explicit SASL authentication.");
+      return;
+    }
+    if (awsIamAuth && !awsRegion.trim()) {
+      setSettingsError("AWS region is required for AWS IAM (MSK) authentication.");
       return;
     }
     setSettingsError(undefined);
@@ -681,7 +695,13 @@ function ConnectionSettingsDrawer({
     onApplySecurity({
       tlsMode,
       authMode,
-      ...(explicitAuth ? { username: username.trim(), password } : {}),
+      ...(passwordAuth ? { username: username.trim(), password } : {}),
+      ...(awsIamAuth
+        ? {
+            awsRegion: awsRegion.trim(),
+            ...(awsProfile.trim() ? { awsProfile: awsProfile.trim() } : {}),
+          }
+        : {}),
     });
   };
 
@@ -836,9 +856,9 @@ function ConnectionSettingsDrawer({
                 setTlsMode(option?.value ?? "auto");
                 setSettingsError(undefined);
               }}
-              isDisabled={detail.loading}
               themeName="lens"
               menuPosition="fixed"
+              styles={SECURITY_SELECT_STYLES}
             />
           </label>
           <label>
@@ -850,12 +870,12 @@ function ConnectionSettingsDrawer({
                 setAuthMode(option?.value ?? "auto");
                 setSettingsError(undefined);
               }}
-              isDisabled={detail.loading}
               themeName="lens"
               menuPosition="fixed"
+              styles={SECURITY_SELECT_STYLES}
             />
           </label>
-          {explicitAuth && (
+          {passwordAuth && (
             <>
               <label>
                 <span>Username</span>
@@ -865,7 +885,6 @@ function ConnectionSettingsDrawer({
                     setUsername(value);
                     setSettingsError(undefined);
                   }}
-                  disabled={detail.loading}
                   autoComplete="username"
                   aria-label="Kafka SASL username"
                   aria-required="true"
@@ -880,7 +899,6 @@ function ConnectionSettingsDrawer({
                     setPassword(value);
                     setSettingsError(undefined);
                   }}
-                  disabled={detail.loading}
                   autoComplete="current-password"
                   aria-label="Kafka SASL password"
                   aria-required="true"
@@ -888,8 +906,41 @@ function ConnectionSettingsDrawer({
               </label>
             </>
           )}
+          {awsIamAuth && (
+            <>
+              <label>
+                <span>AWS region</span>
+                <Renderer.Component.Input
+                  value={awsRegion}
+                  onChange={(value) => {
+                    setAwsRegion(value);
+                    setSettingsError(undefined);
+                  }}
+                  placeholder="us-east-1"
+                  autoComplete="off"
+                  aria-label="AWS region"
+                  aria-required="true"
+                />
+              </label>
+              <label>
+                <span>AWS profile (optional)</span>
+                <Renderer.Component.Input
+                  value={awsProfile}
+                  onChange={(value) => {
+                    setAwsProfile(value);
+                    setSettingsError(undefined);
+                  }}
+                  placeholder="default"
+                  autoComplete="off"
+                  aria-label="AWS profile"
+                />
+              </label>
+            </>
+          )}
           <p>
             Automatic mode reads matching workload env, ConfigMaps and Secrets. Password overrides stay in memory only.
+            AWS IAM uses your selected local AWS profile, or the AWS SDK default credential provider chain, and never
+            stores access keys.
           </p>
           {settingsError && (
             <div className="KafkaSecurityError" role="alert">

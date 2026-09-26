@@ -6,7 +6,7 @@
 
 |                           |                                                                                                                                                                                                                                                                  |
 | ------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Last updated**          | 2026-09-01                                                                                                                                                                                                                                                       |
+| **Last updated**          | 2026-09-26                                                                                                                                                                                                                                                       |
 | **Phase**                 | **SPEC-001–014 Verified. Slices 0–16 and the v1.0.0 implementation sign-off are complete.**                                                                                                                                                                      |
 | **Testable in Freelens?** | **Yes — verified on Freelens 1.10.3.** The final production package passed 12/12 base Playwright/Jest scenarios and the three-run authorized browser paint gate, plus all local protocol, security and fallback gates. Install the generated `.tgz` in Freelens. |
 
@@ -89,6 +89,7 @@ Redpanda) — not only Strimzi CRDs.
 | **SPEC-012 verified**: ACL inspection gated by a DescribeAcls probe, filtering, and local-safe ACL create/delete         | **Verified** (147 unit tests + authorized local broker packaged E2E; 11/11 tests)                                                       | [`SPEC-012`](./docs/specs/012-acl-security-views.md)                             |
 | **SPEC-013 verified**: UX quality gate for navigation, responsive layouts, accessibility and packaged regressions        | **Verified**                                                                                                                            | [`SPEC-013`](./docs/specs/013-ux-performance-v1-gate.md)                         |
 | **SPEC-014 verified**: production-scale request batching, bounded persistent workers, honest progress, ETA and freshness | **Verified — Slices 0–16, executable evidence and explicit approval complete**                                                          | [`SPEC-014`](./docs/specs/014-production-scale-performance.md)                   |
+| **SPEC-017 implemented**: direct AWS IAM authentication for Amazon MSK                                                   | **Implemented — validation on a real MSK Express cluster with the release package pending**                                             | [`SPEC-017`](./docs/specs/017-msk-iam-authentication.md)                         |
 
 **Consequence:** the current artifact is a loadable, packaged Freelens extension with verified
 discovery, connectivity, security, UX v3 resource pages, read-only message browsing, consumer group lag inspection and local-safe write operations.
@@ -291,7 +292,7 @@ root tooling; its unit tests are the extension's `test:unit`; the Docker/KinD sc
 | **P3.5**        | **Read-only message browser (SPEC-005):** bounded Browse, explicit Tail and selected-message inspector without offset commits.                                                                                                                                                                      | **Verified**                          |
 | **P3.6**        | **Consumer Groups and lag (SPEC-006):** group list, offsets/lag, members/topics detail and Topic cross-links.                                                                                                                                                                                       | **Verified**                          |
 | **P4 / v1.0.0** | Topic and Broker depth (SPEC-007), Message browser enhancements (SPEC-008), Write policy + Produce + offset reset (SPEC-009), Schema Registry (SPEC-010), Kafka Connect (SPEC-011), ACL views (SPEC-012), UX quality gate (SPEC-013), production-scale performance (SPEC-014).                      | **Complete — SPEC-001–014 Verified.** |
-| **v2.0.0**      | Features beyond v1.0.0 scope: KsqlDB, audit log, Kafka Streams topology, advanced management, broker config write, relay pod, MSK IAM/OAUTHBEARER.                                                                                                                                                  | Unscheduled                           |
+| **v2.0.0**      | Features beyond v1.0.0 scope: KsqlDB, audit log, Kafka Streams topology, advanced management, broker config write, relay pod and OAUTHBEARER. AWS MSK IAM was delivered by SPEC-017.                                                                                                                | Unscheduled                           |
 
 ### P4 / SPEC-014 completion roadmap
 
@@ -371,7 +372,7 @@ from the cluster's pods. This realises the §1 "any Kafka" goal for external/man
     with PLAIN, then the UI reconnected with a live SCRAM-256 override. An explicitly authorized
     read-only environment remained green: five managed targets discovered, four VPN-reachable, 3
     brokers and 906–982 topics read; no environment identifier is retained in the repository.
-  - **Deferred:** MSK IAM/OAUTHBEARER and credentials available only as files inside a container
+  - **Deferred:** OAUTHBEARER and credentials available only as files inside a container
     (reading those would require pod exec) remain later work. Inline PEM/mounted Secret values exposed
     as env are supported; no pod exec is used.
 - **(j) Manual endpoint — Core done (verified on Freelens 1.10.3).** **Add endpoint** accepts a
@@ -459,7 +460,7 @@ Contract: [`SPEC-004`](./docs/specs/004-resource-navigation-cluster-context.md),
   cluster allowlist and separate user approval. Automated writes remain local-only.
 - **Resource domains:** Schema Registry, Kafka Connect and ACL/security views, each introduced only
   with a functional page and separate specification.
-- **Connectivity/auth:** relay-pod strategy, MSK IAM/OAUTHBEARER and credentials available only in
+- **Connectivity/auth:** relay-pod strategy, OAUTHBEARER and credentials available only in
   mounted files; each requires a focused security and operational design.
 - **Optional depth:** Broker Workspace for leadership/configuration only if the data justifies a full
   entity workflow.

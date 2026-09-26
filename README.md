@@ -47,7 +47,7 @@ them.
 > port-forward or Direct and reads broker/controller/topic metadata. The native
 > Freelens UI is sortable/filterable, uses dedicated
 > Clusters/Overview/Topics/Brokers/ConsumerGroups pages, supports manual
-> endpoints and resolves TLS/no-auth, PLAIN, SCRAM and mTLS profiles from
+> endpoints and resolves TLS/no-auth, PLAIN, SCRAM, mTLS and AWS IAM profiles from
 > workload Secrets or session-only overrides. Its Topics view searches names and
 > lazy-loads partition leadership, replicas, ISR/offline replicas and health.
 > [SPEC-004](./docs/specs/004-resource-navigation-cluster-context.md) verifies
@@ -90,8 +90,8 @@ cell or the keyboard.
   and ConfigMaps; port-forwards use the same credentials.
 - **Apache Kafka.** The test fixtures run Apache Kafka 3.9 (KRaft). Brokers
   are reached with the [kafkajs](https://kafka.js.org/) client over
-  plaintext or TLS, with no authentication, SASL/PLAIN, SASL/SCRAM or mTLS.
-  OAUTHBEARER and AWS IAM authentication are not supported yet.
+  plaintext or TLS, with no authentication, SASL/PLAIN, SASL/SCRAM, mTLS or
+  AWS IAM for direct Amazon MSK connections. OAUTHBEARER is not supported yet.
 - **Node.js** is required only when building the extension from source; it
   is not needed to run it. The package is a self-contained bundle: its
   runtime libraries (`kafkajs`, `@kubernetes/client-node`) are compiled into
@@ -115,8 +115,10 @@ reached directly from your machine over a VPN or a public endpoint.
 
 Credentials come from the cluster or from the session: SASL/SCRAM and
 TLS/mTLS material from Strimzi `KafkaUser` Secrets, PLAIN, SCRAM and TLS
-settings from the Secrets the workloads themselves reference, or session-only
-overrides in the Connection Settings panel. Passwords are never persisted.
+settings from the Secrets the workloads themselves reference, AWS IAM through
+an optional local AWS profile or the AWS SDK default provider chain, or
+session-only overrides in the Connection Settings panel. Passwords and AWS
+access keys are never persisted.
 
 ## Installation
 
@@ -241,9 +243,9 @@ authorized read-only runs; the evidence is in
 
 ## Limits
 
-- Authentication covers TLS, SASL/PLAIN, SASL/SCRAM and mTLS. OAUTHBEARER,
-  AWS IAM for MSK, and credentials available only as files inside a
-  container are not supported yet.
+- Authentication covers TLS, SASL/PLAIN, SASL/SCRAM, mTLS and AWS IAM for
+  direct Amazon MSK connections. OAUTHBEARER and credentials available only
+  as files inside a container are not supported yet.
 - Brokers that are reachable only from inside the cluster are reached
   through port-forwards to their pods; there is no relay pod, so a cluster
   without port-forwardable broker pods needs a reachable endpoint.
