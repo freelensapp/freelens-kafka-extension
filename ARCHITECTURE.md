@@ -365,8 +365,9 @@ from the cluster's pods. This realises the §1 "any Kafka" goal for external/man
   receives only `KafkaSecurityHint` / effective `KafkaSecuritySummary`.
   - **Automatic:** discovery labels the non-secret security mode; opening Overview re-resolves credentials
     Main-side and passes them to `connectDirect`.
-  - **Override:** the secondary Connection Settings panel offers TLS Auto/On/Off and auth Auto/None/PLAIN/SCRAM. Passwords
-    live only in renderer memory for the current session/request and are never persisted.
+  - **Override:** the secondary Connection Settings panel offers TLS Auto/On/Off and auth Auto/None/PLAIN/SCRAM/AWS IAM.
+    Its non-secret part (modes, username, AWS region and profile) lives in the host extension store since SPEC-018;
+    passwords live only in renderer memory for the current session/request and are never persisted.
   - **Evidence:** a disposable local Kafka passed real metadata reads over PLAINTEXT no-auth,
     TLS no-auth, SASL/PLAIN, SCRAM-SHA-256 and SCRAM-SHA-512; a kind workload + Secret auto-connected
     with PLAIN, then the UI reconnected with a live SCRAM-256 override. An explicitly authorized
@@ -429,7 +430,8 @@ Contract: [`SPEC-004`](./docs/specs/004-resource-navigation-cluster-context.md),
   generation-safe invalidation, visible age/state and packaged plus authorized read-only timing
   evidence (6C).
 6. **Drawer retirement — Done:** the primary resource Drawer, duplicate loaders and resource tabs
-  are removed; only context-isolated, session-only Connection Settings remains as a secondary panel.
+  are removed; only the context-isolated Connection Settings remains as a secondary panel (durable since
+  SPEC-018, passwords excepted).
 7. **No dead navigation:** Consumer Groups, Schema Registry, Kafka Connect and Produce Message are
    not registered until their own functionality and acceptance gates exist.
 8. **Verification:** unit/static, Docker metadata, KinD discovery/port-forward, isolated MCP,

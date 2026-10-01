@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+### Fixed
+
+- Settings survive a Freelens restart, and so an update or a reinstall of the extension: the Overview auto-refresh, the Schema Registry and Kafka Connect endpoints and the write-mode flags moved from the window storage of the cluster frame, whose origin changes at every start of Freelens, to the Freelens extension store, with a one-time migration of what the current session had written. The Security override of the Connection Settings drawer is now kept there too, without its password: an `AWS IAM (MSK)` override reconnects by itself after a restart, a PLAIN or SCRAM override comes back with its username and asks for the password again (#76).
+
 ## v1.4.0 - 2026-10-01
 
 ### Added

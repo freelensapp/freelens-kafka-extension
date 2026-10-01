@@ -7,14 +7,14 @@ import { KafkaAclAvailabilityStore } from "./kafka-acl-availability";
 import { KafkaAclPage, type KafkaAclPageProps } from "./kafka-acl-pages";
 import { KAFKA_CLUSTER_CATALOG_KEY } from "./kafka-cluster-catalog";
 import { KafkaConnectPage, type KafkaConnectPageProps } from "./kafka-connect-pages";
-import { KafkaConnectSettingsStore } from "./kafka-connect-settings";
+import { KAFKA_CONNECT_SETTINGS_KEY, KafkaConnectSettingsStore } from "./kafka-connect-settings";
 import { KafkaConnectionSettingsStore } from "./kafka-connection-settings";
 import { KafkaEndpointSecretsStore } from "./kafka-endpoint-secrets";
 import { KafkaGroupsPage, type KafkaGroupsPageProps } from "./kafka-group-pages";
 import { KafkaIpcRenderer } from "./kafka-ipc";
 import { MANUAL_ENDPOINTS_KEY } from "./kafka-manual-endpoints";
 import { KAFKA_PAGE_IDS, KAFKA_SELECTIONS_KEY, type KafkaReloadRoute } from "./kafka-navigation";
-import { KafkaOverviewSettingsStore } from "./kafka-overview-settings";
+import { KAFKA_OVERVIEW_SETTINGS_KEY, KafkaOverviewSettingsStore } from "./kafka-overview-settings";
 import {
   KAFKA_CLUSTER_MENU_MANIFEST,
   KAFKA_CLUSTER_PAGE_MANIFEST,
@@ -30,11 +30,11 @@ import {
   type KafkaTargetPageProps,
 } from "./kafka-resource-pages";
 import { KafkaSchemaRegistryPage, type KafkaSchemaRegistryPageProps } from "./kafka-schema-registry-pages";
-import { KafkaSchemaRegistrySettingsStore } from "./kafka-schema-registry-settings";
+import { KAFKA_SCHEMA_REGISTRY_SETTINGS_KEY, KafkaSchemaRegistrySettingsStore } from "./kafka-schema-registry-settings";
 import { KafkaTopicsPage, type KafkaTopicsPageProps } from "./kafka-topic-pages";
 import { kafkaVersionSkewStore } from "./kafka-version-skew";
 import { createOperationId } from "./kafka-view-model";
-import { KafkaWriteSettingsStore } from "./kafka-write-settings";
+import { KAFKA_WRITE_MODE_KEY, KafkaWriteSettingsStore } from "./kafka-write-settings";
 
 import type {
   AclsRequest,
@@ -63,14 +63,16 @@ import type {
 } from "../common/ipc";
 
 export default class KafkaExtensionRenderer extends Renderer.LensExtension {
-  private readonly connectionSettings = new KafkaConnectionSettingsStore();
-  private readonly writeSettings = new KafkaWriteSettingsStore();
-  private readonly schemaRegistrySettings = new KafkaSchemaRegistrySettingsStore();
-  private readonly connectSettings = new KafkaConnectSettingsStore();
+  /** Host-managed durable state: it survives a Freelens restart, unlike the window storage (SPEC-018). */
+  private readonly stateStore = kafkaPersistentStateStore();
+  private readonly connectionSettings = new KafkaConnectionSettingsStore(this.stateStore);
+  private readonly writeSettings = new KafkaWriteSettingsStore(this.stateStore);
+  private readonly schemaRegistrySettings = new KafkaSchemaRegistrySettingsStore(this.stateStore);
+  private readonly connectSettings = new KafkaConnectSettingsStore(this.stateStore);
   private readonly endpointSecrets = new KafkaEndpointSecretsStore();
   /** Targets whose write mode the main process has been told about (SPEC-009 REQ-197). */
   private readonly mirroredWriteTargets = new Set<string>();
-  private readonly overviewSettings = new KafkaOverviewSettingsStore();
+  private readonly overviewSettings = new KafkaOverviewSettingsStore(this.stateStore);
   private readonly aclAvailability = new KafkaAclAvailabilityStore();
   private readonly hiddenMenu = computed(() => false);
   private readonly alwaysVisible = computed(() => true);
@@ -80,13 +82,23 @@ export default class KafkaExtensionRenderer extends Renderer.LensExtension {
   private readonly resourceCache = new KafkaResourceCache();
 
   async onActivate(): Promise<void> {
-    const stateStore = kafkaPersistentStateStore();
+    const stateStore = this.stateStore;
     stateStore.loadExtension(this);
     stateStore.migrateLegacy(window.localStorage, [
       KAFKA_CLUSTER_CATALOG_KEY,
       MANUAL_ENDPOINTS_KEY,
       KAFKA_SELECTIONS_KEY,
+      KAFKA_OVERVIEW_SETTINGS_KEY,
+      KAFKA_SCHEMA_REGISTRY_SETTINGS_KEY,
+      KAFKA_CONNECT_SETTINGS_KEY,
+      KAFKA_WRITE_MODE_KEY,
     ]);
+    // The settings stores were built before the durable state was loaded: read it now.
+    this.connectionSettings.reload();
+    this.overviewSettings.reload();
+    this.schemaRegistrySettings.reload();
+    this.connectSettings.reload();
+    this.writeSettings.reload();
     this.mirrorWriteMode();
     this.writeSettings.subscribe(() => this.mirrorWriteMode());
     // After an in-place update Freelens keeps the previous main side until it restarts (SPEC-016).

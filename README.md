@@ -117,8 +117,8 @@ Credentials come from the cluster or from the session: SASL/SCRAM and
 TLS/mTLS material from Strimzi `KafkaUser` Secrets, PLAIN, SCRAM and TLS
 settings from the Secrets the workloads themselves reference, AWS IAM through
 an optional local AWS profile or the AWS SDK default provider chain, or
-session-only overrides in the Connection Settings panel. Passwords and AWS
-access keys are never persisted.
+overrides in the Connection Settings panel, kept across restarts without
+their password. Passwords and AWS access keys are never persisted.
 
 ## Installation
 
@@ -151,8 +151,8 @@ notice while the two parts differ.
    Direct; Strimzi uses per-broker port-forward. **Add endpoint** connects to
    a bootstrap not referenced by Kubernetes (TLS optional).
 3. Click or press Enter on a reachable row to open its full **Overview**
-   page. Use the row's `tune` action for session-only Connection Settings or
-   manual endpoint removal.
+   page. Use the row's `tune` action for the Connection Settings or manual
+   endpoint removal.
 4. Open **Topics**, filter by name and select one to inspect partition
    topology and replica health. Open **Messages** inside Topic Workspace; no
    records are read until **Browse** is pressed.

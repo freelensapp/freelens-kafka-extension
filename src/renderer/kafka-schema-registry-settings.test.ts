@@ -32,3 +32,20 @@ describe("KafkaSchemaRegistrySettingsStore", () => {
     expect(second.get("kafka-a")).toBeUndefined();
   });
 });
+
+describe("KafkaSchemaRegistrySettingsStore durable storage", () => {
+  it("sees values the storage received after construction and reports them through hasAny", () => {
+    const current = storage();
+    const store = new KafkaSchemaRegistrySettingsStore(current);
+    expect(store.hasAny()).toBe(false);
+
+    current.values.set(
+      KAFKA_SCHEMA_REGISTRY_SETTINGS_KEY,
+      JSON.stringify({ "kafka-a": { registryUrl: "http://127.0.0.1:18081", tls: false } }),
+    );
+    expect(store.get("kafka-a")?.registryUrl).toBe("http://127.0.0.1:18081");
+
+    store.reload();
+    expect(store.hasAny()).toBe(true);
+  });
+});
