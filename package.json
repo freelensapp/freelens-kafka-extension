@@ -102,9 +102,13 @@
     "itest:p25:kind": "tsx test/e2e/integration.connect.kind.ts"
   },
   "devDependencies": {
+    "@aws-crypto/sha256-js": "^5.2.0",
+    "@aws-sdk/credential-provider-node": "^3.972.84",
+    "@aws-sdk/util-format-url": "^3.972.48",
     "@electron-toolkit/tsconfig": "^2.0.0",
     "@freelensapp/extensions": "^1.10.3",
     "@kubernetes/client-node": "^1.4.0",
+    "@smithy/signature-v4": "^5.7.4",
     "@types/node": "~24.12.4",
     "@types/react": "^17.0.93",
     "@vitejs/plugin-react": "^6.1.1",

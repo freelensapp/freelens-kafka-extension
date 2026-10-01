@@ -118,6 +118,16 @@ export class KafkaConnectClient {
   }
 
   private async request<T>(path: string, options: { method?: string; body?: string } = {}): Promise<T> {
+    const retry = (options.method ?? "GET") === "GET";
+    try {
+      return await this.requestOnce<T>(path, options);
+    } catch (error) {
+      if (!retry || !isTransientConnectionError(error)) throw error;
+      return this.requestOnce<T>(path, options);
+    }
+  }
+
+  private async requestOnce<T>(path: string, options: { method?: string; body?: string } = {}): Promise<T> {
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), this.timeoutMs);
     try {
@@ -169,4 +179,9 @@ export class KafkaConnectClient {
       clearTimeout(timeout);
     }
   }
+}
+
+function isTransientConnectionError(error: unknown): boolean {
+  if (!(error instanceof Error)) return false;
+  return error.message.toLowerCase().includes("socket hang up") || ("code" in error && error.code === "ECONNRESET");
 }

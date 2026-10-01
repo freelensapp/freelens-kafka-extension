@@ -20,6 +20,8 @@ const extensionVersion = (JSON.parse(readFileSync(resolve(__dirname, "package.js
   .version;
 const define = { __KAFKA_EXTENSION_VERSION__: JSON.stringify(extensionVersion) };
 
+const preserveModules = (process.env.VITE_PRESERVE_MODULES ?? "true") === "true";
+
 const mainBuild = {
   lib: {
     entry: resolve(__dirname, "src/main/index.ts"),
@@ -29,8 +31,11 @@ const mainBuild = {
     external: runtimeExternals,
     output: {
       exports: "named" as const,
-      preserveModules: (process.env.VITE_PRESERVE_MODULES ?? "true") === "true",
+      preserveModules,
       preserveModulesRoot: "src/main",
+      // The release build is one file: the lazy `import()` calls of the AWS SDK credential chain
+      // (SSO, STS, process providers) would otherwise become chunks beside index.js.
+      inlineDynamicImports: !preserveModules,
     },
   },
   sourcemap: true,
@@ -46,7 +51,7 @@ const rendererBuild = {
     external: runtimeExternals,
     output: {
       exports: "named" as const,
-      preserveModules: (process.env.VITE_PRESERVE_MODULES ?? "true") === "true",
+      preserveModules,
       preserveModulesRoot: "src/renderer",
     },
   },
