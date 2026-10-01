@@ -92,3 +92,20 @@ describe("KafkaWriteSettingsStore.enabledTargets", () => {
     expect(store.enabledTargets()).toEqual(["kafka-a"]);
   });
 });
+
+describe("KafkaWriteSettingsStore reload", () => {
+  it("reads targets the storage received after construction", () => {
+    const values = new Map<string, string>();
+    const storage = {
+      getItem: (key: string) => values.get(key) ?? null,
+      setItem: (key: string, value: string) => values.set(key, value),
+    };
+    const store = new KafkaWriteSettingsStore(storage);
+    expect(store.get("cluster-a")).toBe(false);
+
+    values.set(KAFKA_WRITE_MODE_KEY, JSON.stringify(["cluster-a"]));
+    store.reload();
+    expect(store.get("cluster-a")).toBe(true);
+    expect(store.enabledTargets()).toEqual(["cluster-a"]);
+  });
+});

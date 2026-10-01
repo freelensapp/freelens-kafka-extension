@@ -55,6 +55,11 @@ export class KafkaWriteSettingsStore {
     this.emit();
   }
 
+  /** Re-read the storage, for example once the host store has loaded from disk. */
+  reload(): void {
+    this.syncFromStorage();
+  }
+
   /** Targets with write mode on, sorted; used to mirror the state to the main process. */
   enabledTargets(): string[] {
     this.syncFromStorage();
