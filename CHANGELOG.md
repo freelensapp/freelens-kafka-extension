@@ -9,6 +9,7 @@
 ### Fixed
 
 - The Security override stays usable while the automatic connection is loading or has failed, and its menus open above the Connection Settings drawer, so every authentication mode can be selected (#62, #72).
+- Kafka Connect reads retry once after a transient connection reset (`socket hang up`, `ECONNRESET`) before reporting the error; requests that change something are never retried (#72).
 
 ## v1.3.1 - 2026-09-20
 

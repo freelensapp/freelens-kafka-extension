@@ -2,8 +2,8 @@
 
 | Field | Value |
 | --- | --- |
-| Status | Implemented |
-| Date | 2026-09-26 |
+| Status | Verified |
+| Date | 2026-09-28 |
 | Source | Issue #62 and pull request #72 by its reporter, whose MSK Express brokers accept IAM only |
 | Safety | Read-only: the token only authenticates the connection, the extension calls no AWS API and writes nothing; governed by `TESTING-SAFETY.md` |
 
@@ -95,6 +95,8 @@ the authentication menu opened under the drawer, so only its first entry was rea
   authentication, so a reconnection after 15 minutes and refreshed credentials need nothing else.
   The built-in `aws` mechanism of kafkajs was not used: it takes static keys and an
   `authorizationIdentity`.
+- **2026-09-28** — Verified on the only cluster that counts: the reporter ran the pre-release package on his MSK
+  Express brokers and it behaved as his own build (#72). The status moves to Verified and v1.4.0 ships it.
 - **2026-09-26** — The release build inlines the dynamic imports of the SDK credential chain
   (`inlineDynamicImports` when modules are not preserved): otherwise the lazy providers (SSO, STS,
   credential process) become 27 chunk files beside `out/main/index.js`. The main bundle grows from
@@ -108,4 +110,4 @@ the authentication menu opened under the drawer, so only its first entry was rea
 | REQ-213, REQ-214, SC-125, SC-126 | `src/main/kafka/msk-iam.test.ts` and `src/main/kafka/external-credentials.test.ts`; equivalence run of 2026-09-26 against `aws-msk-iam-sasl-signer-js` 1.0.3 at a frozen instant, two regions, URLs identical apart from `User-Agent` |
 | REQ-215 | `src/main/kafka/external-credentials.test.ts` (detection of `AWS_MSK_IAM` with the region, no credential read) |
 | SC-127 | Release build of 2026-09-26: one `out/main/index.js` of 8.8 MB, smoke test green, no chunk, no external `require` beyond Node and Electron |
-| SC-128 | Pending: pre-release package to be tried by the reporter on the MSK Express cluster of #62 |
+| SC-128 | Verified on 2026-09-28 by the reporter of #62: the pre-release package `freelensapp-kafka-extension-1.4.0-0.tgz`, built with the release configuration from this branch, installed by path in Freelens, browsed his MSK Express cluster (IAM only, reached through a VPN on port 9098) as the first build of #72 had: metadata and topics read, nothing written (#72) |
