@@ -111,7 +111,7 @@
     "@smithy/signature-v4": "^5.7.4",
     "@types/node": "~24.12.4",
     "@types/react": "^17.0.93",
-    "@vitejs/plugin-react": "^6.1.1",
+    "@vitejs/plugin-react": "^6.1.2",
     "avsc": "^5.7.9",
     "electron-vite": "^5.0.0",
     "encoding": "^0.1.13",
