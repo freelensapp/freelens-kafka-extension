@@ -1,5 +1,16 @@
 # Changelog
 
+## Unreleased
+
+### Fixed
+
+- Topic sizes on brokers that close a connection mid-request, seen on MSK Express brokers with IAM: the Topics
+  page showed `n/a` with "Closed connection". The size reader now asks the brokers one at a time, retries once on
+  a fresh connection for a broker that closed one, reopens its read cluster and retries once when the metadata
+  refresh or the first broker fails on the connection, and names the failing step in the error it shows; the
+  main log gets one line per retry with the age of the connections and the SASL session lifetime the brokers
+  declared (#82).
+
 ## v1.4.1 - 2026-10-01
 
 ### Fixed

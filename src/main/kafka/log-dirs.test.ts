@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { aggregateTopicSizes, fetchTopicSizes, type LogDirsCluster } from "./log-dirs";
+import { aggregateTopicSizes, fetchTopicSizes, type LogDirsCluster, TopicSizesStepError } from "./log-dirs";
 
 interface KafkaEncoder {
   readonly buffer: Buffer;
@@ -192,5 +192,146 @@ describe("fetchTopicSizes", () => {
   it("returns an empty result for no topics without touching the cluster", async () => {
     const cluster = fakeCluster({}, {});
     expect(await fetchTopicSizes(cluster, [])).toEqual({ supported: true, unavailableBrokers: [], topics: {} });
+  });
+});
+
+function closedConnection(broker = "b-2.example:9098"): Error {
+  return Object.assign(new Error("Closed connection"), { name: "KafkaJSConnectionClosedError", broker });
+}
+
+type SendRequest = (protocol: { response: { decode(buffer: Buffer): unknown } }) => Promise<unknown>;
+
+/** A cluster whose brokers answer from a queue, so that a broker can fail once and then answer. */
+function queuedCluster(
+  leaders: Record<string, Array<{ partitionId: number; leader: number | null }>>,
+  answers: Record<string, Array<Buffer | Error>>,
+  onRequest: (nodeId: string) => Promise<void> = async () => undefined,
+): LogDirsCluster {
+  return {
+    ...fakeCluster(leaders, {}),
+    getNodeIds: () => Object.keys(answers),
+    findBroker: async ({ nodeId }) => ({
+      versions: { 35: { minVersion: 0, maxVersion: 4 } },
+      [Symbol("private:Broker:sendRequest")]: (async (protocol) => {
+        await onRequest(nodeId);
+        const answer = answers[nodeId].shift();
+        if (answer instanceof Error) throw answer;
+        if (!answer) throw new Error(`no answer left for broker ${nodeId}`);
+        return protocol.response.decode(answer);
+      }) as SendRequest,
+    }),
+  };
+}
+
+describe("fetchTopicSizes on a closed connection", () => {
+  it("names the failing step and keeps the KafkaJS error when the metadata refresh fails", async () => {
+    const cluster: LogDirsCluster = {
+      ...fakeCluster({ orders: [{ partitionId: 0, leader: 1 }] }, { 1: brokerResponse([["orders", 0, 10]]) }),
+      refreshMetadata: async () => {
+        throw closedConnection();
+      },
+    };
+    const failure = await fetchTopicSizes(cluster, ["orders"], { pauseBetweenBrokersMs: 0 }).catch(
+      (error: unknown) => error,
+    );
+    expect(failure).toBeInstanceOf(TopicSizesStepError);
+    const stepError = failure as TopicSizesStepError;
+    expect(stepError.message).toBe(
+      "refreshing the metadata: KafkaJSConnectionClosedError: Closed connection (broker b-2.example:9098)",
+    );
+    expect(stepError.step).toBe("refreshing the metadata");
+    expect(stepError.connection).toBe(true);
+  });
+
+  it("does not take a plain error for a connection problem", async () => {
+    const cluster: LogDirsCluster = {
+      ...fakeCluster({ orders: [{ partitionId: 0, leader: 1 }] }, { 1: brokerResponse([["orders", 0, 10]]) }),
+      findBroker: async () => {
+        throw new Error("boom");
+      },
+    };
+    const failure = await fetchTopicSizes(cluster, ["orders"], { pauseBetweenBrokersMs: 0 }).catch(
+      (error: unknown) => error,
+    );
+    expect(failure).toBeInstanceOf(TopicSizesStepError);
+    expect((failure as TopicSizesStepError).connection).toBe(false);
+    expect((failure as Error).message).toBe("connecting to broker 1: Error: boom");
+  });
+
+  it("drops the broker connection and retries once when a broker closes it mid-request", async () => {
+    const disconnected: string[] = [];
+    const lines: string[] = [];
+    const cluster: LogDirsCluster = {
+      ...queuedCluster(
+        {
+          orders: [
+            { partitionId: 0, leader: 1 },
+            { partitionId: 1, leader: 2 },
+          ],
+        },
+        { 1: [brokerResponse([["orders", 0, 10]])], 2: [closedConnection(), brokerResponse([["orders", 1, 20]])] },
+      ),
+      brokerPool: {
+        brokers: {
+          2: {
+            disconnect: async () => {
+              disconnected.push("2");
+            },
+          },
+        },
+      },
+    };
+    const sizes = await fetchTopicSizes(cluster, ["orders"], {
+      pauseBetweenBrokersMs: 0,
+      log: (line) => lines.push(line),
+    });
+    expect(sizes.unavailableBrokers).toEqual([]);
+    expect(sizes.topics.orders.leaderBytes).toBe("30");
+    expect(sizes.topics.orders.exact).toBe(true);
+    expect(disconnected).toEqual(["2"]);
+    expect(lines).toEqual([
+      "broker 2: KafkaJSConnectionClosedError: Closed connection (broker b-2.example:9098); reconnecting and retrying once",
+      "broker 2: the retry on a fresh connection succeeded",
+    ]);
+  });
+
+  it("leaves a broker out when the retry fails too, asking the brokers one at a time", async () => {
+    let active = 0;
+    let maxActive = 0;
+    const order: string[] = [];
+    const lines: string[] = [];
+    const cluster = queuedCluster(
+      {
+        orders: [
+          { partitionId: 0, leader: 1 },
+          { partitionId: 1, leader: 2 },
+          { partitionId: 2, leader: 3 },
+        ],
+      },
+      {
+        1: [brokerResponse([["orders", 0, 10]])],
+        2: [closedConnection(), closedConnection()],
+        3: [brokerResponse([["orders", 2, 5]])],
+      },
+      async (nodeId) => {
+        active += 1;
+        maxActive = Math.max(maxActive, active);
+        order.push(nodeId);
+        await new Promise((resolve) => setTimeout(resolve, 2));
+        active -= 1;
+      },
+    );
+    const sizes = await fetchTopicSizes(cluster, ["orders"], {
+      pauseBetweenBrokersMs: 0,
+      log: (line) => lines.push(line),
+    });
+    expect(sizes.unavailableBrokers).toEqual([2]);
+    expect(sizes.topics.orders.exact).toBe(false);
+    expect(sizes.topics.orders.leaderBytes).toBe("15");
+    expect(maxActive).toBe(1);
+    expect(order).toEqual(["1", "2", "2", "3"]);
+    expect(lines[1]).toBe(
+      "broker 2 left out after the retry: KafkaJSConnectionClosedError: Closed connection (broker b-2.example:9098)",
+    );
   });
 });
