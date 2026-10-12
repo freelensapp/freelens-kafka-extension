@@ -8,6 +8,7 @@ import {
   KAFKA_ADMIN_TIMEOUT_MS,
   KAFKA_CLUSTER_HEALTH_TIMEOUT_MS,
   KAFKA_TOPIC_CONSUMERS_TIMEOUT_MS,
+  KAFKA_TOPIC_SIZES_REPORT_MARGIN_MS,
 } from "../common/constants";
 import { EXTENSION_VERSION } from "../common/extension-version";
 import {
@@ -65,7 +66,7 @@ import { probeBootstrapReachable } from "./kafka/reachability";
 import { KafkaSessionManager } from "./kafka/session-manager";
 import { KafkaTargetSessionRegistry } from "./kafka/target-session-registry";
 import { KafkaConnectClient } from "./kafka-connect/client";
-import { withFinalizer, withTimeout } from "./operation-timeout";
+import { withDeadline, withFinalizer, withTimeout } from "./operation-timeout";
 import { SchemaRegistryClient } from "./schema-registry/client";
 import { WriteModeRegistry } from "./write-mode";
 
@@ -491,15 +492,24 @@ export class KafkaIpcMain extends Main.Ipc {
 
     this.handle(KAFKA_IPC.topicSizes, async (_event, request: TopicSizesRequest) => {
       const reader = createReader(request);
-      const connectionPromise = this.resolveConnection(request, reader, () => undefined);
-      const operation = connectionPromise.then(async ({ connection }) => {
-        return connection.topicSizes(Array.isArray(request.topics) ? request.topics.map(String) : []);
-      });
-      const finalized = withFinalizer(operation, async () => {
-        const resolved = await connectionPromise.catch(() => undefined);
-        if (resolved) await this.sessions.release(resolved.connection);
-      });
-      return withTimeout(finalized, KAFKA_ADMIN_TIMEOUT_MS, "Topic sizes");
+      // The read ends by itself a little before the timeout, with the step it stopped at; a read
+      // the page stopped waiting for all the same must not go on asking brokers.
+      return withDeadline(
+        ({ signal, deadline }) => {
+          const connectionPromise = this.resolveConnection(request, reader, () => undefined);
+          const operation = connectionPromise.then(async ({ connection }) => {
+            const topics = Array.isArray(request.topics) ? request.topics.map(String) : [];
+            return connection.topicSizes(topics, signal, deadline);
+          });
+          return withFinalizer(operation, async () => {
+            const resolved = await connectionPromise.catch(() => undefined);
+            if (resolved) await this.sessions.release(resolved.connection);
+          });
+        },
+        KAFKA_ADMIN_TIMEOUT_MS,
+        KAFKA_TOPIC_SIZES_REPORT_MARGIN_MS,
+        "Topic sizes",
+      );
     });
 
     this.handle(KAFKA_IPC.topicConfig, async (_event, request: TopicConfigRequest) => {

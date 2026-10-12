@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { withFinalizer, withTimeout } from "./operation-timeout";
+import { withDeadline, withFinalizer, withTimeout } from "./operation-timeout";
 
 function deferred<T>() {
   let reject!: (error: Error) => void;
@@ -65,5 +65,70 @@ describe("withTimeout", () => {
     releaseTeardown();
     await assertion;
     expect(settled).toBe(true);
+  });
+});
+
+describe("withDeadline", () => {
+  afterEach(() => vi.useRealTimers());
+
+  it("gives the operation a deadline that falls the margin before the timeout", async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(1_000_000);
+    const limits: Array<{ signal: AbortSignal; deadline: number }> = [];
+
+    await expect(
+      withDeadline(
+        async (given) => {
+          limits.push(given);
+          return "sizes";
+        },
+        30_000,
+        3_000,
+        "Topic sizes",
+      ),
+    ).resolves.toBe("sizes");
+
+    expect(limits.map(({ deadline }) => deadline)).toEqual([1_027_000]);
+    expect(limits[0].signal.aborted).toBe(false);
+  });
+
+  it("lets an operation that ends at its deadline report its own failure", async () => {
+    vi.useFakeTimers();
+    const operation = withDeadline(
+      ({ deadline }) =>
+        new Promise<never>((_resolve, reject) => {
+          setTimeout(() => reject(new Error("reading the cluster metadata: no answer")), deadline - Date.now());
+        }),
+      30_000,
+      3_000,
+      "Topic sizes",
+    );
+    const assertion = expect(operation).rejects.toThrow("reading the cluster metadata: no answer");
+
+    await vi.advanceTimersByTimeAsync(27_000);
+
+    await assertion;
+  });
+
+  it("aborts the signal of an operation that is still going on at the timeout", async () => {
+    vi.useFakeTimers();
+    let signal: AbortSignal | undefined;
+    const operation = withDeadline(
+      (given) => {
+        signal = given.signal;
+        return new Promise<never>(() => undefined);
+      },
+      30_000,
+      3_000,
+      "Topic sizes",
+    );
+    const assertion = expect(operation).rejects.toThrow("Topic sizes timed out after 30000ms");
+
+    await vi.advanceTimersByTimeAsync(29_999);
+    expect(signal?.aborted).toBe(false);
+    await vi.advanceTimersByTimeAsync(1);
+
+    await assertion;
+    expect(signal?.aborted).toBe(true);
   });
 });

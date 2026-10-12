@@ -33,6 +33,13 @@ describe("describeLogDirsProtocol", () => {
     expect(encoder.buffer.equals(expected.buffer)).toBe(true);
   });
 
+  it("encodes a null topic list, which asks for every partition the broker hosts, apart from an empty one", async () => {
+    const all = await describeLogDirsProtocol(null).request.encode();
+    expect(all.buffer.equals(new Encoder().writeInt32(-1).buffer)).toBe(true);
+    const none = await describeLogDirsProtocol([]).request.encode();
+    expect(none.buffer.equals(new Encoder().writeInt32(0).buffer)).toBe(true);
+  });
+
   it("decodes sizes and offset lags as decimal strings and keeps the future flag", async () => {
     const decoded = await describeLogDirsProtocol([]).response.decode(responseBuffer());
     expect(decoded.throttleTime).toBe(7);

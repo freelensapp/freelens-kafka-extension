@@ -117,6 +117,8 @@ export interface TopicSizesDto {
   supported: boolean;
   unavailableBrokers: number[];
   topics: Record<string, TopicSizeDto>;
+  /** What the read had to work around, one sentence each: a retry, a broker left out with its reason. */
+  notes?: string[];
 }
 
 export interface TopicConsumersRequest extends TopicRequest {}

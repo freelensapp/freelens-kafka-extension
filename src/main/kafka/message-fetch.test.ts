@@ -1,10 +1,11 @@
-import { CompressionCodecs, CompressionTypes } from "kafkajs";
+import { CompressionCodecs, CompressionTypes, Kafka, logLevel } from "kafkajs";
 import { describe, expect, it, vi } from "vitest";
 import {
   browseMessages,
   browseMessagesWithCluster,
   createKafkaJsReadCluster,
   type KafkaReadCluster,
+  loadTopicMetadata,
   MESSAGE_FETCH_MAX_BYTES,
   MESSAGE_PREVIEW_MAX_BYTES,
   MESSAGE_RESPONSE_PREVIEW_MAX_BYTES,
@@ -12,8 +13,6 @@ import {
   normalizeMessageHeaders,
   validateMessageBrowseInput,
 } from "./message-fetch";
-
-import type { Kafka } from "kafkajs";
 
 interface FakeClusterOptions {
   abortedTransactions?: Array<{ firstOffset: string; producerId: string }>;
@@ -47,11 +46,8 @@ function fakeCluster({
     ],
   }));
   const cluster: KafkaReadCluster = {
-    targetTopics: new Set<string>(),
     connect: vi.fn(async () => undefined),
     disconnect: vi.fn(async () => undefined),
-    addTargetTopic: vi.fn(async () => undefined),
-    addMultipleTargetTopics: vi.fn(async () => undefined),
     refreshMetadata: vi.fn(async () => undefined),
     getNodeIds: vi.fn(() => ["1"]),
     findTopicPartitionMetadata: vi.fn(() => [{ partitionId: 0, leader: 1 }]),
@@ -306,8 +302,10 @@ describe("group-free message Browse", () => {
     expect(success.connect).toHaveBeenCalledOnce();
     expect(success.disconnect).toHaveBeenCalledOnce();
 
+    // A cluster that just connected has no metadata: the browser reads it, and here that fails.
     const failed = fakeCluster().cluster;
-    vi.mocked(failed.addTargetTopic).mockRejectedValue(new Error("metadata failed"));
+    vi.mocked(failed.findTopicPartitionMetadata).mockReturnValue([]);
+    vi.mocked(failed.refreshMetadata).mockRejectedValue(new Error("metadata failed"));
     const failedSymbol = Symbol("private:Kafka:createCluster");
     const failedKafka = { [failedSymbol]: () => failed } as unknown as Kafka;
     await expect(
@@ -326,5 +324,177 @@ describe("group-free message Browse", () => {
     const symbol = Symbol("private:Kafka:createCluster");
     const kafka = { [symbol]: () => cluster } as unknown as Kafka;
     expect(createKafkaJsReadCluster(kafka)).toBe(cluster);
+  });
+});
+
+describe("topic metadata of the read cluster", () => {
+  it("uses the metadata the cluster has when it knows the topics", async () => {
+    const { cluster } = fakeCluster();
+    await loadTopicMetadata(cluster, [{ topic: "orders" }, { topic: "payments", partition: 0 }]);
+    expect(cluster.refreshMetadata).not.toHaveBeenCalled();
+  });
+
+  it("reads the metadata once more when it does not know a topic or a partition yet", async () => {
+    const { cluster } = fakeCluster();
+    const known = new Map([["orders", 1]]);
+    vi.mocked(cluster.findTopicPartitionMetadata).mockImplementation((topic) =>
+      Array.from({ length: known.get(topic) ?? 0 }, (_, partitionId) => ({ partitionId, leader: 1 })),
+    );
+    vi.mocked(cluster.refreshMetadata).mockImplementation(async () => {
+      known.set("created-a-moment-ago", 1);
+      known.set("orders", 2);
+    });
+
+    await loadTopicMetadata(cluster, [{ topic: "orders" }, { topic: "created-a-moment-ago" }]);
+    expect(cluster.refreshMetadata).toHaveBeenCalledOnce();
+    expect(cluster.findTopicPartitionMetadata("created-a-moment-ago")).toHaveLength(1);
+
+    // A partition added to a known topic, then one that still does not exist: one more read each time.
+    known.set("orders", 1);
+    await loadTopicMetadata(cluster, [{ topic: "orders", partition: 1 }]);
+    expect(cluster.refreshMetadata).toHaveBeenCalledTimes(2);
+    await loadTopicMetadata(cluster, [{ topic: "orders", partition: 1 }]);
+    expect(cluster.refreshMetadata).toHaveBeenCalledTimes(2);
+    await loadTopicMetadata(cluster, [{ topic: "orders", partition: 9 }]);
+    expect(cluster.refreshMetadata).toHaveBeenCalledTimes(3);
+    // Every wanted partition of a topic counts, not only the last one.
+    await loadTopicMetadata(cluster, [
+      { topic: "orders", partition: 9 },
+      { topic: "orders", partition: 0 },
+    ]);
+    expect(cluster.refreshMetadata).toHaveBeenCalledTimes(4);
+  });
+
+  it("reads the metadata when the cluster has none, and lets any other failure of the lookup through", async () => {
+    const { cluster } = fakeCluster();
+    let loaded = false;
+    // What KafkaJS throws from the lookup while it has no metadata.
+    const notLoaded = Object.assign(new Error("Topic metadata not loaded"), { name: "KafkaJSTopicMetadataNotLoaded" });
+    vi.mocked(cluster.findTopicPartitionMetadata).mockImplementation(() => {
+      if (!loaded) throw notLoaded;
+      return [{ partitionId: 0, leader: 1 }];
+    });
+    vi.mocked(cluster.refreshMetadata).mockImplementation(async () => {
+      loaded = true;
+    });
+
+    await loadTopicMetadata(cluster, [{ topic: "orders", partition: 0 }]);
+    expect(cluster.refreshMetadata).toHaveBeenCalledOnce();
+
+    vi.mocked(cluster.findTopicPartitionMetadata).mockImplementation(() => {
+      throw new TypeError("not a metadata problem");
+    });
+    await expect(loadTopicMetadata(cluster, [{ topic: "orders", partition: 0 }])).rejects.toThrow(
+      "not a metadata problem",
+    );
+    expect(cluster.refreshMetadata).toHaveBeenCalledOnce();
+  });
+
+  it("looks a topic up once, however many of its partitions are wanted", async () => {
+    const { cluster } = fakeCluster();
+    vi.mocked(cluster.findTopicPartitionMetadata).mockImplementation(() =>
+      [0, 1, 2].map((partitionId) => ({ partitionId, leader: 1 })),
+    );
+    await loadTopicMetadata(cluster, [
+      { topic: "orders", partition: 0 },
+      { topic: "orders", partition: 1 },
+      { topic: "orders", partition: 2 },
+      { topic: "payments", partition: 0 },
+      { topic: "payments", partition: 2 },
+    ]);
+    expect(vi.mocked(cluster.findTopicPartitionMetadata).mock.calls).toEqual([["orders"], ["payments"]]);
+    expect(cluster.refreshMetadata).not.toHaveBeenCalled();
+  });
+
+  it("never gives a real KafkaJS cluster a topic name, and reads its metadata only for a missing entry", async () => {
+    const cluster = createKafkaJsReadCluster(new Kafka({ brokers: ["127.0.0.1:1"], logLevel: logLevel.NOTHING }));
+    // The KafkaJS cluster and broker pool are the real ones. Only the broker that would answer the
+    // Metadata request is a stand-in, so the topic list seen here is the one KafkaJS asks for.
+    const internals = cluster as unknown as {
+      targetTopics: Set<string>;
+      brokerPool: {
+        metadataExpireAt: number | null;
+        createSeedBroker(): Promise<void>;
+        findConnectedBroker(): Promise<{ metadata(topics: string[]): Promise<unknown> }>;
+      };
+    };
+    const existing = ["orders"];
+    const requested: string[][] = [];
+    await internals.brokerPool.createSeedBroker();
+    internals.brokerPool.findConnectedBroker = async () => ({
+      metadata: async (topics) => {
+        requested.push(topics);
+        return {
+          brokers: [{ nodeId: 1, host: "127.0.0.1", port: 1, rack: null }],
+          topicMetadata: existing.map((topic) => ({ topic, partitionMetadata: [{ partitionId: 0, leader: 1 }] })),
+        };
+      },
+    });
+
+    // No metadata yet: the lookup of KafkaJS throws, and the metadata of all topics is read. An
+    // empty list is what KafkaJS encodes as "all topics".
+    await loadTopicMetadata(cluster, [{ topic: "orders", partition: 0 }]);
+    expect(requested).toEqual([[]]);
+
+    // Known entries are not read again, not even when KafkaJS considers the metadata too old: one
+    // partition without a leader anywhere would fail that read, and with it a healthy topic.
+    expect(internals.brokerPool.metadataExpireAt).toBeGreaterThan(Date.now());
+    internals.brokerPool.metadataExpireAt = 0;
+    await loadTopicMetadata(cluster, [{ topic: "orders", partition: 0 }, { topic: "orders" }]);
+    expect(requested).toHaveLength(1);
+
+    // A topic created since then: all topics are read once more. So does the size reader, every time.
+    existing.push("payments");
+    await loadTopicMetadata(cluster, [{ topic: "payments" }]);
+    await cluster.refreshMetadata();
+    expect(requested).toEqual([[], [], []]);
+    expect(internals.targetTopics.size).toBe(0);
+    expect(cluster.findTopicPartitionMetadata("payments")).toEqual([{ partitionId: 0, leader: 1 }]);
+  });
+
+  it("goes on reading a healthy topic while a partition somewhere else has no leader", async () => {
+    // The response parser of KafkaJS itself: it is what fails the metadata of all topics on one partition.
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const { parse } = require("kafkajs/src/protocol/requests/metadata/v6/response") as {
+      parse(data: unknown): Promise<unknown>;
+    };
+    const LEADER_NOT_AVAILABLE = 5;
+    const cluster = createKafkaJsReadCluster(
+      new Kafka({ brokers: ["127.0.0.1:1"], logLevel: logLevel.NOTHING, retry: { retries: 0 } }),
+    );
+    const internals = cluster as unknown as {
+      brokerPool: {
+        metadataExpireAt: number | null;
+        createSeedBroker(): Promise<void>;
+        findConnectedBroker(): Promise<{ metadata(topics: string[]): Promise<unknown> }>;
+      };
+    };
+    const orders = { partitionErrorCode: 0, partitionId: 0, leader: 1 };
+    const topicMetadata = [{ topicErrorCode: 0, topic: "orders", partitionMetadata: [orders] }];
+    let requests = 0;
+    await internals.brokerPool.createSeedBroker();
+    internals.brokerPool.findConnectedBroker = async () => ({
+      metadata: async () => {
+        requests++;
+        return parse({ brokers: [{ nodeId: 1, host: "127.0.0.1", port: 1, rack: null }], topicMetadata });
+      },
+    });
+    await loadTopicMetadata(cluster, [{ topic: "orders", partition: 0 }]);
+    expect(requests).toBe(1);
+
+    // A partition of another topic loses its leader, and KafkaJS now considers the metadata too old.
+    topicMetadata.push({
+      topicErrorCode: 0,
+      topic: "degraded",
+      partitionMetadata: [{ partitionErrorCode: LEADER_NOT_AVAILABLE, partitionId: 0, leader: -1 }],
+    });
+    internals.brokerPool.metadataExpireAt = 0;
+    await expect(cluster.refreshMetadata()).rejects.toThrow("There is no leader for this topic-partition");
+    expect(requests).toBe(2);
+
+    // The size read fails like that, with its reason. A reader of "orders" does not ask at all.
+    await loadTopicMetadata(cluster, [{ topic: "orders", partition: 0 }]);
+    expect(requests).toBe(2);
+    expect(cluster.findTopicPartitionMetadata("orders")).toEqual([orders]);
   });
 });

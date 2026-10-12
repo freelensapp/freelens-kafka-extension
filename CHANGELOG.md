@@ -4,12 +4,18 @@
 
 ### Fixed
 
-- Topic sizes on brokers that close a connection mid-request, seen on MSK Express brokers with IAM: the Topics
-  page showed `n/a` with "Closed connection". The size reader now asks the brokers one at a time, retries once on
-  a fresh connection for a broker that closed one, reopens its read cluster and retries once when the metadata
-  refresh or the first broker fails on the connection, and names the failing step in the error it shows; the
-  main log gets one line per retry with the age of the connections and the SASL session lifetime the brokers
-  declared (#82).
+- Topic sizes on brokers that close the connection on a metadata request naming every topic, seen on MSK Express
+  brokers with IAM: the Topics page showed `n/a` with "Closed connection". The failed read also left every topic
+  name behind in the client the message browser shares, so that browsing a topic could fail as well, with the
+  same error or with "Partition 0 does not exist". The readers no longer name topics: topic sizes, the message
+  browser and the lag watermarks read the metadata of all topics, and each broker is asked for every log
+  directory, as `kafka-log-dirs` does. A broker that drops the connection is asked once more on a new one, a
+  broker that takes longer than 15 seconds is left out, and when no broker reports the size shows `n/a` with the
+  reason of each broker instead of `≥ 0 B`. A failed read tells the step it stopped at and how long it took,
+  with the broker and what was known of the connection when a broker closed it. A broker that never answers is
+  reported the same way, where the page used to end in a bare timeout. The failure shows in the Topic Workspace
+  and in the Partitions tab too, which kept showing `…`, and a topic size read at the second try or without a
+  broker says so on hover (#82).
 
 ## v1.4.1 - 2026-10-01
 

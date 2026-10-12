@@ -1,6 +1,11 @@
 /** Shared Kafka runtime constants. */
 
 export const KAFKA_ADMIN_TIMEOUT_MS = 30_000;
+/**
+ * How long before the admin timeout the topic size read gives up by itself, so that a failure
+ * reaches the page with its reason: the timeout can only say that the sizes timed out.
+ */
+export const KAFKA_TOPIC_SIZES_REPORT_MARGIN_MS = 3_000;
 export const KAFKA_CLUSTER_HEALTH_TIMEOUT_MS = 300_000;
 export const KAFKA_CLUSTER_HEALTH_CACHE_TTL_MS = 5 * 60_000;
 export const KAFKA_TOPIC_CONSUMERS_TIMEOUT_MS = 120_000;

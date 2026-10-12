@@ -1,4 +1,4 @@
-import type { KafkaReadCluster } from "./message-fetch";
+import { type KafkaReadCluster, loadTopicMetadata } from "./message-fetch";
 
 export interface OffsetBatchPartition {
   leaderId: number;
@@ -45,7 +45,7 @@ export function highWatermarkBatch(partitions: OffsetBatchPartition[]): HighWate
 }
 
 export async function fetchHighWatermarks(
-  cluster: Pick<KafkaReadCluster, "addMultipleTargetTopics" | "fetchTopicsOffset">,
+  cluster: Pick<KafkaReadCluster, "refreshMetadata" | "findTopicPartitionMetadata" | "fetchTopicsOffset">,
   partitions: OffsetBatchPartition[],
   chunkSize = 500,
   signal?: AbortSignal,
@@ -57,7 +57,7 @@ export async function fetchHighWatermarks(
   const result = new Map<string, Map<number, string>>();
   const topics = [...new Set(partitions.map(({ topic }) => topic))];
   if (topics.length === 0) return result;
-  await cluster.addMultipleTargetTopics(topics);
+  await loadTopicMetadata(cluster, partitions);
   throwIfAborted();
 
   for (const group of groupOffsetBatchByBroker(partitions)) {

@@ -25,6 +25,8 @@ export interface KafkaMetric {
   label: string;
   value: ReactNode;
   tone?: "warning" | "error";
+  /** Hover text of the metric. */
+  title?: string;
 }
 
 interface KafkaMetricStripProps {
@@ -84,7 +86,7 @@ export function KafkaMetricStrip({ ariaLabel, className = "", metrics }: KafkaMe
   return (
     <section className={`KafkaMetrics ${className}`.trim()} aria-label={ariaLabel} data-metric-count={metrics.length}>
       {metrics.map((metric) => (
-        <div key={metric.label} className={`KafkaMetric ${metric.tone ?? ""}`.trim()}>
+        <div key={metric.label} className={`KafkaMetric ${metric.tone ?? ""}`.trim()} title={metric.title}>
           <strong className="KafkaMetricValue">{metric.value}</strong>
           <span className="KafkaMetricLabel">{metric.label}</span>
         </div>

@@ -5,7 +5,7 @@ import { kafkaPersistentStateStore } from "../common/kafka-persistent-state-stor
 import { formatKafkaEta } from "../common/kafka-phase-progress";
 import { createKafkaTargetId } from "../common/kafka-target";
 import { chooseStrategy, firstBrokerAddress } from "../common/reachability";
-import { formatBytes } from "./format-bytes";
+import { formatBytes, type TopicSizeRead, topicSizeText } from "./format-bytes";
 import { KafkaClusterCatalogStore } from "./kafka-cluster-catalog";
 import { loadManualKafkaEndpoints, mergeKafkaClusters, saveManualKafkaEndpoints } from "./kafka-manual-endpoints";
 import { forgetKafkaClusterSelection, rememberKafkaClusterSelection } from "./kafka-navigation";
@@ -36,7 +36,6 @@ import type {
   OverviewRequest,
   TopicDetailDto,
   TopicPartitionDto,
-  TopicSizeDto,
 } from "../common/ipc";
 import type { KafkaConnectSettingsStore } from "./kafka-connect-settings";
 import type { KafkaConnectionSettingsStore } from "./kafka-connection-settings";
@@ -416,21 +415,8 @@ function PartitionHealthBadge({ partition }: { partition: TopicPartitionDto }) {
   );
 }
 
-function topicSizeLabel(sizes: TopicSizeDto | undefined, supported: boolean | undefined): string {
-  if (sizes) return `${sizes.exact ? "" : "≥ "}${formatBytes(sizes.leaderBytes)}`;
-  if (supported === false) return "n/a";
-  return "…";
-}
-
-function TopicMetricStrip({
-  data,
-  sizes,
-  sizesSupported,
-}: {
-  data: TopicDetailDto;
-  sizes?: TopicSizeDto;
-  sizesSupported?: boolean;
-}) {
+function TopicMetricStrip({ data, sizeRead }: { data: TopicDetailDto; sizeRead?: TopicSizeRead }) {
+  const size = topicSizeText(sizeRead, data.name);
   return (
     <KafkaMetricStrip
       ariaLabel="Kafka topic metadata summary"
@@ -448,7 +434,7 @@ function TopicMetricStrip({
           value: data.unavailablePartitions,
           tone: data.unavailablePartitions > 0 ? "error" : undefined,
         },
-        { label: "Size", value: topicSizeLabel(sizes, sizesSupported) },
+        { label: "Size", value: size.text, title: size.title },
       ]}
     />
   );
@@ -461,8 +447,11 @@ const PARTITION_ISR_COLUMN_STYLE: CSSProperties = { flex: "1 1 160px", minWidth:
 const PARTITION_STATE_COLUMN_STYLE: CSSProperties = { flex: "0 0 156px", minWidth: 156, width: 156 };
 const PARTITION_SIZE_COLUMN_STYLE: CSSProperties = { flex: "0 0 110px", minWidth: 110, width: 110 };
 
-function TopicPartitions({ data, sizes }: { data: TopicDetailDto; sizes?: TopicSizeDto }) {
+function TopicPartitions({ data, sizeRead }: { data: TopicDetailDto; sizeRead?: TopicSizeRead }) {
+  const sizes = sizeRead?.data?.supported ? sizeRead.data.topics[data.name] : undefined;
   const sizeByPartition = new Map((sizes?.partitions ?? []).map((partition) => [partition.partition, partition]));
+  // What a partition without a size shows: the state of the whole read, or a dash when the read has the topic.
+  const noSize = sizes ? { text: "—", title: undefined } : topicSizeText(sizeRead, data.name);
   if (data.partitions.length === 0) {
     return <div className="KafkaTopicPrompt">Kafka returned no partitions for this topic.</div>;
   }
@@ -517,7 +506,13 @@ function TopicPartitions({ data, sizes }: { data: TopicDetailDto; sizes?: TopicS
           <Renderer.Component.TableCell className="partitionSizeCell" style={PARTITION_SIZE_COLUMN_STYLE}>
             {(() => {
               const size = sizeByPartition.get(partition.partitionId);
-              if (!size) return <span className="KafkaTopicSize muted">{sizes ? "—" : "…"}</span>;
+              if (!size) {
+                return (
+                  <span className="KafkaTopicSize muted" title={noSize.title}>
+                    {noSize.text}
+                  </span>
+                );
+              }
               return (
                 <span
                   className="KafkaTopicSize"
@@ -542,14 +537,13 @@ export function TopicMetadata({
   onRetry,
   view = "all",
   showHeader = true,
-  sizes,
-  sizesSupported,
+  sizeRead,
 }: {
   state: TopicState;
   onRetry: () => void;
   view?: "all" | "overview" | "partitions";
-  sizes?: TopicSizeDto;
-  sizesSupported?: boolean;
+  /** The topic sizes of the cluster as last read, or why the read failed. */
+  sizeRead?: TopicSizeRead;
   showHeader?: boolean;
 }) {
   if (!state.name) {
@@ -594,10 +588,8 @@ export function TopicMetadata({
         <OperationProgress progress={state.progress} error={state.error} />
       )}
 
-      {state.data && view !== "partitions" && (
-        <TopicMetricStrip data={state.data} sizes={sizes} sizesSupported={sizesSupported} />
-      )}
-      {state.data && view !== "overview" && <TopicPartitions data={state.data} sizes={sizes} />}
+      {state.data && view !== "partitions" && <TopicMetricStrip data={state.data} sizeRead={sizeRead} />}
+      {state.data && view !== "overview" && <TopicPartitions data={state.data} sizeRead={sizeRead} />}
     </section>
   );
 }

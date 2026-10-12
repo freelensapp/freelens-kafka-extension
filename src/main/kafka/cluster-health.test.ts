@@ -233,7 +233,8 @@ describe("fetchClusterHealth", () => {
     });
     let batchCalls = 0;
     const cluster = {
-      addMultipleTargetTopics: async () => undefined,
+      refreshMetadata: async () => undefined,
+      findTopicPartitionMetadata: () => [{ partitionId: 0, leader: 1 }],
       fetchTopicsOffset: async (
         topics: Array<{ topic: string; partitions: Array<{ partition: number }>; fromBeginning?: boolean }>,
       ) => {

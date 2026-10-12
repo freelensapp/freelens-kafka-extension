@@ -10,7 +10,7 @@ import {
   listConsumerGroups,
 } from "./group-fetch";
 import { KafkaGroupOffsetBatchReader } from "./group-offset-batch";
-import { describeError, fetchTopicSizes, TopicSizesStepError } from "./log-dirs";
+import { answerWithin, describeError, fetchTopicSizes, TopicSizesStepError } from "./log-dirs";
 import { browseMessagesWithCluster, createKafkaJsReadCluster, type KafkaReadCluster } from "./message-fetch";
 import { fetchHighWatermarks, type OffsetBatchPartition } from "./offset-batch";
 import { PortForwardManager } from "./port-forward-manager";
@@ -73,8 +73,6 @@ export class KafkaConnection {
   private disconnected = false;
   private messageCluster?: KafkaReadCluster;
   private messageClusterConnect?: Promise<KafkaReadCluster>;
-  /** When the shared read cluster was opened, for the diagnostics of a connection a broker closed. */
-  private messageClusterOpenedAt?: number;
   private groupOffsetBatchReader?: KafkaGroupOffsetBatchReader;
   private readonly consumerGroupOffsets: ConsumerGroupOffsetIndex;
 
@@ -378,62 +376,53 @@ export class KafkaConnection {
 
   /**
    * Sizes on disk per topic and partition through DescribeLogDirs on every broker (read-only). When
-   * the read cluster fails on the connection before the brokers are asked (a broker closed it, as
-   * MSK Express brokers do, #82), the cluster is reopened and the fetch retried once; the main log
-   * gets one line per retry with the age of the cluster and the SASL session lifetime the brokers
-   * declared, and the page gets the failing step with the error when the retry fails too.
+   * the metadata read fails because the peer dropped the connection, the sizes are read once more:
+   * KafkaJS opens a new connection by itself. A failure reaches the page with the step, the broker,
+   * what is known of the connection and how long the attempt took; what a successful read had to
+   * work around (a second read, a broker left out) travels in `notes`. With a `deadline`
+   * (`Date.now()` milliseconds) both reads end by then, each step failing with its name: the
+   * caller sets it before its own timeout, which can only say that the sizes timed out.
    */
-  async topicSizes(topics: readonly string[], signal?: AbortSignal): Promise<TopicSizesDto> {
-    const log = (line: string) => console.warn(`[kafka] topic sizes: ${line}`);
-    const attempt = async () => {
-      let cluster: KafkaReadCluster;
-      try {
-        cluster = await this.getMessageCluster();
-      } catch (error) {
-        throw new TopicSizesStepError("opening the read cluster", error);
-      }
-      return fetchTopicSizes(cluster, topics, { signal, log });
+  async topicSizes(
+    topics: readonly string[],
+    signal?: AbortSignal,
+    deadline = Number.POSITIVE_INFINITY,
+  ): Promise<TopicSizesDto> {
+    const notes: string[] = [];
+    const log = (line: string) => {
+      notes.push(line);
+      console.warn(`[kafka] topic sizes: ${line}`);
     };
-    try {
-      return await attempt();
-    } catch (error) {
-      if (!(error instanceof TopicSizesStepError) || !error.connection || signal?.aborted || this.disconnected) {
-        throw error;
-      }
-      const detail = `${error.message} (${this.describeReadCluster()})`;
-      log(`${detail}; reopening the read cluster and retrying once`);
-      await this.resetMessageCluster();
+    const attempt = async (): Promise<{ sizes: TopicSizesDto } | { error: unknown; detail: string }> => {
+      const startedAt = Date.now();
       try {
-        const sizes = await attempt();
-        log("the retry on a fresh read cluster succeeded");
-        return sizes;
-      } catch (again) {
-        const failure = new Error(`${describeError(again)} on a fresh read cluster; first attempt: ${detail}`);
-        failure.name = "TopicSizesError";
-        throw failure;
+        const cluster = await answerWithin(deadline - Date.now(), () => this.getMessageCluster()).catch(
+          (error: unknown) => {
+            throw new TopicSizesStepError("opening the read cluster", error);
+          },
+        );
+        return { sizes: await fetchTopicSizes(cluster, topics, { signal, log, deadline }) };
+      } catch (error) {
+        const reason = error instanceof TopicSizesStepError ? error.message : describeError(error);
+        return { error, detail: `${reason} (after ${Date.now() - startedAt} ms)` };
       }
+    };
+    const done = (sizes: TopicSizesDto): TopicSizesDto => (notes.length > 0 ? { ...sizes, notes } : sizes);
+    const failed = (message: string): Error => Object.assign(new Error(message), { name: "TopicSizesError" });
+
+    // The caller spent all the time before the read could start: no step ran, so none is blamed.
+    if (!(deadline - Date.now() > 0)) throw failed("not read: no time was left when the read could start");
+    const first = await attempt();
+    if ("sizes" in first) return done(first.sizes);
+    if (!(first.error instanceof TopicSizesStepError) || signal?.aborted || this.disconnected) throw first.error;
+    if (!first.error.dropped) throw failed(first.detail);
+    log(`${first.detail}; reading once more`);
+    const second = await attempt();
+    if ("sizes" in second) {
+      log("the second read succeeded");
+      return done(second.sizes);
     }
-  }
-
-  /** Age of the shared read cluster and the SASL session lifetime its brokers declared, for the log. */
-  private describeReadCluster(): string {
-    const age =
-      this.messageClusterOpenedAt === undefined
-        ? "not open"
-        : `opened ${Math.round((Date.now() - this.messageClusterOpenedAt) / 1000)} s ago`;
-    const lifetimes = readSessionLifetimes(this.messageCluster);
-    return `read cluster ${age}${lifetimes ? `, SASL session lifetime ${lifetimes}` : ""}`;
-  }
-
-  /** Drop the shared read cluster so that the next reader opens fresh connections. */
-  private async resetMessageCluster(): Promise<void> {
-    this.groupOffsetBatchReader = undefined;
-    const pendingCluster = this.messageClusterConnect;
-    const cluster = this.messageCluster ?? (await pendingCluster?.catch(() => undefined));
-    this.messageCluster = undefined;
-    this.messageClusterConnect = undefined;
-    this.messageClusterOpenedAt = undefined;
-    await cluster?.disconnect().catch(() => undefined);
+    throw failed(`${second.detail}; first attempt: ${first.detail}`);
   }
 
   /** List all consumer groups with state and member count (read-only, no join or commit). */
@@ -569,7 +558,6 @@ export class KafkaConnection {
             });
           }
           this.messageCluster = cluster;
-          this.messageClusterOpenedAt = Date.now();
           return cluster;
         })
         .catch((error: unknown) => {
@@ -593,30 +581,6 @@ export class KafkaConnection {
     }
     return this.groupOffsetBatchReader.read(groupIds, signal);
   }
-}
-
-/**
- * The SASL session lifetime (ms) the brokers declared on the authenticated KafkaJS connections of a
- * read cluster, "0" when they declared none (then KafkaJS never re-authenticates). Empty when the
- * cluster is not a KafkaJS one or has no authenticated connection.
- */
-function readSessionLifetimes(cluster: KafkaReadCluster | undefined): string {
-  const pool = (cluster as { brokerPool?: { seedBroker?: unknown; brokers?: Record<string, unknown> } } | undefined)
-    ?.brokerPool;
-  if (!pool) return "";
-  const lifetimes = new Set<string>();
-  for (const broker of [pool.seedBroker, ...Object.values(pool.brokers ?? {})]) {
-    const connections =
-      (
-        broker as
-          | { connectionPool?: { pool?: Array<{ sessionLifetime?: unknown; authenticatedAt?: unknown }> } }
-          | undefined
-      )?.connectionPool?.pool ?? [];
-    for (const connection of connections) {
-      if (connection.authenticatedAt) lifetimes.add(`${String(connection.sessionLifetime ?? "?")} ms`);
-    }
-  }
-  return [...lifetimes].join("/");
 }
 
 /**

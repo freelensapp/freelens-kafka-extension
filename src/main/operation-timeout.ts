@@ -28,6 +28,22 @@ export function withTimeout<T>(
   });
 }
 
+/**
+ * Run an operation under a timeout it can beat: it gets a deadline (`Date.now()` milliseconds) that
+ * falls `marginMs` before the timeout, to end by itself and say where it stopped, and a signal
+ * that aborts when the timeout fires all the same, to stop what is still going on.
+ */
+export function withDeadline<T>(
+  run: (limits: { signal: AbortSignal; deadline: number }) => Promise<T>,
+  timeoutMs: number,
+  marginMs: number,
+  label: string,
+): Promise<T> {
+  const abandoned = new AbortController();
+  const deadline = Date.now() + timeoutMs - marginMs;
+  return withTimeout(run({ signal: abandoned.signal, deadline }), timeoutMs, label, () => abandoned.abort());
+}
+
 export function withFinalizer<T>(operation: Promise<T>, finalize: () => Promise<void> | void): Promise<T> {
   return operation.then(
     async (value) => {

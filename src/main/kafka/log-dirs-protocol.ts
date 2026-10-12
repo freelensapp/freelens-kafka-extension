@@ -38,11 +38,12 @@ export interface DescribeLogDirsResult {
 
 /**
  * Read-only DescribeLogDirs (API key 35, version 1, non-flexible encoding): the size on disk
- * of the requested partitions in every log directory of the broker that receives the request.
- * KafkaJS has no Admin call for it, so the request is encoded by hand like the batched group
- * offsets and sent through the private broker transport.
+ * of the requested partitions in every log directory of the broker that receives the request,
+ * or of every partition the broker hosts when `topics` is null (a null array on the wire, what
+ * `kafka-log-dirs` sends). KafkaJS has no Admin call for it, so the request is encoded by hand
+ * like the batched group offsets and sent through the private broker transport.
  */
-export function describeLogDirsProtocol(topics: LogDirsRequestTopic[]): KafkaProtocol<DescribeLogDirsResult> {
+export function describeLogDirsProtocol(topics: LogDirsRequestTopic[] | null): KafkaProtocol<DescribeLogDirsResult> {
   return {
     groupIds: [],
     request: {
@@ -50,6 +51,7 @@ export function describeLogDirsProtocol(topics: LogDirsRequestTopic[]): KafkaPro
       apiVersion: DESCRIBE_LOG_DIRS_VERSION,
       apiName: "DescribeLogDirs",
       encode: async () => {
+        if (topics === null) return new Encoder().writeInt32(-1);
         const encoder = new Encoder().writeInt32(topics.length);
         for (const entry of topics) {
           encoder.writeString(entry.topic).writeInt32(entry.partitions.length);

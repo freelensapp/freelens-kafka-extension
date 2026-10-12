@@ -106,14 +106,18 @@ interface KafkaReadBroker {
   }>;
 }
 
+/**
+ * The KafkaJS cluster the readers share (messages, watermarks, group offsets, topic sizes). It
+ * offers no way to give KafkaJS a topic name on purpose: with no target topics KafkaJS asks for
+ * the metadata of all topics, and every reader goes through `loadTopicMetadata`.
+ */
 export interface KafkaReadCluster {
-  targetTopics: Set<string>;
   connect(): Promise<void>;
   disconnect(): Promise<void>;
-  addTargetTopic(topic: string): Promise<void>;
-  addMultipleTargetTopics(topics: string[]): Promise<void>;
+  /** Reads the metadata of all topics again. */
   refreshMetadata(): Promise<void>;
   getNodeIds(): string[];
+  /** The partitions of a topic in the metadata the cluster has; KafkaJS throws while it has none. */
   findTopicPartitionMetadata(topic: string): Array<{ partitionId: number; leader: number | null }>;
   fetchTopicsOffset(
     topics: Array<{
@@ -263,6 +267,48 @@ export function validateMessageBrowseInput(input: MessageBrowseInput): Validated
   return { ...input, topic };
 }
 
+/**
+ * Make the metadata of the given topics, or partitions, available on a read cluster without naming
+ * them. A Metadata request that names topics is a liability on a cluster that lives as long as the
+ * session: a broker may close the connection on it (#82), and KafkaJS keeps every name it was
+ * given, so one deleted topic fails every later metadata refresh (#56).
+ *
+ * The metadata of all topics is read when the cluster has none or it does not know one of the
+ * wanted entries yet, and never because of its age: KafkaJS fails the whole read on one partition
+ * without a leader, anywhere in the cluster, and that must not stop the reader of a healthy topic.
+ */
+export async function loadTopicMetadata(
+  cluster: Pick<KafkaReadCluster, "refreshMetadata" | "findTopicPartitionMetadata">,
+  wanted: ReadonlyArray<{ topic: string; partition?: number }>,
+): Promise<void> {
+  /** Topic -> its wanted partitions, none when the topic itself is what is wanted. */
+  const wantedByTopic = new Map<string, Set<number>>();
+  for (const { topic, partition } of wanted) {
+    const partitions = wantedByTopic.get(topic) ?? new Set<number>();
+    if (partition !== undefined) partitions.add(partition);
+    wantedByTopic.set(topic, partitions);
+  }
+  // One lookup per topic: KafkaJS scans every topic of the cluster at each one.
+  const knowsEveryEntry = (): boolean => {
+    for (const [topic, partitions] of wantedByTopic) {
+      const listed = cluster.findTopicPartitionMetadata(topic);
+      if (listed.length === 0) return false;
+      if (partitions.size === 0) continue;
+      const ids = new Set(listed.map((candidate) => candidate.partitionId));
+      for (const partition of partitions) if (!ids.has(partition)) return false;
+    }
+    return true;
+  };
+  let loaded: boolean;
+  try {
+    loaded = knowsEveryEntry();
+  } catch (error) {
+    if ((error as { name?: unknown } | null)?.name !== "KafkaJSTopicMetadataNotLoaded") throw error;
+    loaded = false;
+  }
+  if (!loaded) await cluster.refreshMetadata();
+}
+
 export function createKafkaJsReadCluster(kafka: Kafka): KafkaReadCluster {
   const privateKafka = kafka as unknown as KafkaWithPrivateCluster;
   const symbol = Object.getOwnPropertySymbols(kafka).find(
@@ -355,7 +401,7 @@ export async function browseMessagesWithCluster(
   rawInput: MessageBrowseInput,
 ): Promise<MessageBrowseDto> {
   const input = validateMessageBrowseInput(rawInput);
-  await cluster.addTargetTopic(input.topic);
+  await loadTopicMetadata(cluster, [{ topic: input.topic, partition: input.partition }]);
   const metadata = cluster
     .findTopicPartitionMetadata(input.topic)
     .find((candidate) => candidate.partitionId === input.partition);

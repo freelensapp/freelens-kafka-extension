@@ -1,7 +1,7 @@
 import { Renderer } from "@freelensapp/extensions";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { kafkaPersistentStateStore } from "../common/kafka-persistent-state-store";
-import { formatBytes, sumBytes } from "./format-bytes";
+import { formatBytes, sumBytes, type TopicSizeRead, topicSizeText } from "./format-bytes";
 import { kafkaListWindow } from "./kafka-list-window";
 import { KafkaMessagesBrowser } from "./kafka-messages";
 import { implementedKafkaTopicView, rememberKafkaClusterSelection, saveKafkaReloadRoute } from "./kafka-navigation";
@@ -605,36 +605,15 @@ export function KafkaTopicsPage({
     };
   }, [metadataTopics, sizeRequestBase, topicSizes]);
   const currentSizes = sizesState.targetId === sizeCluster?.targetId ? sizesState.data : undefined;
+  const sizeRead: TopicSizeRead =
+    sizesState.targetId === sizeCluster?.targetId ? { data: sizesState.data, error: sizesState.error } : {};
   const renderTopicSize = (name: string) => {
-    const data = currentSizes;
-    if (data) {
-      if (!data.supported) {
-        return (
-          <span className="KafkaTopicSize muted" title="The brokers do not offer DescribeLogDirs">
-            n/a
-          </span>
-        );
-      }
-      const size = data.topics[name];
-      if (!size) return <span className="KafkaTopicSize muted">—</span>;
-      const title = `Leader replicas ${formatBytes(size.leaderBytes)}, all replicas ${formatBytes(size.replicaBytes)}${
-        size.exact ? "" : " (lower bound: a broker did not report)"
-      }`;
-      return (
-        <span className="KafkaTopicSize" title={title}>
-          {size.exact ? "" : "≥ "}
-          {formatBytes(size.leaderBytes)}
-        </span>
-      );
-    }
-    if (sizesState.error && sizesState.targetId === sizeCluster?.targetId) {
-      return (
-        <span className="KafkaTopicSize muted" title={sizesState.error}>
-          n/a
-        </span>
-      );
-    }
-    return <span className="KafkaTopicSize muted">…</span>;
+    const size = topicSizeText(sizeRead, name);
+    return (
+      <span className={size.placeholder ? "KafkaTopicSize muted" : "KafkaTopicSize"} title={size.title}>
+        {size.text}
+      </span>
+    );
   };
 
   const loadTopic = useCallback(() => {
@@ -1245,8 +1224,7 @@ export function KafkaTopicsPage({
                   onRetry={loadTopic}
                   view={view === "partitions" ? "partitions" : "overview"}
                   showHeader={false}
-                  sizes={topicName ? currentSizes?.topics[topicName] : undefined}
-                  sizesSupported={currentSizes?.supported}
+                  sizeRead={sizeRead}
                 />
               )}
             </div>

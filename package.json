@@ -89,6 +89,7 @@
     "itest:group-batch": "ALLOW_LOCAL_MUTATING_KAFKA_FIXTURE=1 KAFKA_LOCAL=127.0.0.1:19092 tsx test/e2e/integration.group-offset-batch.local.ts",
     "itest:aggregate-worker": "tsx test/e2e/integration.aggregate-health.local.ts",
     "itest:broker-config": "tsx test/e2e/integration.broker-config.local.ts",
+    "itest:read-cluster": "ALLOW_LOCAL_MUTATING_KAFKA_FIXTURE=1 KAFKA_LOCAL=127.0.0.1:19092 tsx test/e2e/setup-direct-group.ts && ALLOW_LOCAL_MUTATING_KAFKA_FIXTURE=1 KAFKA_LOCAL=127.0.0.1:19092 tsx test/e2e/integration.read-cluster.local.ts",
     "kafka:auth:up": "docker compose -f test/e2e/docker-compose.auth.yml up -d --wait && bash test/e2e/setup-auth.sh",
     "kafka:auth:down": "docker compose -f test/e2e/docker-compose.auth.yml down -v",
     "itest:security": "tsx test/e2e/integration.security.local.ts",

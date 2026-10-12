@@ -1,6 +1,12 @@
 import { describe, expect, it } from "vitest";
 import { chunkOffsetBatch, fetchHighWatermarks, groupOffsetBatchByBroker, highWatermarkBatch } from "./offset-batch";
 
+/** The metadata side of a read cluster that already knows every topic. */
+const knownMetadata = {
+  refreshMetadata: async () => undefined,
+  findTopicPartitionMetadata: () => [0, 1, 2].map((partitionId) => ({ partitionId, leader: 1 })),
+};
+
 describe("offset batch contract", () => {
   it("groups partitions by leader and keeps only high-watermark reads", () => {
     expect(
@@ -33,7 +39,7 @@ describe("offset batch contract", () => {
   it("fetches all requested high watermarks in grouped batches without low reads", async () => {
     const calls: Array<{ fromBeginning?: boolean; topics: string[] }> = [];
     const cluster = {
-      addMultipleTargetTopics: async () => undefined,
+      ...knownMetadata,
       fetchTopicsOffset: async (
         topics: Array<{ topic: string; partitions: Array<{ partition: number }>; fromBeginning?: boolean }>,
       ) => {
@@ -69,38 +75,60 @@ describe("offset batch contract", () => {
     ]);
   });
 
-  it("registers each topic before reading offsets from a cold KafkaJS cluster", async () => {
-    const registered = new Set<string>();
-    const addMultipleTargetTopicsCalls: string[][] = [];
+  it("reads the metadata before the offsets only when it lacks a wanted partition", async () => {
+    // A stand-in for the read cluster: it has no way to be given a topic name, like the real one
+    // (`message-fetch.test.ts` drives the real KafkaJS cluster).
+    let metadataReads = 0;
+    let known = new Map<string, number>();
+    let lookups: string[] = [];
     const cluster = {
-      addMultipleTargetTopics: async (topics: string[]) => {
-        addMultipleTargetTopicsCalls.push(topics);
-        for (const topic of topics) registered.add(topic);
+      refreshMetadata: async () => {
+        metadataReads++;
+        known = new Map([
+          ["orders", 2],
+          ["payments", 1],
+        ]);
+      },
+      findTopicPartitionMetadata: (topic: string) => {
+        lookups.push(topic);
+        return Array.from({ length: known.get(topic) ?? 0 }, (_, partitionId) => ({ partitionId, leader: 1 }));
       },
       fetchTopicsOffset: async (
         topics: Array<{ topic: string; partitions: Array<{ partition: number }>; fromBeginning?: boolean }>,
       ) => {
-        expect(topics.every(({ topic }) => registered.has(topic))).toBe(true);
+        expect(topics.every(({ topic }) => known.has(topic))).toBe(true);
         return topics.map(({ topic, partitions }) => ({
           topic,
           partitions: partitions.map(({ partition }) => ({ partition, offset: "10" })),
         }));
       },
     };
-
-    await fetchHighWatermarks(cluster, [
+    const partitions = [
       { topic: "orders", partition: 0, leaderId: 1 },
       { topic: "orders", partition: 1, leaderId: 2 },
       { topic: "payments", partition: 0, leaderId: 1 },
-    ]);
+    ];
 
-    expect(addMultipleTargetTopicsCalls).toEqual([["orders", "payments"]]);
+    // The cluster knows no topic yet: one read of the metadata.
+    await fetchHighWatermarks(cluster, partitions);
+    expect(metadataReads).toBe(1);
+
+    // Every partition is known now: the metadata it has is enough, with one lookup per topic.
+    lookups = [];
+    await fetchHighWatermarks(cluster, partitions);
+    expect(metadataReads).toBe(1);
+    expect(lookups).toEqual(["orders", "payments"]);
+
+    // A partition added to a known topic: one more read.
+    known.set("orders", 1);
+    await fetchHighWatermarks(cluster, partitions);
+    expect(metadataReads).toBe(2);
   });
 
   it("bounds high-only requests by leader and chunk", async () => {
     const requests: Array<Array<{ partition: number; topic: string }>> = [];
     const cluster = {
-      addMultipleTargetTopics: async () => undefined,
+      ...knownMetadata,
       fetchTopicsOffset: async (
         topics: Array<{ topic: string; partitions: Array<{ partition: number }>; fromBeginning?: boolean }>,
       ) => {
@@ -144,7 +172,7 @@ describe("offset batch contract", () => {
     ]);
     const brokerRequests = new Map<number, string[]>();
     const cluster = {
-      addMultipleTargetTopics: async () => undefined,
+      ...knownMetadata,
       fetchTopicsOffset: async (
         topics: Array<{ topic: string; partitions: Array<{ partition: number }>; fromBeginning?: boolean }>,
       ) => {
@@ -184,7 +212,7 @@ describe("offset batch contract", () => {
 
   it("does not invent offsets for partitions missing from a broker response", async () => {
     const cluster = {
-      addMultipleTargetTopics: async () => undefined,
+      ...knownMetadata,
       fetchTopicsOffset: async () => [{ topic: "orders", partitions: [{ partition: 0, offset: "10" }] }],
     };
 
