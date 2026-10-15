@@ -69,6 +69,11 @@ export class ConsumerGroupOffsetIndex {
     private readonly ttlMs = KAFKA_CLUSTER_HEALTH_CACHE_TTL_MS,
   ) {}
 
+  /** Issue #82 diagnostic build: the group ids listed so far, only to hide them in the probe report. */
+  knownGroupIds(): string[] {
+    return (this.listedGroups ?? []).map(({ groupId }) => groupId);
+  }
+
   async entriesForTopic(
     admin: Admin,
     topic: string,

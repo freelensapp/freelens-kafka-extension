@@ -13,6 +13,9 @@ vi.mock("./message-fetch", async (importOriginal) => {
   return { ...actual, createKafkaJsReadCluster: vi.fn(actual.createKafkaJsReadCluster) };
 });
 
+// Issue #82 diagnostic build: the size probe would run against the fake clusters of these tests.
+process.env.FREELENS_KAFKA_SIZE_PROBE = "off";
+
 describe("KafkaConnection read cluster lifecycle", () => {
   it("waits for a pending read cluster and disconnects it exactly once", async () => {
     const connection = await KafkaConnection.connect({ bootstrap: "127.0.0.1:1" });

@@ -1,3 +1,6 @@
+import { mkdir, rename, writeFile } from "node:fs/promises";
+import { homedir, tmpdir } from "node:os";
+import { join } from "node:path";
 import { type Admin, Kafka, logLevel, type SASLOptions } from "kafkajs";
 import { splitBootstrap } from "../../common/reachability";
 import { fetchAcls, probeAclSupport } from "./acl";
@@ -15,6 +18,7 @@ import { browseMessagesWithCluster, createKafkaJsReadCluster, type KafkaReadClus
 import { fetchHighWatermarks, type OffsetBatchPartition } from "./offset-batch";
 import { PortForwardManager } from "./port-forward-manager";
 import { createDirectSocketFactory, createRedirectSocketFactory } from "./redirect";
+import { describeConnections, type ProbeCluster, probeTopicSizes, ReaderActivity } from "./size-probe";
 import { fetchTopicConfig } from "./topic-config";
 import { toTopicDetail } from "./topic-metadata";
 import type { ConnectionOptions as TlsOptions } from "node:tls";
@@ -40,6 +44,9 @@ import type {
 import type { Forwarder } from "./port-forward-manager";
 import type { KafkaProgressReporter } from "./progress";
 import type { BrokerRef } from "./types";
+
+/** Issue #82 diagnostic build: at most one size probe every ten minutes per connection. */
+const SIZE_PROBE_EVERY_MS = 10 * 60_000;
 
 export interface ConnectOptions {
   clientId?: string;
@@ -70,11 +77,16 @@ export class KafkaConnection {
   private readonly portForwards?: PortForwardManager;
   private kafka!: Kafka;
   private directClose?: () => void;
+  /** Issue #82 diagnostic build: the sockets of the connection, for the probe client. */
+  private socketFactory?: ReturnType<typeof createRedirectSocketFactory>;
   private disconnected = false;
   private messageCluster?: KafkaReadCluster;
   private messageClusterConnect?: Promise<KafkaReadCluster>;
   private groupOffsetBatchReader?: KafkaGroupOffsetBatchReader;
   private readonly consumerGroupOffsets: ConsumerGroupOffsetIndex;
+  /** Issue #82 diagnostic build: what the readers of the shared read cluster do, and the last probe. */
+  private readonly activity = new ReaderActivity();
+  private sizeProbe?: { shown: string; startedAt: number; running: boolean; summary?: string };
 
   private constructor(private readonly options: ConnectOptions) {
     this.portForwards = options.forwarder ? new PortForwardManager(options.forwarder) : undefined;
@@ -101,6 +113,7 @@ export class KafkaConnection {
       this.directClose = direct.closeAll;
       socketFactory = direct.socketFactory;
     }
+    this.socketFactory = socketFactory;
     this.kafka = new Kafka({
       clientId: this.options.clientId ?? "freelens-kafka",
       brokers: splitBootstrap(this.options.bootstrap),
@@ -110,6 +123,25 @@ export class KafkaConnection {
       socketFactory,
       connectionTimeout: 10_000,
       retry: { retries: 5 },
+    });
+  }
+
+  /**
+   * Issue #82 diagnostic build: a client for the size probe, like the one of the connection (same
+   * credentials, TLS and sockets, so a disconnect closes its sockets too) but with the KafkaJS
+   * retries off, so that a connection the broker closes is reported instead of retried, and on the
+   * given bootstrap addresses only when the probe asks one broker at a time.
+   */
+  private probeClient(bootstrap?: readonly string[]): Kafka {
+    return new Kafka({
+      clientId: this.options.clientId ?? "freelens-kafka",
+      brokers: bootstrap ? [...bootstrap] : splitBootstrap(this.options.bootstrap),
+      ssl: this.options.ssl,
+      sasl: this.options.sasl,
+      logLevel: logLevel.NOTHING,
+      socketFactory: this.socketFactory,
+      connectionTimeout: 10_000,
+      retry: { retries: 0 },
     });
   }
 
@@ -371,7 +403,11 @@ export class KafkaConnection {
   browseMessages(
     request: Pick<MessageBrowseRequest, "topic" | "partition" | "startMode" | "offset" | "timestamp" | "limit">,
   ): Promise<MessageBrowseDto> {
-    return this.getMessageCluster().then((cluster) => browseMessagesWithCluster(cluster, request));
+    return this.activity.track(
+      "messages (Metadata if needed, ListOffsets, Fetch)",
+      () => this.getMessageCluster().then((cluster) => browseMessagesWithCluster(cluster, request)),
+      (page) => `${page.messages.length} record(s)`,
+    );
   }
 
   /**
@@ -396,12 +432,15 @@ export class KafkaConnection {
     const attempt = async (): Promise<{ sizes: TopicSizesDto } | { error: unknown; detail: string }> => {
       const startedAt = Date.now();
       try {
-        const cluster = await answerWithin(deadline - Date.now(), () => this.getMessageCluster()).catch(
-          (error: unknown) => {
-            throw new TopicSizesStepError("opening the read cluster", error);
-          },
-        );
-        return { sizes: await fetchTopicSizes(cluster, topics, { signal, log, deadline }) };
+        const sizes = await this.activity.track("topic sizes (Metadata, DescribeLogDirs v1)", async () => {
+          const cluster = await answerWithin(deadline - Date.now(), () => this.getMessageCluster()).catch(
+            (error: unknown) => {
+              throw new TopicSizesStepError("opening the read cluster", error);
+            },
+          );
+          return fetchTopicSizes(cluster, topics, { signal, log, deadline });
+        });
+        return { sizes };
       } catch (error) {
         const reason = error instanceof TopicSizesStepError ? error.message : describeError(error);
         return { error, detail: `${reason} (after ${Date.now() - startedAt} ms)` };
@@ -415,14 +454,113 @@ export class KafkaConnection {
     const first = await attempt();
     if ("sizes" in first) return done(first.sizes);
     if (!(first.error instanceof TopicSizesStepError) || signal?.aborted || this.disconnected) throw first.error;
-    if (!first.error.dropped) throw failed(first.detail);
+    if (!first.error.dropped) throw failed(`${first.detail}${this.sizeProbeNote(topics, first.detail)}`);
     log(`${first.detail}; reading once more`);
     const second = await attempt();
     if ("sizes" in second) {
       log("the second read succeeded");
+      // Issue #82 diagnostic build: a connection the broker closed is what the probe is for, even when the
+      // second read worked; the hover text of the sizes then says where its report goes.
+      const note = this.sizeProbeNote(topics, `first attempt: ${first.detail}; the second read succeeded`);
+      if (note) log(note.replace(/^\. /, ""));
       return done(second.sizes);
     }
-    throw failed(`${second.detail}; first attempt: ${first.detail}`);
+    const reason = `${second.detail}; first attempt: ${first.detail}`;
+    throw failed(`${reason}${this.sizeProbeNote(topics, reason)}`);
+  }
+
+  /**
+   * Issue #82 diagnostic build: after a failed size read, start the probe of `size-probe.ts` in the
+   * background (at most one every ten minutes) and say in the hover text where its report goes; a
+   * later failure says it again with the one-line summary of the finished probe.
+   */
+  private sizeProbeNote(topics: readonly string[], failure: string): string {
+    // The unit tests of this class turn it off: the probe would run against their fake clusters.
+    if (process.env.FREELENS_KAFKA_SIZE_PROBE === "off") return "";
+    // Whatever goes wrong here must not replace the error of the size read.
+    try {
+      return this.startSizeProbe(topics, failure);
+    } catch {
+      return "";
+    }
+  }
+
+  private startSizeProbe(topics: readonly string[], failure: string): string {
+    const current = this.sizeProbe;
+    if (current?.running) return `. Diagnostic probe running, report: ${current.shown}`;
+    if (current && Date.now() - current.startedAt < SIZE_PROBE_EVERY_MS) {
+      return `. Diagnostic report: ${current.shown}${current.summary ? ` (probe: ${current.summary})` : ""}`;
+    }
+    const stamp = new Date()
+      .toISOString()
+      .replace(/[-:]/g, "")
+      .replace(/\.\d+Z$/, "Z");
+    const override = process.env.FREELENS_KAFKA_DIAGNOSTICS_DIR;
+    let directory = override || join(homedir(), "freelens-kafka-diagnostics");
+    let file = join(directory, `topic-sizes-${stamp}.txt`);
+    const probe = {
+      shown: override ? file : `~/freelens-kafka-diagnostics/topic-sizes-${stamp}.txt`,
+      startedAt: Date.now(),
+      running: true,
+      summary: undefined as string | undefined,
+    };
+    this.sizeProbe = probe;
+    // The whole report each time, through a file of its own and a rename: a quit in the middle leaves the last one.
+    const writeAtomically = async (text: string) => {
+      await mkdir(directory, { recursive: true });
+      await writeFile(`${file}.partial`, text, "utf8");
+      await rename(`${file}.partial`, file);
+    };
+    const write = async (text: string) => {
+      try {
+        await writeAtomically(text);
+      } catch {
+        // A sandbox may forbid the home folder: fall back to the temporary folder once.
+        if (directory.startsWith(tmpdir())) throw new Error("the report could not be written");
+        directory = join(tmpdir(), "freelens-kafka-diagnostics");
+        file = join(directory, `topic-sizes-${stamp}.txt`);
+        probe.shown = file;
+        await writeAtomically(text);
+      }
+    };
+    void probeTopicSizes(
+      {
+        failure,
+        topics,
+        bootstrap: splitBootstrap(this.options.bootstrap),
+        settings: this.describeSettings(),
+        activity: this.activity.describe(),
+        sharedConnections: describeConnections(this.messageCluster as ProbeCluster | undefined),
+        names: this.consumerGroupOffsets.knownGroupIds(),
+      },
+      {
+        createCluster: (bootstrap) => createKafkaJsReadCluster(this.probeClient(bootstrap)) as ProbeCluster,
+        createAdmin: () => this.probeClient().admin(),
+        write,
+        stopped: () => this.disconnected,
+        home: homedir(),
+      },
+    )
+      .then(
+        (summary) => {
+          probe.summary = summary;
+        },
+        (error: unknown) => {
+          probe.summary = `the probe failed (${error instanceof Error ? error.name : "unknown error"})`;
+        },
+      )
+      .finally(() => {
+        probe.running = false;
+      });
+    return `. Diagnostic probe started, report in about two minutes: ${probe.shown}`;
+  }
+
+  /** SASL mechanism, TLS and strategy, without addresses or secrets. */
+  private describeSettings(): string {
+    const sasl = this.options.sasl ? `SASL ${this.options.sasl.mechanism}` : "no SASL";
+    const tls = this.options.ssl ? "TLS" : "no TLS";
+    const strategy = this.options.forwarder ? "port-forward" : "direct";
+    return `${sasl}, ${tls}, ${strategy} connection`;
   }
 
   /** List all consumer groups with state and member count (read-only, no join or commit). */
@@ -572,14 +710,33 @@ export class KafkaConnection {
     partitions: OffsetBatchPartition[],
     signal?: AbortSignal,
   ): Promise<Map<string, Map<number, string>>> {
-    return fetchHighWatermarks(await this.getMessageCluster(), partitions, 500, signal);
+    return this.activity.track(
+      `watermarks of ${partitions.length} partition(s) (Metadata if needed, ListOffsets)`,
+      async () => fetchHighWatermarks(await this.getMessageCluster(), partitions, 500, signal),
+    );
   }
 
   private async fetchGroupOffsets(groupIds: string[], signal?: AbortSignal) {
-    if (!this.groupOffsetBatchReader) {
-      this.groupOffsetBatchReader = new KafkaGroupOffsetBatchReader(await this.getMessageCluster());
-    }
-    return this.groupOffsetBatchReader.read(groupIds, signal);
+    const reader = "lag of consumer groups (Metadata once, FindCoordinator v4, OffsetFetch v8)";
+    return this.activity.track(
+      reader,
+      async () => {
+        if (!this.groupOffsetBatchReader) {
+          this.groupOffsetBatchReader = new KafkaGroupOffsetBatchReader(await this.getMessageCluster(), {
+            onRequestError: (request, error) => {
+              try {
+                this.activity.note(reader, `${request} failed: ${describeError(error)}`);
+              } catch {
+                // A diagnostic note must never break the lag reader.
+              }
+            },
+          });
+        }
+        return this.groupOffsetBatchReader.read(groupIds, signal);
+      },
+      (result) =>
+        `${result.resolvedGroupIds.size} of ${groupIds.length} group(s) resolved${result.supported ? "" : ", batch not supported"}`,
+    );
   }
 }
 

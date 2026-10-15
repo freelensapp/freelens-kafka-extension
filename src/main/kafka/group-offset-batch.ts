@@ -34,6 +34,8 @@ interface GroupOffsetBatchOptions {
   concurrency?: number;
   coordinatorChunkSize?: number;
   groupChunkSize?: number;
+  /** Issue #82 diagnostic build: told about every request error the reader otherwise swallows. */
+  onRequestError?: (request: string, error: unknown) => void;
 }
 
 interface VersionedBroker {
@@ -130,6 +132,7 @@ export class KafkaGroupOffsetBatchReader {
           }
         }
       } catch (error) {
+        this.options.onRequestError?.(`FindCoordinator v4 for ${groupChunk.length} group(s)`, error);
         this.throwIfAborted(signal);
         if (batchDisablingError(error)) {
           this.capability = "unsupported";
@@ -196,6 +199,7 @@ export class KafkaGroupOffsetBatchReader {
             unresolvedGroupIds.delete(groupId);
           }
         } catch (error) {
+          this.options.onRequestError?.(`OffsetFetch v8 for ${chunk.length} group(s) to broker ${nodeId}`, error);
           this.throwIfAborted(signal);
           for (const groupId of chunk) this.coordinatorByGroup.delete(groupId);
           this.metadataReady = false;
