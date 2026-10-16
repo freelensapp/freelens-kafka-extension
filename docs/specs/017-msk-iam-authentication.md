@@ -2,9 +2,9 @@
 
 | Field | Value |
 | --- | --- |
-| Status | Verified |
+| Status | Implemented |
 | Date | 2026-09-28 |
-| Source | Issue #62 and pull request #72 by its reporter, whose MSK Express brokers accept IAM only |
+| Source | Issue #62 and pull request #72 by its reporter, whose MSK Express brokers accept IAM only; issue #82 by the same reporter for REQ-221 |
 | Safety | Read-only: the token only authenticates the connection, the extension calls no AWS API and writes nothing; governed by `TESTING-SAFETY.md` |
 
 ## Problem
@@ -56,6 +56,10 @@ the authentication menu opened under the drawer, so only its first entry was rea
   controls: the user MUST be able to choose a mode and reconnect without closing the drawer.
 - **REQ-217** — The menus of the Security override MUST render above the Connection Settings
   drawer, so that every mode is selectable.
+- **REQ-221** — Every request a page sends for a target MUST carry the Security override saved for
+  that target and the workload source of the target, as the topic list does: the main process picks
+  the session and its credentials from them, and a request without them gets a session of its own
+  with the automatic settings only.
 
 ## Success Criteria
 
@@ -72,6 +76,12 @@ the authentication menu opened under the drawer, so only its first entry was rea
 - **SC-128** — A real MSK Express cluster reachable only with IAM (the reporter's, through a VPN on
   port 9098) is browsed with a pre-release package built with the release configuration: metadata
   and topics are read, nothing is written.
+- **SC-131** — Unit: every object literal of the renderer that selects a target (it names the cluster
+  and its bootstrap) carries `security` and `sourceLocator`. The check fails on the seven requests of
+  v1.4.1 that did not: topic sizes, produce, delete topic, delete topics, reset offsets, the ACL
+  requests and the follow-up reads of the message browser (the source only).
+- **SC-132** — The same MSK Express cluster shows its topic sizes with a pre-release package built
+  with the release configuration from the branch of REQ-221.
 
 ## Decision Log
 
@@ -97,6 +107,14 @@ the authentication menu opened under the drawer, so only its first entry was rea
   `authorizationIdentity`.
 - **2026-09-28** — Verified on the only cluster that counts: the reporter ran the pre-release package on his MSK
   Express brokers and it behaved as his own build (#72). The status moves to Verified and v1.4.0 ships it.
+- **2026-10-16** — Topic sizes showed `n/a` on the MSK Express cluster while the topic list worked
+  (#82). A diagnostic build reported that the size read ran on a connection without SASL: its request
+  did not carry the override, so the main process opened a separate session with the automatic
+  settings, which find nothing for an endpoint outside Kubernetes, and the brokers closed every
+  request before authentication. Six other requests had the same gap. They now all carry the two
+  fields, and SC-131 scans the renderer so that a new request cannot leave them out; making the
+  fields required in the request types would give the same guarantee at the cost of touching every
+  request type and test. The status goes back to Implemented until SC-132.
 - **2026-09-26** — The release build inlines the dynamic imports of the SDK credential chain
   (`inlineDynamicImports` when modules are not preserved): otherwise the lazy providers (SSO, STS,
   credential process) become 27 chunk files beside `out/main/index.js`. The main bundle grows from
@@ -111,3 +129,5 @@ the authentication menu opened under the drawer, so only its first entry was rea
 | REQ-215 | `src/main/kafka/external-credentials.test.ts` (detection of `AWS_MSK_IAM` with the region, no credential read) |
 | SC-127 | Release build of 2026-09-26: one `out/main/index.js` of 8.8 MB, smoke test green, no chunk, no external `require` beyond Node and Electron |
 | SC-128 | Verified on 2026-09-28 by the reporter of #62: the pre-release package `freelensapp-kafka-extension-1.4.0-0.tgz`, built with the release configuration from this branch, installed by path in Freelens, browsed his MSK Express cluster (IAM only, reached through a VPN on port 9098) as the first build of #72 had: metadata and topics read, nothing written (#72) |
+| REQ-221, SC-131 | `src/renderer/kafka-request-connection.test.ts`: on 2026-10-16 it listed the seven requests of v1.4.1 without the two fields, and passes with the fix |
+| SC-132 | Pending: pre-release package for the reporter of #82 |

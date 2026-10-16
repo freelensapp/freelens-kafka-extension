@@ -570,6 +570,11 @@ export function KafkaTopicsPage({
             tls: sizeCluster.tls,
             namespace: sizeCluster.namespace,
             clusterName: sizeCluster.name,
+            sourceLocator: sizeCluster.sourceLocator,
+            security: dependencies.connectionSettings.get(
+              dependencies.kubernetesClusterId ?? "active",
+              sizeCluster.targetId,
+            ),
           }
         : undefined,
     [
@@ -579,6 +584,9 @@ export function KafkaTopicsPage({
       sizeCluster?.tls,
       sizeCluster?.namespace,
       sizeCluster?.name,
+      sizeCluster?.sourceLocator,
+      dependencies.connectionSettings,
+      dependencies.kubernetesClusterId,
     ],
   );
   const metadataTopics = state.metadataState.data?.topics;
@@ -901,6 +909,8 @@ export function KafkaTopicsPage({
       tls: cluster.tls,
       namespace: cluster.namespace,
       clusterName: cluster.name,
+      sourceLocator: cluster.sourceLocator,
+      security: dependencies.connectionSettings.get(dependencies.kubernetesClusterId ?? "active", cluster.targetId),
       topic: locked.topic,
       key: draft.key,
       value: draft.value,
@@ -964,6 +974,8 @@ export function KafkaTopicsPage({
       tls: cluster.tls,
       namespace: cluster.namespace,
       clusterName: cluster.name,
+      sourceLocator: cluster.sourceLocator,
+      security: dependencies.connectionSettings.get(dependencies.kubernetesClusterId ?? "active", cluster.targetId),
       topic: locked.topic,
     })
       .then((result) => {
@@ -1038,6 +1050,8 @@ export function KafkaTopicsPage({
       tls: cluster.tls,
       namespace: cluster.namespace,
       clusterName: cluster.name,
+      sourceLocator: cluster.sourceLocator,
+      security: dependencies.connectionSettings.get(dependencies.kubernetesClusterId ?? "active", cluster.targetId),
       topics: locked.topics,
     })
       .then((result) => {

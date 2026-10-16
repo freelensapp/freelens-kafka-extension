@@ -6,7 +6,13 @@ import { canSubmitWriteAction } from "./kafka-write-policy";
 
 import type { HTMLAttributes } from "react";
 
-import type { AclWriteRequest, KafkaAclDto, KafkaAclResultDto, KafkaWorkloadSourceLocator } from "../common/ipc";
+import type {
+  AclWriteRequest,
+  KafkaAclDto,
+  KafkaAclResultDto,
+  KafkaSecurityOverride,
+  KafkaWorkloadSourceLocator,
+} from "../common/ipc";
 
 const RESOURCE_TYPES = ["TOPIC", "GROUP", "CLUSTER", "TRANSACTIONAL_ID"];
 const PATTERN_TYPES = ["LITERAL", "PREFIXED"];
@@ -21,6 +27,7 @@ interface AclTargetRequest {
   tls: boolean;
   targetId: string;
   sourceLocator?: KafkaWorkloadSourceLocator;
+  security?: KafkaSecurityOverride;
 }
 
 export interface KafkaAclPageProps extends KafkaResourcePageDependencies {
@@ -47,10 +54,14 @@ export function KafkaAclPage({ params, acls, aclCreate, aclDelete, ...dependenci
             bootstrap: cluster.bootstrap,
             tls: cluster.tls,
             sourceLocator: cluster.sourceLocator,
+            security: dependencies.connectionSettings.get(
+              dependencies.kubernetesClusterId ?? "active",
+              cluster.targetId,
+            ),
             targetId: cluster.targetId,
           }
         : undefined,
-    [cluster],
+    [cluster, dependencies.connectionSettings, dependencies.kubernetesClusterId],
   );
 
   const [result, setResult] = useState<KafkaAclResultDto>();
