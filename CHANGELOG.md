@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+### Fixed
+
+- Every page now uses the Security override saved for a cluster. Topic sizes, Produce message, Delete topic, the batch deletion of topics, Reset offsets and the ACL page sent their requests without it, so the main process opened a separate connection with the automatic settings only: with an `AWS IAM (MSK)` override, or a PLAIN or SCRAM one entered by hand, the brokers closed that connection before authentication, and the topic sizes showed `n/a` while the topic list worked (#82).
+
 ## v1.4.1 - 2026-10-01
 
 ### Fixed

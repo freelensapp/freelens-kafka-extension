@@ -469,6 +469,7 @@ export function KafkaMessagesBrowser({
         source: cluster.source,
         bootstrap: cluster.bootstrap,
         tls: cluster.tls,
+        sourceLocator: cluster.sourceLocator,
         security,
       })
         .then((data) => {

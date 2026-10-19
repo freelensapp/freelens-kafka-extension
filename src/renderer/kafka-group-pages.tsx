@@ -387,6 +387,11 @@ export function KafkaGroupsPage({
                           tls: state.selectedCluster.tls,
                           namespace: state.selectedCluster.namespace,
                           clusterName: state.selectedCluster.name,
+                          sourceLocator: state.selectedCluster.sourceLocator,
+                          security: dependencies.connectionSettings.get(
+                            dependencies.kubernetesClusterId ?? "active",
+                            state.selectedCluster.targetId,
+                          ),
                           groupId,
                           topic: firstTopic.topic,
                           partition: firstPartition.partition,
