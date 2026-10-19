@@ -47,7 +47,7 @@ Specification states: `Draft` → `Accepted` → `Implementing` → `Verified` �
 | [SPEC-014](./014-production-scale-performance.md) | Verified | REQ-152–REQ-191 | Production-scale performance, lossless aggregate-health batching, backend/API/browser gates and explicit final approval |
 | [SPEC-015](./015-topic-size.md) | Implemented | REQ-198–REQ-201 | Topic and partition size on disk through DescribeLogDirs (v1.2.0) |
 | [SPEC-016](./016-update-without-restart.md) | Implemented | REQ-209–REQ-211 | Version probe between the two halves of the extension and restart notice after an in-place update |
-| [SPEC-017](./017-msk-iam-authentication.md) | Implemented | REQ-212–REQ-217, REQ-221 | AWS IAM authentication for direct Amazon MSK connections (SASL/OAUTHBEARER with a token minted from the AWS SDK credential chain) |
+| [SPEC-017](./017-msk-iam-authentication.md) | Verified | REQ-212–REQ-217, REQ-221 | AWS IAM authentication for direct Amazon MSK connections (SASL/OAUTHBEARER with a token minted from the AWS SDK credential chain) |
 | [SPEC-018](./018-durable-settings.md) | Implemented | REQ-218–REQ-220 | Settings kept in the host extension store so that they survive a Freelens restart; the Security override persisted without its password |
 
 The next available requirement ID is `REQ-222`. SPEC-007–014 allocate REQ-084–REQ-191 and define

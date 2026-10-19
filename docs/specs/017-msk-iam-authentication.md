@@ -2,7 +2,7 @@
 
 | Field | Value |
 | --- | --- |
-| Status | Implemented |
+| Status | Verified |
 | Date | 2026-09-28 |
 | Source | Issue #62 and pull request #72 by its reporter, whose MSK Express brokers accept IAM only; issue #82 by the same reporter for REQ-221 |
 | Safety | Read-only: the token only authenticates the connection, the extension calls no AWS API and writes nothing; governed by `TESTING-SAFETY.md` |
@@ -115,6 +115,9 @@ the authentication menu opened under the drawer, so only its first entry was rea
   fields, and SC-131 scans the renderer so that a new request cannot leave them out; making the
   fields required in the request types would give the same guarantee at the cost of touching every
   request type and test. The status goes back to Implemented until SC-132.
+- **2026-10-16** — Verified on the same cluster: the reporter ran the pre-release package built
+  from this fix on his MSK Express brokers and the topic sizes appeared where v1.4.1 showed `n/a`
+  (#82). The status moves back to Verified and v1.4.2 ships it.
 - **2026-09-26** — The release build inlines the dynamic imports of the SDK credential chain
   (`inlineDynamicImports` when modules are not preserved): otherwise the lazy providers (SSO, STS,
   credential process) become 27 chunk files beside `out/main/index.js`. The main bundle grows from
@@ -130,4 +133,4 @@ the authentication menu opened under the drawer, so only its first entry was rea
 | SC-127 | Release build of 2026-09-26: one `out/main/index.js` of 8.8 MB, smoke test green, no chunk, no external `require` beyond Node and Electron |
 | SC-128 | Verified on 2026-09-28 by the reporter of #62: the pre-release package `freelensapp-kafka-extension-1.4.0-0.tgz`, built with the release configuration from this branch, installed by path in Freelens, browsed his MSK Express cluster (IAM only, reached through a VPN on port 9098) as the first build of #72 had: metadata and topics read, nothing written (#72) |
 | REQ-221, SC-131 | `src/renderer/kafka-request-connection.test.ts`: on 2026-10-16 it listed the seven requests of v1.4.1 without the two fields, and passes with the fix |
-| SC-132 | Pending: pre-release package for the reporter of #82 |
+| SC-132 | Verified on 2026-10-16 by the reporter of #82: the pre-release package `freelensapp-kafka-extension-1.4.2-3.tgz`, built with the release configuration from the branch of REQ-221 (v1.4.1 plus the fix, no diagnostic code), installed by path in Freelens, showed the topic sizes of his MSK Express cluster (IAM only) where v1.4.1 showed `n/a` with "Closed connection" (#82) |
