@@ -580,13 +580,11 @@ export function KafkaGroupsPage({
                           data-group={group.groupId}
                           nowrap
                         >
-                          <Renderer.Component.TableCell
-                            className="groupNameCell"
-                            title={group.groupId}
-                            style={GROUP_NAME_COLUMN_STYLE}
-                          >
+                          <Renderer.Component.TableCell className="groupNameCell" style={GROUP_NAME_COLUMN_STYLE}>
                             <Renderer.Component.Icon material="group" />
-                            <span className="KafkaEllipsis">{group.groupId}</span>
+                            <span className="KafkaEllipsis" title={group.groupId}>
+                              {group.groupId}
+                            </span>
                           </Renderer.Component.TableCell>
                           <Renderer.Component.TableCell className="groupStateCell" style={GROUP_STATE_COLUMN_STYLE}>
                             <GroupStateBadge state={group.state} />
@@ -798,13 +796,11 @@ function KafkaGroupTopics({
               data-topic={topic.topic}
               nowrap
             >
-              <Renderer.Component.TableCell
-                className="groupTopicNameCell"
-                title={topic.topic}
-                style={GROUP_TOPIC_NAME_STYLE}
-              >
+              <Renderer.Component.TableCell className="groupTopicNameCell" style={GROUP_TOPIC_NAME_STYLE}>
                 <Renderer.Component.Icon material="topic" />
-                <span className="KafkaEllipsis">{topic.topic}</span>
+                <span className="KafkaEllipsis" title={topic.topic}>
+                  {topic.topic}
+                </span>
               </Renderer.Component.TableCell>
               <Renderer.Component.TableCell className="groupTopicPartitionsCell" style={GROUP_TOPIC_PARTITIONS_STYLE}>
                 {topic.partitions.length}
@@ -861,14 +857,20 @@ function KafkaGroupMembers({ detail }: { detail: ConsumerGroupDetailDto }) {
         </Renderer.Component.TableHead>
         {detail.members.map((m) => (
           <Renderer.Component.TableRow key={m.memberId} nowrap>
-            <Renderer.Component.TableCell className="memberIdCell" title={m.memberId} style={MEMBER_ID_STYLE}>
-              <code className="KafkaEllipsis">{m.memberId}</code>
+            <Renderer.Component.TableCell className="memberIdCell" style={MEMBER_ID_STYLE}>
+              <code className="KafkaEllipsis" title={m.memberId}>
+                {m.memberId}
+              </code>
             </Renderer.Component.TableCell>
-            <Renderer.Component.TableCell className="clientIdCell" title={m.clientId} style={MEMBER_CLIENT_STYLE}>
-              <span className="KafkaEllipsis">{m.clientId}</span>
+            <Renderer.Component.TableCell className="clientIdCell" style={MEMBER_CLIENT_STYLE}>
+              <span className="KafkaEllipsis" title={m.clientId}>
+                {m.clientId}
+              </span>
             </Renderer.Component.TableCell>
-            <Renderer.Component.TableCell className="clientHostCell" title={m.clientHost} style={MEMBER_HOST_STYLE}>
-              <code className="KafkaEllipsis">{m.clientHost}</code>
+            <Renderer.Component.TableCell className="clientHostCell" style={MEMBER_HOST_STYLE}>
+              <code className="KafkaEllipsis" title={m.clientHost}>
+                {m.clientHost}
+              </code>
             </Renderer.Component.TableCell>
           </Renderer.Component.TableRow>
         ))}

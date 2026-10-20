@@ -876,14 +876,18 @@ export function KafkaMessagesBrowser({
                     <Renderer.Component.TableCell className="messageOffsetCell">
                       {message.offset}
                     </Renderer.Component.TableCell>
-                    <Renderer.Component.TableCell className="messageTimeCell" title={message.timestamp}>
-                      {formatTimestamp(message.timestamp)}
+                    <Renderer.Component.TableCell className="messageTimeCell">
+                      <span title={message.timestamp}>{formatTimestamp(message.timestamp)}</span>
                     </Renderer.Component.TableCell>
-                    <Renderer.Component.TableCell className="messageKeyCell" title={message.key.text}>
-                      <span className="KafkaEllipsis">{messageBytesText(message.key)}</span>
+                    <Renderer.Component.TableCell className="messageKeyCell">
+                      <span className="KafkaEllipsis" title={message.key.text}>
+                        {messageBytesText(message.key)}
+                      </span>
                     </Renderer.Component.TableCell>
-                    <Renderer.Component.TableCell className="messageValueCell" title={message.value.text}>
-                      <span className="KafkaEllipsis">{messageBytesText(message.value)}</span>
+                    <Renderer.Component.TableCell className="messageValueCell">
+                      <span className="KafkaEllipsis" title={message.value.text}>
+                        {messageBytesText(message.value)}
+                      </span>
                     </Renderer.Component.TableCell>
                     <Renderer.Component.TableCell className="messageActionCell">
                       <Renderer.Component.Button
