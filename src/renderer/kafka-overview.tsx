@@ -1496,10 +1496,10 @@ export function KafkaOverviewPage({
                       nowrap
                       data-bootstrap={kafka.bootstrap}
                     >
-                      <Renderer.Component.TableCell className="nameCell" title={kafka.name}>
+                      <Renderer.Component.TableCell className="nameCell">
                         <div className="KafkaClusterName">
                           <Renderer.Component.Icon material="hub" />
-                          <span>{kafka.name}</span>
+                          <span title={kafka.name}>{kafka.name}</span>
                           {missingTargetIds.has(kafka.targetId) && (
                             <Renderer.Component.Badge small label="Not found in latest scan" />
                           )}
@@ -1511,8 +1511,10 @@ export function KafkaOverviewPage({
                       <Renderer.Component.TableCell className="sourceCell">
                         <SourceBadge kafka={kafka} />
                       </Renderer.Component.TableCell>
-                      <Renderer.Component.TableCell className="bootstrapCell" title={kafka.bootstrap}>
-                        <code className="KafkaEllipsis">{kafka.bootstrap}</code>
+                      <Renderer.Component.TableCell className="bootstrapCell">
+                        <code className="KafkaEllipsis" title={kafka.bootstrap}>
+                          {kafka.bootstrap}
+                        </code>
                       </Renderer.Component.TableCell>
                       <Renderer.Component.TableCell className="securityCell">
                         <SecurityBadge security={kafka.securityHint ?? { tls: kafka.tls, auth: "none" }} />

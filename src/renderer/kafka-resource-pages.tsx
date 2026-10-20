@@ -1065,15 +1065,15 @@ function BrokerConfigView({ state, onRetry }: { state: BrokerConfigState; onRetr
       </Renderer.Component.TableHead>
       {state.data.entries.map((entry) => (
         <Renderer.Component.TableRow key={entry.name} sortItem={entry} nowrap>
-          <Renderer.Component.TableCell className="configNameCell" title={entry.name} style={BROKER_CONFIG_NAME_STYLE}>
-            <span className="KafkaEllipsis">{entry.name}</span>
+          <Renderer.Component.TableCell className="configNameCell" style={BROKER_CONFIG_NAME_STYLE}>
+            <span className="KafkaEllipsis" title={entry.name}>
+              {entry.name}
+            </span>
           </Renderer.Component.TableCell>
-          <Renderer.Component.TableCell
-            className="configValueCell"
-            title={entry.value}
-            style={BROKER_CONFIG_VALUE_STYLE}
-          >
-            <span className="KafkaEllipsis KafkaMono">{entry.value || "—"}</span>
+          <Renderer.Component.TableCell className="configValueCell" style={BROKER_CONFIG_VALUE_STYLE}>
+            <span className="KafkaEllipsis KafkaMono" title={entry.value}>
+              {entry.value || "—"}
+            </span>
           </Renderer.Component.TableCell>
           <Renderer.Component.TableCell className="configSourceCell" style={BROKER_CONFIG_SOURCE_STYLE}>
             <span className="KafkaConfigSource">{entry.source}</span>
@@ -1312,8 +1312,10 @@ export function KafkaBrokersPage(props: KafkaBrokersPageProps) {
                         label={broker.nodeId === data.controller ? "Controller" : "Broker"}
                       />
                     </Renderer.Component.TableCell>
-                    <Renderer.Component.TableCell className="brokerHostCell" title={broker.host}>
-                      <code className="KafkaEllipsis">{broker.host}</code>
+                    <Renderer.Component.TableCell className="brokerHostCell">
+                      <code className="KafkaEllipsis" title={broker.host}>
+                        {broker.host}
+                      </code>
                     </Renderer.Component.TableCell>
                     <Renderer.Component.TableCell className="brokerPortCell">
                       {broker.port}

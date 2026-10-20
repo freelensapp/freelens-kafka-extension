@@ -263,13 +263,11 @@ function TopicConsumers({
             data-group={group.groupId}
             nowrap
           >
-            <Renderer.Component.TableCell
-              className="consumerGroupCell"
-              title={group.groupId}
-              style={TOPIC_CONSUMER_NAME_COLUMN_STYLE}
-            >
+            <Renderer.Component.TableCell className="consumerGroupCell" style={TOPIC_CONSUMER_NAME_COLUMN_STYLE}>
               <Renderer.Component.Icon material="group" />
-              <span className="KafkaEllipsis">{group.groupId}</span>
+              <span className="KafkaEllipsis" title={group.groupId}>
+                {group.groupId}
+              </span>
             </Renderer.Component.TableCell>
             <Renderer.Component.TableCell className="consumerStateCell" style={TOPIC_CONSUMER_STATE_COLUMN_STYLE}>
               <TopicConsumerStateBadge state={group.state} />
@@ -352,19 +350,15 @@ function TopicConfiguration({
       </Renderer.Component.TableHead>
       {state.data?.entries.map((entry) => (
         <Renderer.Component.TableRow key={entry.name} sortItem={entry} nowrap>
-          <Renderer.Component.TableCell
-            className="configNameCell"
-            title={entry.name}
-            style={TOPIC_CONFIG_NAME_COLUMN_STYLE}
-          >
-            <span className="KafkaEllipsis">{entry.name}</span>
+          <Renderer.Component.TableCell className="configNameCell" style={TOPIC_CONFIG_NAME_COLUMN_STYLE}>
+            <span className="KafkaEllipsis" title={entry.name}>
+              {entry.name}
+            </span>
           </Renderer.Component.TableCell>
-          <Renderer.Component.TableCell
-            className="configValueCell"
-            title={entry.value}
-            style={TOPIC_CONFIG_VALUE_COLUMN_STYLE}
-          >
-            <span className="KafkaEllipsis KafkaMono">{entry.value || "—"}</span>
+          <Renderer.Component.TableCell className="configValueCell" style={TOPIC_CONFIG_VALUE_COLUMN_STYLE}>
+            <span className="KafkaEllipsis KafkaMono" title={entry.value}>
+              {entry.value || "—"}
+            </span>
           </Renderer.Component.TableCell>
           <Renderer.Component.TableCell className="configSourceCell" style={TOPIC_CONFIG_SOURCE_COLUMN_STYLE}>
             <span className="KafkaConfigSource">{entry.source}</span>
@@ -1549,13 +1543,11 @@ export function KafkaTopicsPage({
                           />
                         </Renderer.Component.TableCell>
                       )}
-                      <Renderer.Component.TableCell
-                        className="topicNameCell"
-                        title={name}
-                        style={TOPIC_NAME_COLUMN_STYLE}
-                      >
+                      <Renderer.Component.TableCell className="topicNameCell" style={TOPIC_NAME_COLUMN_STYLE}>
                         <Renderer.Component.Icon material="topic" />
-                        <span className="KafkaEllipsis">{name}</span>
+                        <span className="KafkaEllipsis" title={name}>
+                          {name}
+                        </span>
                       </Renderer.Component.TableCell>
                       <Renderer.Component.TableCell className="topicTypeCell" style={TOPIC_TYPE_COLUMN_STYLE}>
                         {name.startsWith("__") ? (

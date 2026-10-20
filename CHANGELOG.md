@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+### Fixed
+
+- Table cells show what they hold again. Freelens renders the `title` of a table cell in place of its content, so seventeen cells showed their tooltip text only: the time of a message in Messages appeared as raw milliseconds, the key and the value lost their formatting, and the cluster, topic and consumer group names lost their icons, as the cluster name lost its "Not found in latest scan" badge. The tooltip now sits on the element inside the cell, and a test keeps a title off every table cell.
+
 ## v1.4.2 - 2026-10-19
 
 ### Fixed
