@@ -1,9 +1,9 @@
 # ADR-001 — Adopt Playwright MCP as an Assisted Verification Layer
 
-| Field | Value |
-| --- | --- |
-| Status | Accepted |
-| Date | 2026-07-22 |
+| Field   | Value                                                                                                                                    |
+| ------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
+| Status  | Accepted                                                                                                                                 |
+| Date    | 2026-07-22                                                                                                                               |
 | Related | [SPEC-002](../specs/002-playwright-mcp-assisted-verification.md), [Freelens PR #2272](https://github.com/freelensapp/freelens/pull/2272) |
 
 ## Context
@@ -19,7 +19,6 @@ explicitly describes this as the manual/agent counterpart to existing integratio
 coverage gaps into deterministic tests.
 
 A local pilot against Freelens 1.10.3 demonstrated:
-
 - CDP attach in **44 ms**;
 - navigation from `/welcome` to the catalog;
 - exact selection of `kind-kind`;
@@ -62,8 +61,8 @@ flowchart LR
 ## Guardrails
 
 1. Start Freelens with [`scripts/start-playwright-mcp-app.sh`](../../scripts/start-playwright-mcp-app.sh),
-  which builds a one-context kubeconfig and pre-seeds Freelens's `syncKubeconfigEntries` preference.
-  Changing `HOME`/`KUBECONFIG` alone is insufficient in Freelens 1.10.3.
+   which builds a one-context kubeconfig and pre-seeds Freelens's `syncKubeconfigEntries` preference.
+   Changing `HOME`/`KUBECONFIG` alone is insufficient in Freelens 1.10.3.
 2. Default and autonomous target is exactly `kind-kind`.
 3. A real target requires the user to name it and `ALLOW_REAL_READ_ONLY=1`; all existing
    [`TESTING-SAFETY.md`](../../TESTING-SAFETY.md) read-only restrictions remain in force.
@@ -75,7 +74,7 @@ flowchart LR
 8. Every defect/finding must end as one of: fixed + deterministic test, explicit spec evidence, or
    documented blocked/non-reproducible result.
 9. Keep temporary kubeconfig/app data private and let the detached launcher watchdog remove it after
-  normal or forced termination; retention requires explicit `FREELENS_MCP_RUNTIME_DIR` opt-in.
+   normal or forced termination; retention requires explicit `FREELENS_MCP_RUNTIME_DIR` opt-in.
 
 ## Consequences
 

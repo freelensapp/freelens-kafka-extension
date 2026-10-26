@@ -1,12 +1,12 @@
 # SPEC-002 — Playwright MCP Assisted Verification
 
-| Field | Value |
-| --- | --- |
-| Status | Verified |
-| Date | 2026-07-22 |
-| Source | Evaluation requested after Freelens PR #2272 |
+| Field    | Value                                                               |
+| -------- | ------------------------------------------------------------------- |
+| Status   | Verified                                                            |
+| Date     | 2026-07-22                                                          |
+| Source   | Evaluation requested after Freelens PR #2272                        |
 | Decision | [ADR-001](../decisions/001-playwright-mcp-assisted-verification.md) |
-| Safety | [`TESTING-SAFETY.md`](../../TESTING-SAFETY.md) |
+| Safety   | [`TESTING-SAFETY.md`](../../TESTING-SAFETY.md)                      |
 
 ## Problem
 
@@ -102,14 +102,14 @@ a different catalog target.
 
 ## Traceability
 
-| Requirements | Artifact/evidence |
-| --- | --- |
-| REQ-012, REQ-019–REQ-021 | ADR-001 testing tiers and promotion rule; existing integration workflow retained |
-| REQ-013 | Local CDP pilot, frame URLs and sidebar evidence |
-| REQ-014–REQ-016 | `scripts/start-playwright-mcp-app.sh`; exact `kind-kind` pilot selector |
-| REQ-017–REQ-018 | Local-only pinned setup and security section in the runbook |
-| REQ-020 | Existing `.github/workflows/integration-tests.yaml` + focused local E2E policy |
-| REQ-022 | Private launcher runtime; detached, marker-validated cleanup watchdog; forced-teardown pilot |
+| Requirements             | Artifact/evidence                                                                            |
+| ------------------------ | -------------------------------------------------------------------------------------------- |
+| REQ-012, REQ-019–REQ-021 | ADR-001 testing tiers and promotion rule; existing integration workflow retained             |
+| REQ-013                  | Local CDP pilot, frame URLs and sidebar evidence                                             |
+| REQ-014–REQ-016          | `scripts/start-playwright-mcp-app.sh`; exact `kind-kind` pilot selector                      |
+| REQ-017–REQ-018          | Local-only pinned setup and security section in the runbook                                  |
+| REQ-020                  | Existing `.github/workflows/integration-tests.yaml` + focused local E2E policy               |
+| REQ-022                  | Private launcher runtime; detached, marker-validated cleanup watchdog; forced-teardown pilot |
 
 ## Decision Log
 

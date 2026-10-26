@@ -38,11 +38,10 @@ This does not relax [`TESTING-SAFETY.md`](../TESTING-SAFETY.md). Never use a gen
 select the exact approved context.
 
 Environment overrides:
-
 - `FREELENS_APP_BINARY` — packaged Freelens executable.
 - `PLAYWRIGHT_MCP_CDP_PORT` — CDP port (default `9223`).
 - `FREELENS_MCP_RUNTIME_DIR` — intentionally retain a chosen runtime/artifact directory instead of
-   deleting a temporary one.
+  deleting a temporary one.
 
 ## 2. Configure MCP locally
 
@@ -53,7 +52,6 @@ code --add-mcp '{"name":"playwright-freelens-kafka","command":"npx","args":["-y"
 ```
 
 Equivalent client-local configuration is acceptable. Do not add:
-
 - `--allow-unrestricted-file-access`;
 - persistent storage export;
 - network/storage/devtools/vision capabilities unless a spec explicitly requires and reviews them;
@@ -65,7 +63,6 @@ actual guardrails.
 ## 3. Frame-aware workflow
 
 Freelens has two surfaces:
-
 - **Top page:** catalog, welcome, preferences and extensions (`https://renderer.freelens.app:*`).
 - **Cluster frame:** sidebar, Kafka resource pages and secondary Connection Settings Drawer
   (`#cluster-frame-<entityId>` → `https://<entityId>.renderer.freelens.app:*`).
@@ -76,7 +73,6 @@ row, then operate in the iframe containing `[data-testid=cluster-sidebar]`.
 ## 4. Kafka exploratory scenario
 
 Record pass/fail/blocked and evidence for the relevant steps:
-
 1. **Extension install/reload (top page)**
    - Install the newest `freelensapp-kafka-extension-*.tgz`.
    - Confirm Enabled; collect extension-scoped console errors.
@@ -106,7 +102,6 @@ MCP can replace ad hoc manual clicking, repeated selector reconnaissance and tem
 It can provide evidence while a scenario is still evolving.
 
 MCP cannot replace:
-
 - type/lint/unit gates;
 - protocol/kind integration tests;
 - clean-state packaged-app Playwright assertions;
@@ -117,6 +112,7 @@ MCP cannot replace:
 
 ```md
 ### MCP run — <date> / <spec requirement>
+
 - App/build: <version/tarball>
 - Kube context: <exact allowlisted context>
 - Result: PASS | FAIL | BLOCKED

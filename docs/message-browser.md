@@ -7,7 +7,6 @@ next slice. Opening Messages performs no record read.
 
 KafkaJS's public consumer requires a `groupId`, so Browse does not use it. The pinned KafkaJS 2.2.4
 adapter in [`message-fetch.ts`](../src/main/kafka/message-fetch.ts):
-
 1. creates an internal Cluster with `READ_COMMITTED` and `allowAutoTopicCreation=false`;
 2. resolves topic/partition metadata and earliest/latest/timestamp through ListOffsets;
 3. sends one leader-specific Fetch for one partition with a 1 MiB broker-response target;

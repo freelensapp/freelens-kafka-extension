@@ -1,10 +1,10 @@
 # SPEC-013 — UX, Performance and v1.0.0 Quality Gate
 
-| Field | Value |
-| --- | --- |
-| Status | Verified |
-| Date | 2026-08-06 |
-| Source | v1.0.0 scope; accepted by user 2026-08-06 |
+| Field  | Value                                                             |
+| ------ | ----------------------------------------------------------------- |
+| Status | Verified                                                          |
+| Date   | 2026-08-06                                                        |
+| Source | v1.0.0 scope; accepted by user 2026-08-06                         |
 | Safety | No write operations in this spec; governed by `TESTING-SAFETY.md` |
 
 ## Problem

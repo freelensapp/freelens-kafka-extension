@@ -16,7 +16,6 @@
 
 Conformant Freelens extension package (matches the other `freelensapp` extensions). Where the earlier phases
 say `engine/` or `poc/`, the code now lives here:
-
 - `src/main/` — Main process: `index.ts` (extension) + `ipc.ts` (`Main.Ipc`). `src/main/kafka/` is the **connectivity engine** (former `engine/src`), with colocated `*.test.ts` unit tests.
 - `src/renderer/` — Renderer UI: `index.tsx` (cluster page + menu), `kafka-overview.tsx` (Overview page), `kafka-ipc.ts` (`Renderer.Ipc` client). `src/common/` — shared IPC contract + DTOs.
 - `test/e2e/` — engine Docker/KinD integration tests + fixtures + `docker-compose.yml` (former `poc/` + `engine/test`), run via `pnpm itest*` / `kind:*`.
@@ -55,7 +54,6 @@ package, so they are declared as `devDependencies`; the published manifest inten
 A **cluster-native Kafka console** embedded in Freelens. Unlike standalone Kafka
 UIs — which are deployed separately and configured by hand — this extension lives **inside a Freelens
 session already authenticated to a Kubernetes cluster**, and therefore can:
-
 - **auto-discover** Kafka endpoints (Strimzi `Kafka` CRs, `Service`s on 9092/9093, app env/ConfigMaps);
 - **auto-wire credentials** from Kubernetes `Secret`s (SASL/SCRAM, TLS);
 - **resolve connectivity transparently** (per-broker port-forward) for clusters reachable only from inside.
@@ -194,14 +192,12 @@ sequenceDiagram
 
 **Verified against the API** (`freelens/packages/core/src/extensions/ipc/`). `@freelensapp/extensions`
 exposes a first-class, per-extension IPC abstraction:
-
 - `Main.Ipc` (`IpcMain`): `handle(channel, handler)` for request/response RPC; `listen(channel, cb)` for broadcasts.
 - `Renderer.Ipc` (`IpcRenderer`): `invoke(channel, ...args): Promise` for RPC; `listen(channel, cb)` for broadcasts.
 - Channels are auto-namespaced per extension (`extensions@<id>:<channel>`) and auto-disposed on disable/uninstall.
 - It is the same path Freelens core uses to proxy the renderer's K8s calls to main, so it is the idiomatic choice.
 
 **Decision:** the Kafka engine runs in **Main**; the UI talks to it **exclusively through the built-in `Ipc`**:
-
 - **RPC (`invoke`/`handle`)** for: `connect`, `listTopics`, `describeTopic`, `listGroups`, `offsets`/lag, `fetchMessages(page)`.
 - **Broadcasts (`listen`)** for live streams: message tail, lag refresh, connection status (main pushes; renderer subscribes with `disposeOnUnmount`).
 - A thin **typed contract** in `src/common/` wraps the stringly channels for compile-time safety.
@@ -329,7 +325,6 @@ Detailed requirements, tasks and evidence remain authoritative in
 ### P3.1 increments
 
 Each increment is gated by the local checks (`type:check`, `lint:check`, `knip:check`, `build`, `test:unit`) and updates this doc plus the relevant `docs/*.md`.
-
 - **(a) Overview — Done.** Cluster page lists the discovered Strimzi Kafka clusters via the `discover` IPC (Main auto-resolves the active cluster). Renderer: [`kafka-overview.tsx`](./src/renderer/kafka-overview.tsx) + [`kafka-ipc.ts`](./src/renderer/kafka-ipc.ts). Doc: [`docs/overview-ui.md`](./docs/overview-ui.md).
 - **(b) Cluster drill-in / brokers — Done.** Opening Overview invokes the `overview` handler (two-phase connect → per-broker forward → `kafkajs` metadata) and renders brokers (id / host / port), the controller and topic count. Added the `ClusterOverviewDto` + `KafkaIpcRenderer.overview()`; no new Main handler. Doc: [`docs/overview-ui.md`](./docs/overview-ui.md).
 - **(c) Topics list & detail — Done (SPEC-003).** Existing overview supplies lightweight names; topic-scoped `kafka:topic` lazily calls `fetchTopicMetadata`, returning partition leader/replicas/ISR/offline/health. Native searchable list + keyboard detail is verified through MCP, protocol and packaged/committed E2E.
@@ -347,7 +342,6 @@ from the cluster's pods. This realises the §1 "any Kafka" goal for external/man
 > forward after user testing. Manual review then exposed the Drawer-first navigation limit, so
 > accepted **P3.4 / SPEC-004** now precedes message depth (P3.5) and Consumer Groups (P3.6). Relay (i)
 > remains P4 because it requires Kubernetes writes and a separate safety/RBAC decision.
-
 - **(f) Universal discovery — Done (verified on Freelens 1.10.3).** Wires `discoverKafkaServices`
   (in-cluster non-Strimzi `Service`s) and adds **workload-config discovery**: `discoverWorkloadKafkas`
   scans `Deployment`/`StatefulSet`/`DaemonSet` container env + `envFrom` (`ConfigMap`/`Secret`) for
@@ -430,25 +424,24 @@ from the cluster's pods. This realises the §1 "any Kafka" goal for external/man
 
 Contract: [`SPEC-004`](./docs/specs/004-resource-navigation-cluster-context.md), based on the accepted
 [`Kafka UX v3`](./docs/design/kafka-ux-v3-proposal.md).
-
 1. **Kafka cluster context — Done:** derive a stable non-secret `targetId`, persist explicit selection
-  per active Kubernetes cluster and provide pure stale/ambiguous selection resolution.
+   per active Kubernetes cluster and provide pure stale/ambiguous selection resolution.
 2. **Freelens navigation — Done:** Apache Kafka `hub` parent and functional Clusters, Overview,
-  Topics and Brokers children use typed URL state and a shared page shell/selector. Further children
-  are registered only when functional.
+   Topics and Brokers children use typed URL state and a shared page shell/selector. Further children
+   are registered only when functional.
 3. **Resource pages — Clusters/Overview/Brokers/Topics done:** discovery/manual endpoint parity,
-  truthful summaries and SPEC-003 Topic Workspace are packaged-app verified. Topic detail uses
-  URL-backed state on `kafka-topics` so its owning sidebar item remains active.
+   truthful summaries and SPEC-003 Topic Workspace are packaged-app verified. Topic detail uses
+   URL-backed state on `kafka-topics` so its owning sidebar item remains active.
 4. **Selector semantics:** switching cluster keeps a resource list, while switching from Topic
    Workspace returns to Topics for the new cluster. Secrets never enter route params.
 5. **Stabilization — Done:** duplicate sibling tabs are removed (6A); shared metric plus
-  Topics/Partitions table geometry passes Linux packaged and Windows visual evidence (6B); a
-  renderer-owned 60-second discovery/reachability/overview cache provides in-flight deduplication,
-  generation-safe invalidation, visible age/state and packaged plus authorized read-only timing
-  evidence (6C).
+   Topics/Partitions table geometry passes Linux packaged and Windows visual evidence (6B); a
+   renderer-owned 60-second discovery/reachability/overview cache provides in-flight deduplication,
+   generation-safe invalidation, visible age/state and packaged plus authorized read-only timing
+   evidence (6C).
 6. **Drawer retirement — Done:** the primary resource Drawer, duplicate loaders and resource tabs
-  are removed; only the context-isolated Connection Settings remains as a secondary panel (durable since
-  SPEC-018, passwords excepted).
+   are removed; only the context-isolated Connection Settings remains as a secondary panel (durable since
+   SPEC-018, passwords excepted).
 7. **No dead navigation:** Consumer Groups, Schema Registry, Kafka Connect and Produce Message are
    not registered until their own functionality and acceptance gates exist.
 8. **Verification:** unit/static, Docker metadata, KinD discovery/port-forward, isolated MCP,

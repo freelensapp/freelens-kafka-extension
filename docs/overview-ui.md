@@ -48,9 +48,9 @@ sequenceDiagram
     Page->>Page: render Overview; Topics/Brokers reuse the bounded snapshot
 ```
 
-  Selecting a topic invokes `topic` with the same target/security request. Main reconnects through the
-  same strategy and calls `fetchTopicMetadata({ topics: [name] })`; only that topic's partition topology
-  crosses IPC, then all sockets/forwards are closed in `finally`.
+Selecting a topic invokes `topic` with the same target/security request. Main reconnects through the
+same strategy and calls `fetchTopicMetadata({ topics: [name] })`; only that topic's partition topology
+crosses IPC, then all sockets/forwards are closed in `finally`.
 
 ## Pieces
 
@@ -113,7 +113,6 @@ the page calls the `reachability` IPC, which **TCP-probes** each bootstrap's fir
 
 Opening Overview or explicitly reconnecting Settings picks a connection strategy
 (`chooseStrategy(source, pcReachable)`):
-
 - **port-forward** — Strimzi (brokers are pods): loads the standard kubeconfig
   (`~/.kube/config` / `$KUBECONFIG`) and selects the cluster's context (the catalog's `kubeConfigPath`
   points at the Freelens proxy, which cannot tunnel a port-forward), then tunnels each broker.
@@ -151,7 +150,6 @@ context and never emits endpoint, credential, Secret or topic-name values.
 > `#freelens-kafka-extension-styles`; emitting only `kafka-extension.css` leaves the UI unstyled.
 
 KinD fixtures:
-
 - `pnpm kind:disc:up` / `kind:disc:down` — Strimzi CR + pause pods: discovery **list** only.
 - `pnpm kind:univ:up` / `kind:univ:down` — non-Strimzi/external fixture (workload `env` + `envFrom` ConfigMap → MSK, plus a `redpanda` Service): universal-discovery **list**.
 - `pnpm kind:real:up` / `kind:real:down` — a real single-broker `apache/kafka` (Strimzi-style,

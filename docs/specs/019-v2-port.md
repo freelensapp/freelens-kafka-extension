@@ -1,11 +1,11 @@
 # SPEC-019 - Port to the Freelens v2 Extension API
 
-| Field | Value |
-| --- | --- |
-| Status | Accepted |
-| Date | 2026-10-26 |
+| Field  | Value                                                                                                                                                                                                                          |
+| ------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Status | Accepted                                                                                                                                                                                                                       |
+| Date   | 2026-10-26                                                                                                                                                                                                                     |
 | Source | Freelens 2.0 replaces the extension API of 1.x; the plan is the migration issue of this repository and its feature issues A-F, opened from the `port-freelens-extension-to-v2` skill of freelensapp/freelens-example-extension |
-| Safety | Writes only on the labs the repository's scripts create; real clusters and real Kafka only read-only, on targets the maintainer names; governed by `TESTING-SAFETY.md` |
+| Safety | Writes only on the labs the repository's scripts create; real clusters and real Kafka only read-only, on targets the maintainer names; governed by `TESTING-SAFETY.md`                                                         |
 
 ## Problem
 
@@ -137,6 +137,6 @@ Not run yet (SC-140).
 
 ## Verification Evidence
 
-| Requirement range | Evidence |
-| --- | --- |
-| REQ-222–REQ-233 | Not verified yet |
+| Requirement range | Evidence         |
+| ----------------- | ---------------- |
+| REQ-222–REQ-233   | Not verified yet |

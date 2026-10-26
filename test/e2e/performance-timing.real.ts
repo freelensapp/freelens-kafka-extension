@@ -15,9 +15,7 @@
  */
 
 import { randomUUID } from "node:crypto";
-import { assertSanitizedPerformanceEvidence } from "../evidence/performance-evidence";
 import { firstBrokerAddress, splitBootstrap } from "../../src/common/reachability";
-import { authorizeReadOnlyTarget, selectSingleAuthorizedTarget } from "../evidence/read-only-target-authorization";
 import { probeAclSupport } from "../../src/main/kafka/acl";
 import { aggregateHealthWorkerKey, KafkaAggregateHealthManager } from "../../src/main/kafka/aggregate-health-manager";
 import { type AnyDiscoveredKafka, discoverAllKafkas } from "../../src/main/kafka/discovery";
@@ -27,6 +25,8 @@ import { type KafkaApiVersions, supportsGroupOffsetBatch } from "../../src/main/
 import { connectDirect, type KafkaConnection } from "../../src/main/kafka/kafka-connection";
 import { createKubeReader, type KubeReader } from "../../src/main/kafka/kube-reader";
 import { probeBootstrapReachable } from "../../src/main/kafka/reachability";
+import { assertSanitizedPerformanceEvidence } from "../evidence/performance-evidence";
+import { authorizeReadOnlyTarget, selectSingleAuthorizedTarget } from "../evidence/read-only-target-authorization";
 
 import type { Admin } from "kafkajs";
 

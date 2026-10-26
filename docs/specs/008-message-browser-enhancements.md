@@ -1,10 +1,10 @@
 # SPEC-008 — Message Browser Enhancements
 
-| Field | Value |
-| --- | --- |
-| Status | Verified |
-| Date | 2026-08-06 |
-| Source | v1.0.0 parity gap analysis; accepted by user 2026-08-06 |
+| Field  | Value                                                                                                   |
+| ------ | ------------------------------------------------------------------------------------------------------- |
+| Status | Verified                                                                                                |
+| Date   | 2026-08-06                                                                                              |
+| Source | v1.0.0 parity gap analysis; accepted by user 2026-08-06                                                 |
 | Safety | Kafka reads only; `offsetsForTimes` is read-only and commits no offset; governed by `TESTING-SAFETY.md` |
 
 ## Problem
@@ -114,13 +114,13 @@ partitions, with no offset commit.
 
 ## Implementation Progress
 
-| Slice | Status | Evidence |
-| --- | --- | --- |
-| Key/value/header client-side filters (REQ-094–REQ-096, REQ-100–REQ-101) | Done | Filter matcher unit tests; packaged Browse E2E with zero additional Browse requests |
-| URL-backed filter and timestamp state (REQ-097) | Done | Route manifest/unit checks; packaged URL assertions |
-| Seek by timestamp (REQ-098–REQ-099) | Done | Existing read-only timestamp adapter tests; packaged timestamp Browse E2E |
-| Explicit reload-with-filters evidence (SC-057) | Done | Focused packaged reload E2E `1/1`; integrated packaged Electron suite `11/11` |
-| Inspector copy buttons (REQ-193) | Done | `kafka-message-clipboard.test.ts`; packaged Browse E2E clicks Copy value and Copy headers |
+| Slice                                                                   | Status | Evidence                                                                                  |
+| ----------------------------------------------------------------------- | ------ | ----------------------------------------------------------------------------------------- |
+| Key/value/header client-side filters (REQ-094–REQ-096, REQ-100–REQ-101) | Done   | Filter matcher unit tests; packaged Browse E2E with zero additional Browse requests       |
+| URL-backed filter and timestamp state (REQ-097)                         | Done   | Route manifest/unit checks; packaged URL assertions                                       |
+| Seek by timestamp (REQ-098–REQ-099)                                     | Done   | Existing read-only timestamp adapter tests; packaged timestamp Browse E2E                 |
+| Explicit reload-with-filters evidence (SC-057)                          | Done   | Focused packaged reload E2E `1/1`; integrated packaged Electron suite `11/11`             |
+| Inspector copy buttons (REQ-193)                                        | Done   | `kafka-message-clipboard.test.ts`; packaged Browse E2E clicks Copy value and Copy headers |
 
 Final evidence (2026-08-19): typecheck, focused Biome/Prettier checks, build/smoke and 139 unit tests
 pass. The packaged reload test passes in isolation and as the final case of the `11/11` integrated

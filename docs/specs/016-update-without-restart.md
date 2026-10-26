@@ -1,10 +1,10 @@
 # SPEC-016 - Update Without Restart: Version Probe and Restart Notice
 
-| Field | Value |
-| --- | --- |
-| Status | Implemented |
-| Date | 2026-09-20 |
-| Source | Pull request #61, a user who updated the extension without restarting Freelens |
+| Field  | Value                                                                                             |
+| ------ | ------------------------------------------------------------------------------------------------- |
+| Status | Implemented                                                                                       |
+| Date   | 2026-09-20                                                                                        |
+| Source | Pull request #61, a user who updated the extension without restarting Freelens                    |
 | Safety | Read-only (one IPC call between the two halves of the extension); governed by `TESTING-SAFETY.md` |
 
 ## Problem
@@ -65,7 +65,7 @@ channels: a new renderer can call a channel the old main never registered and th
 
 ## Verification Evidence
 
-| Requirement range | Evidence |
-| --- | --- |
-| REQ-210–REQ-211 | `src/renderer/kafka-version-skew.test.ts` (same version, different version, main without the probe, wording, one probe per frame, silent on unrelated failures) and `src/renderer/kafka-ipc-renderer.test.ts` (version answer, missing handler of this channel only) |
+| Requirement range      | Evidence                                                                                                                                                                                                                                                                                                                                                                                       |
+| ---------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| REQ-210–REQ-211        | `src/renderer/kafka-version-skew.test.ts` (same version, different version, main without the probe, wording, one probe per frame, silent on unrelated failures) and `src/renderer/kafka-ipc-renderer.test.ts` (version answer, missing handler of this channel only)                                                                                                                           |
 | REQ-209, SC-122–SC-124 | Verified on 2026-09-20 in the packaged Freelens 1.10.3 against the loopback Docker fixture, with production builds of two distinct versions: main handlers read from the main process (no `kafka:meta:version` on v1.3.0, present on the new builds), notice wording in both cases, dark and light themes, batch deletion under the notice, no notice after the restart and on a fresh install |

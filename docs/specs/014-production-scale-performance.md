@@ -1,12 +1,12 @@
 # SPEC-014 - Production-Scale Performance and Responsive Loading
 
-| Field | Value |
-| --- | --- |
-| Status | Verified |
-| Date | 2026-08-20 |
-| Updated | 2026-09-01 |
-| Source | Additional v1.0.0 scope accepted by the user after production-scale comparison with AKHQ |
-| Safety | Read-only performance work; governed by `TESTING-SAFETY.md` |
+| Field   | Value                                                                                    |
+| ------- | ---------------------------------------------------------------------------------------- |
+| Status  | Verified                                                                                 |
+| Date    | 2026-08-20                                                                               |
+| Updated | 2026-09-01                                                                               |
+| Source  | Additional v1.0.0 scope accepted by the user after production-scale comparison with AKHQ |
+| Safety  | Read-only performance work; governed by `TESTING-SAFETY.md`                              |
 
 ## Problem
 
@@ -21,7 +21,6 @@ AKHQ feels substantially faster because it keeps cluster clients alive, reuses s
 paginates large collections and separates initial list rendering from enrichment work.
 
 SPEC-014 changes the loading architecture so that:
-
 - opening Kafka does not imply an automatic Kubernetes-wide scan;
 - a previously saved cluster catalog is available immediately;
 - selecting a cluster creates a bounded reusable read session;
@@ -43,33 +42,33 @@ workload names, IP addresses, credentials, Secret values or environment values.
 
 Target characteristics:
 
-| Dimension | Observed value |
-| --- | ---: |
-| Kubernetes workloads scanned | 235 |
-| Kafka targets discovered | 5 |
-| Kafka brokers | 3 |
-| Kafka topics | 1,096 |
-| Consumer groups | 1,151 |
+| Dimension                    | Observed value |
+| ---------------------------- | -------------: |
+| Kubernetes workloads scanned |            235 |
+| Kafka targets discovered     |              5 |
+| Kafka brokers                |              3 |
+| Kafka topics                 |          1,096 |
+| Consumer groups              |          1,151 |
 
 Current extension timings:
 
-| Operation | Duration | Important internal work |
-| --- | ---: | --- |
-| Cold Kafka discovery | 20.0-21.7 s | Workloads, Services, Strimzi, ConfigMap/Secret references |
-| Cold reachability batch | 0.02-5.1 s | TCP probes for discovered endpoints |
-| Credential resolution per Kafka request | 16.8-17.3 s | Re-scans all workloads and referenced configuration |
-| Overview Kafka work | 5.4-5.6 s | Connect, describe cluster, list topics, ACL capability probe |
-| Consumer-group list | 4.5-5.5 s | Connect, list 1,151 groups, describe all groups |
-| One topic metadata read | 1.1 s | Connect plus one-topic metadata request |
-| One active group detail | 3.8 s | Connect, offsets, per-topic high watermarks |
-| Topic-to-consumer lookup | 51.3-51.6 s | Fetch offsets for all 1,151 groups, concurrency 16 |
+| Operation                               |    Duration | Important internal work                                      |
+| --------------------------------------- | ----------: | ------------------------------------------------------------ |
+| Cold Kafka discovery                    | 20.0-21.7 s | Workloads, Services, Strimzi, ConfigMap/Secret references    |
+| Cold reachability batch                 |  0.02-5.1 s | TCP probes for discovered endpoints                          |
+| Credential resolution per Kafka request | 16.8-17.3 s | Re-scans all workloads and referenced configuration          |
+| Overview Kafka work                     |   5.4-5.6 s | Connect, describe cluster, list topics, ACL capability probe |
+| Consumer-group list                     |   4.5-5.5 s | Connect, list 1,151 groups, describe all groups              |
+| One topic metadata read                 |       1.1 s | Connect plus one-topic metadata request                      |
+| One active group detail                 |       3.8 s | Connect, offsets, per-topic high watermarks                  |
+| Topic-to-consumer lookup                | 51.3-51.6 s | Fetch offsets for all 1,151 groups, concurrency 16           |
 
 Kubernetes request amplification:
 
-| Phase | Workload lists | ConfigMap reads | Secret reads |
-| --- | ---: | ---: | ---: |
-| One discovery | 1 | 116 | 29 |
-| One later credential resolution | 1 | 111 | 10 |
+| Phase                           | Workload lists | ConfigMap reads | Secret reads |
+| ------------------------------- | -------------: | --------------: | -----------: |
+| One discovery                   |              1 |             116 |           29 |
+| One later credential resolution |              1 |             111 |           10 |
 
 The later credential-resolution row is currently paid again for Overview, topic detail, topic
 configuration, topic consumers, broker configuration, message Browse/Tail, group list, group
@@ -85,9 +84,9 @@ Public release summaries call this the open-source reference console. This techn
 the comparator name, pinned version and image digest so the measurement remains attributable and
 reproducible; none of those fields identifies the measured environment.
 
-| AKHQ endpoint | Cold | Warm 1 | Warm 2 |
-| --- | ---: | ---: | ---: |
-| Topics, page 1 / 25 | 6.96 s | 3.68 s | 3.67 s |
+| AKHQ endpoint                |    Cold |  Warm 1 |  Warm 2 |
+| ---------------------------- | ------: | ------: | ------: |
+| Topics, page 1 / 25          |  6.96 s |  3.68 s |  3.67 s |
 | Consumer groups, page 1 / 25 | 15.60 s | 14.94 s | 14.29 s |
 
 AKHQ is not instant at the server for this target. Its perceived advantage comes from persistent
@@ -101,14 +100,13 @@ broker, controller, topic count and partition health become available while aggr
 continues asynchronously. The remaining cold-path cost is concentrated in the exact global lag
 worker on the same authorized production-scale target.
 
-| Health phase | Observed work | Observed timing |
-| --- | ---: | ---: |
-| Consumer-group committed offsets | 1,124-1,135 groups | completed at 71.8 s elapsed |
-| Topic high watermarks | 176-177 topics | 72.6 s to 112.2 s elapsed |
-| Complete aggregate health | 3 brokers, 1,096 topics | 112.2 s total |
+| Health phase                     |           Observed work |             Observed timing |
+| -------------------------------- | ----------------------: | --------------------------: |
+| Consumer-group committed offsets |      1,124-1,135 groups | completed at 71.8 s elapsed |
+| Topic high watermarks            |          176-177 topics |   72.6 s to 112.2 s elapsed |
+| Complete aggregate health        | 3 brokers, 1,096 topics |               112.2 s total |
 
 The request shape explains the duration:
-
 - KafkaJS 2.2.4 `admin.fetchOffsets({ groupId })` supports one group per call and performs a
   `FindCoordinator` followed by `OffsetFetch`; scanning 1,135 groups can therefore require roughly
   twice that many protocol requests before retries.
@@ -133,7 +131,6 @@ coverage while reporting scan duration, timestamp and partial-coverage semantics
 ### Shared renderer path
 
 Every resource page using `useKafkaResourcePage` currently performs this dependency chain:
-
 1. Read or load discovery for the active Kubernetes cluster.
 2. Resolve or restore the selected Kafka target.
 3. Read or load the selected target Overview.
@@ -141,7 +138,6 @@ Every resource page using `useKafkaResourcePage` currently performs this depende
 5. Start the page-specific request, when applicable.
 
 Consequences:
-
 - Topics, Consumer Groups, Brokers and ACLs cannot become useful before discovery and Overview.
 - Schema Registry and Kafka Connect still pay discovery/Overview even though their data comes from
   independent HTTP endpoints.
@@ -151,7 +147,6 @@ Consequences:
 ### Main-process connection path
 
 Each Kafka IPC handler currently:
-
 1. creates a Kubernetes reader;
 2. chooses Direct or Strimzi port-forward strategy;
 3. resolves security again;
@@ -165,22 +160,22 @@ about 17 s and is the dominant avoidable cost.
 
 ### Progress and page-specific work
 
-| Surface | Current progress phases | Blocking or redundant work |
-| --- | --- | --- |
-| Clusters | Cluster, Resources, Workloads, Merge | Hides all discovered/saved rows until the full scan completes; keeps completed progress visible for 900 ms |
-| Overview | Security, Connection, Brokers, Topics | Re-resolves workload security; also probes ACL support on the critical path |
-| Topics list | Discovery/Overview phases | Uses the full Overview only to obtain topic names; no bounded page/window |
-| Topic detail | Security, Connection, Metadata, Ready | Opens a second connection after Overview |
-| Topic configuration | Security, Connection, Configuration, Ready | Opens another connection and repeats security resolution |
-| Topic consumers | Security, Connection, Groups, Ready | Scans offsets for every group before showing any match |
-| Brokers/config | Overview, then Security/Connection/Configuration | Broker IDs come from Overview; config opens another connection |
-| Consumer Groups | Overview, then Security/Connection/Groups | Waits for list plus description of every group; renders every row |
-| Group detail | Security, Connection, Offsets, Ready | Fetches high watermarks topic by topic in sequence |
-| Messages Browse | Security, Connection, Offsets, Records | Repeats the complete path for every explicit Browse |
-| Messages Tail | No stable long-lived progress model | Polls every 1.5 s and creates a new connection path for each poll |
-| ACLs | Overview, then a separate ACL request | Overview already performs an ACL capability request; no detailed loading state |
-| Schema Registry | Generic page prerequisites, then HTTP | Subject list performs roughly `1 + 3N` requests before summaries are complete |
-| Kafka Connect | Generic page prerequisites, then HTTP | Connector list performs `1 + 2N` requests before rows are complete |
+| Surface             | Current progress phases                          | Blocking or redundant work                                                                                 |
+| ------------------- | ------------------------------------------------ | ---------------------------------------------------------------------------------------------------------- |
+| Clusters            | Cluster, Resources, Workloads, Merge             | Hides all discovered/saved rows until the full scan completes; keeps completed progress visible for 900 ms |
+| Overview            | Security, Connection, Brokers, Topics            | Re-resolves workload security; also probes ACL support on the critical path                                |
+| Topics list         | Discovery/Overview phases                        | Uses the full Overview only to obtain topic names; no bounded page/window                                  |
+| Topic detail        | Security, Connection, Metadata, Ready            | Opens a second connection after Overview                                                                   |
+| Topic configuration | Security, Connection, Configuration, Ready       | Opens another connection and repeats security resolution                                                   |
+| Topic consumers     | Security, Connection, Groups, Ready              | Scans offsets for every group before showing any match                                                     |
+| Brokers/config      | Overview, then Security/Connection/Configuration | Broker IDs come from Overview; config opens another connection                                             |
+| Consumer Groups     | Overview, then Security/Connection/Groups        | Waits for list plus description of every group; renders every row                                          |
+| Group detail        | Security, Connection, Offsets, Ready             | Fetches high watermarks topic by topic in sequence                                                         |
+| Messages Browse     | Security, Connection, Offsets, Records           | Repeats the complete path for every explicit Browse                                                        |
+| Messages Tail       | No stable long-lived progress model              | Polls every 1.5 s and creates a new connection path for each poll                                          |
+| ACLs                | Overview, then a separate ACL request            | Overview already performs an ACL capability request; no detailed loading state                             |
+| Schema Registry     | Generic page prerequisites, then HTTP            | Subject list performs roughly `1 + 3N` requests before summaries are complete                              |
+| Kafka Connect       | Generic page prerequisites, then HTTP            | Connector list performs `1 + 2N` requests before rows are complete                                         |
 
 ### Cache and invalidation defects
 
@@ -307,7 +302,6 @@ rescan; a full scan is a fallback, not normal navigation.
 
 `KafkaSessionManager` owns reusable sessions keyed by Kubernetes context, target identity and
 security-generation. Defaults:
-
 - at most 3 live target sessions;
 - 5-minute idle timeout;
 - LRU eviction;
@@ -319,15 +313,15 @@ security-generation. Defaults:
 
 ### Freshness model
 
-| Data | Default behavior |
-| --- | --- |
-| Manual targets | Persist until explicitly removed |
-| Discovered catalog | Persist until explicit rescan; show last scan and latest-scan status |
-| Connection credentials | Main memory only; refresh on locator/settings generation change |
-| Reachability | 5-minute snapshot; explicit independent refresh |
-| Overview and lists | Show snapshot immediately, revalidate in background after 60 seconds |
-| Detail/config/ACL data | Show snapshot immediately, revalidate in background after 5 minutes |
-| Group-topic index | Incremental session snapshot; revalidate after 2 minutes or explicit refresh |
+| Data                     | Default behavior                                                                                             |
+| ------------------------ | ------------------------------------------------------------------------------------------------------------ |
+| Manual targets           | Persist until explicitly removed                                                                             |
+| Discovered catalog       | Persist until explicit rescan; show last scan and latest-scan status                                         |
+| Connection credentials   | Main memory only; refresh on locator/settings generation change                                              |
+| Reachability             | 5-minute snapshot; explicit independent refresh                                                              |
+| Overview and lists       | Show snapshot immediately, revalidate in background after 60 seconds                                         |
+| Detail/config/ACL data   | Show snapshot immediately, revalidate in background after 5 minutes                                          |
+| Group-topic index        | Incremental session snapshot; revalidate after 2 minutes or explicit refresh                                 |
 | Aggregate cluster health | Show last non-secret aggregate immediately with timestamp/coverage; refresh one background worker per target |
 
 TTL expiry makes data stale, not unusable. Stale data remains visible with timestamp and Updating
@@ -560,24 +554,23 @@ interactive result is painted. "Warm" means the target profile/session exists an
 index has been visited in the current Freelens session. SLO evidence uses median of three sequential
 runs and records P95 where an automated repeated test is practical.
 
-| Flow | Cold SLO | Warm SLO |
-| --- | ---: | ---: |
-| Saved Clusters catalog first useful paint | 0.5 s | 0.5 s |
-| Selected-target Overview first useful paint | 5 s | 0.5 s |
-| Overview topology health | 5 s | 0.5 s |
-| Aggregate lag first phase progress | 2 s after topology | 0.5 s |
-| Batched high-watermark phase | 10 s | 0.5 s cached |
-| Complete global lag on supported multi-group path | 30 s | 0.5 s cached |
-| Topics first bounded list | 5 s | 1 s |
-| Consumer Groups first bounded list | 8 s | 1 s |
-| Topic detail | 2 s | 0.5 s |
-| Group detail | 5 s | 1 s |
-| Topic Consumers first matching/empty-progress result | 5 s | 1 s with warm index |
-| Topic/Browse first bounded records after explicit action | 5 s | 2 s |
-| Tail poll after active session acquisition | 2 s | 2 s |
+| Flow                                                     |           Cold SLO |            Warm SLO |
+| -------------------------------------------------------- | -----------------: | ------------------: |
+| Saved Clusters catalog first useful paint                |              0.5 s |               0.5 s |
+| Selected-target Overview first useful paint              |                5 s |               0.5 s |
+| Overview topology health                                 |                5 s |               0.5 s |
+| Aggregate lag first phase progress                       | 2 s after topology |               0.5 s |
+| Batched high-watermark phase                             |               10 s |        0.5 s cached |
+| Complete global lag on supported multi-group path        |               30 s |        0.5 s cached |
+| Topics first bounded list                                |                5 s |                 1 s |
+| Consumer Groups first bounded list                       |                8 s |                 1 s |
+| Topic detail                                             |                2 s |               0.5 s |
+| Group detail                                             |                5 s |                 1 s |
+| Topic Consumers first matching/empty-progress result     |                5 s | 1 s with warm index |
+| Topic/Browse first bounded records after explicit action |                5 s |                 2 s |
+| Tail poll after active session acquisition               |                2 s |                 2 s |
 
 Additional hard gates:
-
 - zero Kubernetes API calls during ordinary navigation after profile establishment;
 - no more than one connection/profile setup concurrently per target key;
 - no more than 100 mounted rows in Topics or Consumer Groups;
@@ -858,7 +851,6 @@ SC-103-SC-111.
 Measure protocol request counts as well as wall-clock time before changing behavior. Introduce
 typed seams for group-offset and high-watermark reads so optimized and fallback implementations can
 be tested against the same contract.
-
 - [x] **T001 [Plan:11.1]** Extend `test/e2e/performance-timing.real.ts` and performance evidence DTOs
   with FindCoordinator, OffsetFetch and ListOffsets counts, phase timings, scan window and coverage.
 - [x] **T002 [P] [Plan:11.2]** Add a typed read-only offset-batch contract beside
@@ -881,7 +873,6 @@ REQ-183-REQ-187 and SC-104/SC-105 remain open until the optimized path is implem
 
 Remove the known 39.6-second topic-by-topic phase first because it has a smaller compatibility
 surface and does not change aggregate-lag semantics.
-
 - [x] **T004 [Plan:12.1]** Build one high-only ListOffsets input from topic metadata and committed
   partitions, grouped by leader broker and bounded request-size chunks.
 - [x] **T005 [Plan:12.2]** Implement the batch adapter with normalized per-topic/partition results;
@@ -914,7 +905,6 @@ Exit: REQ-183, REQ-184 and the watermark portion of REQ-187 pass; SC-104 is gree
 
 Add a narrow protocol adapter for capabilities KafkaJS 2.2.4 does not expose. The optimized path is
 used only after negotiation; unsupported brokers keep the complete existing behavior.
-
 - [x] **T008 [Plan:13.1]** Implement codecs/adapters for multi-key FindCoordinator and multi-group
   OffsetFetch using broker-negotiated API versions, with no write-capable API surface.
 - [x] **T009 [Plan:13.2]** Cache capability decisions per Kafka session/security generation and
@@ -959,7 +949,6 @@ wire path.
 
 Keep complete global lag off the first-use Overview path and make one worker own all compatible
 group/topic index work for a target.
-
 - [x] **T013 [Plan:14.1]** Add one cancellable aggregate-health worker per
   context/target/security-generation and coalesce Overview, Topic Consumers and group enrichment.
 - [x] **T014 [Plan:14.2]** Preserve a monotonic known-lag lower bound, unavailable counts, coverage,
@@ -1009,7 +998,6 @@ completion to become useful.
 
 Replace weighted global percentages with information that directly answers what is running and how
 much of that phase remains.
-
 - [x] **T018 [Plan:15.1]** Display phase-local percentage (`completed / total`) and keep the overall
   operation as a named state rather than a misleading numeric total.
 - [x] **T019 [Plan:15.2]** Add a pure smoothed-throughput ETA estimator with warm-up threshold,
@@ -1050,7 +1038,6 @@ Exit: REQ-190, the UI portion of REQ-191 and SC-109/SC-110 pass.
 
 Verify the complete lossless path, fallback path and perceived performance before changing SPEC
 status.
-
 - [x] **T023 [Plan:16.1]** Run full type, lint, Knip, unit, protocol, security, clean production
   build, packaged smoke and all Freelens 1.10.3 Playwright/Jest scenarios.
 - [x] **T024 [Plan:16.2]** Run three sanitized authorized read-only cold/warm measurements with API
@@ -1162,39 +1149,39 @@ REQ-180/T027 was received on 2026-09-01, so SPEC-014 is Verified.
 
 ## Verification Traceability
 
-| Requirements | Ownership surface | Verified evidence |
-| --- | --- | --- |
-| REQ-152-REQ-157 | Renderer catalog store, Clusters page, scan/reachability commands | Store/migration units, request-count tests, packaged first-use/saved-catalog E2E |
-| REQ-158-REQ-163 | Main profile resolver and `KafkaSessionManager` | Fake KubeReader/Admin counts, lifecycle/error units, protocol integration, sanitized real timing |
-| REQ-164-REQ-168 | Resource snapshot stores and write invalidation | SWR/generation/LRU units, delayed/failing loaders, write regression tests |
-| REQ-169-REQ-173 | Topic/group/index/detail/message read services and pages | 1,000+ fixture tests, mounted-row assertions, partial stream tests, Tail lease counts |
-| REQ-174-REQ-175 | Schema Registry and Connect clients/pages | Large HTTP fixtures, concurrency/request counts, partial failure tests |
-| REQ-176-REQ-179 | Page states, progress instrumentation and health worker | Accessibility/visual E2E, stage events, stale content, degraded Kafka fixture |
-| REQ-180 | Performance probe, packaged E2E and release docs | Final backend/browser SLO artifact, pinned API/UI comparisons and full release gates pass; explicit user approval recorded 2026-09-01 |
-| REQ-181-REQ-184 | Non-blocking complete health and broker-batched high watermarks | `cluster-health`/offset-batch adapters, request-count units, protocol fixtures, authorized phase timing |
-| REQ-185-REQ-187 | Capability negotiation, multi-group fetch and truthful partial coverage | protocol codecs, capability matrix, fallback equality and partial-failure tests |
-| REQ-188-REQ-189 | Shared aggregate worker and bounded persisted health DTO | session lifecycle, snapshot/store tests, restart packaged E2E and secret-absence evidence |
-| REQ-190-REQ-191 | Phase-local progress, ETA, freshness labels and final comparison | Pure estimator tests, responsive packaged E2E, three-run click-to-paint comparison and [`spec-014-slice-16.json`](../performance/spec-014-slice-16.json) |
+| Requirements    | Ownership surface                                                       | Verified evidence                                                                                                                                        |
+| --------------- | ----------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| REQ-152-REQ-157 | Renderer catalog store, Clusters page, scan/reachability commands       | Store/migration units, request-count tests, packaged first-use/saved-catalog E2E                                                                         |
+| REQ-158-REQ-163 | Main profile resolver and `KafkaSessionManager`                         | Fake KubeReader/Admin counts, lifecycle/error units, protocol integration, sanitized real timing                                                         |
+| REQ-164-REQ-168 | Resource snapshot stores and write invalidation                         | SWR/generation/LRU units, delayed/failing loaders, write regression tests                                                                                |
+| REQ-169-REQ-173 | Topic/group/index/detail/message read services and pages                | 1,000+ fixture tests, mounted-row assertions, partial stream tests, Tail lease counts                                                                    |
+| REQ-174-REQ-175 | Schema Registry and Connect clients/pages                               | Large HTTP fixtures, concurrency/request counts, partial failure tests                                                                                   |
+| REQ-176-REQ-179 | Page states, progress instrumentation and health worker                 | Accessibility/visual E2E, stage events, stale content, degraded Kafka fixture                                                                            |
+| REQ-180         | Performance probe, packaged E2E and release docs                        | Final backend/browser SLO artifact, pinned API/UI comparisons and full release gates pass; explicit user approval recorded 2026-09-01                    |
+| REQ-181-REQ-184 | Non-blocking complete health and broker-batched high watermarks         | `cluster-health`/offset-batch adapters, request-count units, protocol fixtures, authorized phase timing                                                  |
+| REQ-185-REQ-187 | Capability negotiation, multi-group fetch and truthful partial coverage | protocol codecs, capability matrix, fallback equality and partial-failure tests                                                                          |
+| REQ-188-REQ-189 | Shared aggregate worker and bounded persisted health DTO                | session lifecycle, snapshot/store tests, restart packaged E2E and secret-absence evidence                                                                |
+| REQ-190-REQ-191 | Phase-local progress, ETA, freshness labels and final comparison        | Pure estimator tests, responsive packaged E2E, three-run click-to-paint comparison and [`spec-014-slice-16.json`](../performance/spec-014-slice-16.json) |
 
 ## Risks and Controls
 
-| Risk | Control |
-| --- | --- |
-| Stale data misleads the user | Explicit Cached/Stale/Updating labels, timestamp, error retention and manual refresh |
-| Persistent clients leak sockets or port-forwards | Leases, idle timeout, LRU cap, deterministic lifecycle tests and shutdown hook |
-| Credentials escape Main memory | Non-secret locator only in persisted catalog; secret-scanning tests for IPC/storage/logs |
-| Background indexing overloads Kafka | Bounded concurrency, cancellation, one index per session, visible work prioritization |
-| Large caches increase renderer memory | Page/window limits, entry/size caps, LRU and 200-entity stress test |
-| Retry storms during outages | Single reconnect for transport failures, backoff/circuit state, no retry for auth/config errors |
-| Fast partial UI is mistaken for complete | Explicit progress/count state; Empty only after completion for the relevant scope |
-| Strimzi sessions retain Kubernetes tunnels | Session manager owns and closes port-forward lifecycle under the same limits |
-| Writes observe stale post-action data | Targeted snapshot invalidation after confirmed success; no automatic replay |
-| Private protocol adapter drifts from KafkaJS/broker behavior | Narrow typed seam, API-version negotiation, golden codec fixtures and one bounded public-API fallback |
-| Multi-group request exceeds broker/request limits | Configurable chunk size, coordinator grouping, bounded concurrency and oversized-request fallback |
-| Faster background indexing overloads Kafka | Request-count budgets, one worker per target, cancellation/backoff and no duplicate subscribers |
-| Persisted health appears current after restart | Persist aggregate only; always show timestamp/coverage and treat restart data as stale until revalidated |
-| ETA creates false confidence | Phase-local throughput only, smoothing/warm-up, stall suppression and no ETA when confidence is insufficient |
-| Optimization silently changes global-lag meaning | Equality fixtures cover every eligible group; active-only/sampled/time-boxed results cannot satisfy exact coverage |
+| Risk                                                         | Control                                                                                                            |
+| ------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------ |
+| Stale data misleads the user                                 | Explicit Cached/Stale/Updating labels, timestamp, error retention and manual refresh                               |
+| Persistent clients leak sockets or port-forwards             | Leases, idle timeout, LRU cap, deterministic lifecycle tests and shutdown hook                                     |
+| Credentials escape Main memory                               | Non-secret locator only in persisted catalog; secret-scanning tests for IPC/storage/logs                           |
+| Background indexing overloads Kafka                          | Bounded concurrency, cancellation, one index per session, visible work prioritization                              |
+| Large caches increase renderer memory                        | Page/window limits, entry/size caps, LRU and 200-entity stress test                                                |
+| Retry storms during outages                                  | Single reconnect for transport failures, backoff/circuit state, no retry for auth/config errors                    |
+| Fast partial UI is mistaken for complete                     | Explicit progress/count state; Empty only after completion for the relevant scope                                  |
+| Strimzi sessions retain Kubernetes tunnels                   | Session manager owns and closes port-forward lifecycle under the same limits                                       |
+| Writes observe stale post-action data                        | Targeted snapshot invalidation after confirmed success; no automatic replay                                        |
+| Private protocol adapter drifts from KafkaJS/broker behavior | Narrow typed seam, API-version negotiation, golden codec fixtures and one bounded public-API fallback              |
+| Multi-group request exceeds broker/request limits            | Configurable chunk size, coordinator grouping, bounded concurrency and oversized-request fallback                  |
+| Faster background indexing overloads Kafka                   | Request-count budgets, one worker per target, cancellation/backoff and no duplicate subscribers                    |
+| Persisted health appears current after restart               | Persist aggregate only; always show timestamp/coverage and treat restart data as stale until revalidated           |
+| ETA creates false confidence                                 | Phase-local throughput only, smoothing/warm-up, stall suppression and no ETA when confidence is insufficient       |
+| Optimization silently changes global-lag meaning             | Equality fixtures cover every eligible group; active-only/sampled/time-boxed results cannot satisfy exact coverage |
 
 ## Verification Safety
 

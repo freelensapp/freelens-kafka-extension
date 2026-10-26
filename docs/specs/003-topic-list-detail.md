@@ -1,10 +1,10 @@
 # SPEC-003 — Topic List and Detail
 
-| Field | Value |
-| --- | --- |
-| Status | Verified |
-| Date | 2026-07-22 |
-| Source | Planned roadmap P3.1(c), accepted by the user |
+| Field  | Value                                                                                 |
+| ------ | ------------------------------------------------------------------------------------- |
+| Status | Verified                                                                              |
+| Date   | 2026-07-22                                                                            |
+| Source | Planned roadmap P3.1(c), accepted by the user                                         |
 | Safety | Kafka metadata reads only; governed by [`TESTING-SAFETY.md`](../../TESTING-SAFETY.md) |
 
 ## Problem
@@ -101,14 +101,14 @@ credentials.
 
 ## Traceability
 
-| Requirement | Delivered code/evidence |
-| --- | --- |
+| Requirement     | Delivered code/evidence                                                                                                                |
+| --------------- | -------------------------------------------------------------------------------------------------------------------------------------- |
 | REQ-023–REQ-024 | `ClusterOverviewDto.topics`; deterministic `filterTopicNames`; native searchable topic table and Internal badge; view-model unit tests |
-| REQ-025–REQ-028 | `KafkaConnection.topicDetail`; `kafka:topic` IPC; operation-correlated progress and stale-response guard; local Kafka protocol test |
-| REQ-026–REQ-027 | `TopicDetailDto`, `toTopicDetail`, partition-health badges/metrics; mapper unit tests and three-partition packaged E2E |
-| REQ-029–REQ-030 | Pointer + Enter/Space topic rows, prompt/no-match/error/retry states; MCP and packaged-app assertions |
-| REQ-031 | Existing `resolveConnection` security path plus metadata-only `fetchTopicMetadata`; no secret-bearing DTO fields |
-| REQ-032 | Responsive SCSS, MCP desktop/compact measurement, anti-clipping/overflow committed E2E assertions |
+| REQ-025–REQ-028 | `KafkaConnection.topicDetail`; `kafka:topic` IPC; operation-correlated progress and stale-response guard; local Kafka protocol test    |
+| REQ-026–REQ-027 | `TopicDetailDto`, `toTopicDetail`, partition-health badges/metrics; mapper unit tests and three-partition packaged E2E                 |
+| REQ-029–REQ-030 | Pointer + Enter/Space topic rows, prompt/no-match/error/retry states; MCP and packaged-app assertions                                  |
+| REQ-031         | Existing `resolveConnection` security path plus metadata-only `fetchTopicMetadata`; no secret-bearing DTO fields                       |
+| REQ-032         | Responsive SCSS, MCP desktop/compact measurement, anti-clipping/overflow committed E2E assertions                                      |
 
 ## Verification Evidence
 

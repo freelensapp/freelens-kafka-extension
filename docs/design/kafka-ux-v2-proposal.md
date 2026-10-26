@@ -1,12 +1,12 @@
 # Kafka UX v2 — Navigation and Workspace Proposal
 
-| Field | Value |
-| --- | --- |
-| Status | Superseded by [`Kafka UX v3`](./kafka-ux-v3-proposal.md) |
-| Date | 2026-07-24 |
-| Source | Manual-test feedback after SPEC-003 |
+| Field  | Value                                                                        |
+| ------ | ---------------------------------------------------------------------------- |
+| Status | Superseded by [`Kafka UX v3`](./kafka-ux-v3-proposal.md)                     |
+| Date   | 2026-07-24                                                                   |
+| Source | Manual-test feedback after SPEC-003                                          |
 | Mockup | [`../mockups/kafka-navigation-v2.html`](../mockups/kafka-navigation-v2.html) |
-| Safety | Read-only Kafka/Kubernetes behavior remains mandatory |
+| Safety | Read-only Kafka/Kubernetes behavior remains mandatory                        |
 
 This document is retained as design history. Its roadmap is not active; the accepted v3 proposal and
 SPEC-004 are authoritative.
@@ -37,7 +37,6 @@ secondary.
 ### Kafka-console patterns to adopt
 
 Common open-source Kafka consoles converge on:
-
 1. cluster overview;
 2. dedicated topic list;
 3. dedicated topic workspace with Messages, Partitions, Consumers and Configuration;
@@ -46,7 +45,6 @@ Common open-source Kafka consoles converge on:
 6. message list plus focused value/header inspector.
 
 Useful ideas:
-
 - Redpanda: separate `/topics` and `/topics/:topic`, URL-backed list state, lazy expensive tabs,
   breadcrumb navigation and split message inspection.
 - One common pattern: explicit cluster context, resource list/detail routes, cross-links between topics and
@@ -54,7 +52,6 @@ Useful ideas:
 - Another common pattern: partition/offset/start-position controls, explicit Browse versus Live Tail, pagination tokens.
 
 Patterns to avoid:
-
 - a permanent sidebar branch per Kafka target;
 - putting every resource and action into one page or Drawer;
 - eagerly fetching every expensive dataset when a page opens;
@@ -83,7 +80,6 @@ flowchart LR
 ### 1. Kafka Targets Page
 
 Purpose: discovery, reachability and target selection.
-
 - Full-width native table: target, Kubernetes usage, source, bootstrap, security and reachability.
 - Search and restrained segmented reachability filter.
 - Add endpoint and Refresh remain page actions.
@@ -95,14 +91,12 @@ Purpose: discovery, reachability and target selection.
 Purpose: work inside one selected Kafka target.
 
 Header:
-
 - Back to Kafka targets;
 - target name, provider, connection status and bootstrap;
 - Connection settings and Refresh actions;
 - compact metric strip.
 
 Contextual tabs:
-
 - **Overview** — connection/security strategy, controller, Kubernetes usage and references;
 - **Topics** — searchable full-page topic table;
 - **Consumer Groups** — group state and lag list;
@@ -117,13 +111,11 @@ already-loaded target registry.
 Purpose: understand and debug one topic.
 
 Header:
-
 - Back to `<target> / Topics`;
 - topic name, internal/application type and health;
 - partition and replication summary.
 
 Contextual tabs:
-
 - **Overview** — summary and health;
 - **Messages** — bounded read-only browse/tail workflow;
 - **Partitions** — leader, replicas, ISR, offline replicas and watermarks;
@@ -135,7 +127,6 @@ The default tab is Overview. Entering a topic MUST NOT start consuming messages.
 ### 4. Consumer Group Workspace
 
 Purpose: diagnose group activity and lag.
-
 - Cluster-level list: state, members, topics, total lag and coordinator.
 - Detail tabs: Offsets & Lag, Members, Topics.
 - Topic names link to the Topic Workspace.
@@ -144,7 +135,6 @@ Purpose: diagnose group activity and lag.
 ### 5. Message Inspector
 
 Messages are the one place where a secondary panel is useful.
-
 - Message table remains visible while inspecting key, headers, metadata and value.
 - Desktop: right-side split inspector.
 - Compact: inspector stacks below the message list.
@@ -156,12 +146,12 @@ Messages are the one place where a secondary panel is useful.
 
 Proposed registrations, all inside the active Freelens cluster frame:
 
-| Page ID | Parameters | Visible in sidebar |
-| --- | --- | --- |
-| `kafka` | list filters/sort | Yes |
-| `kafka-cluster` | `target`, `view` | No |
-| `kafka-topic` | `target`, `topic`, `view` | No |
-| `kafka-group` | `target`, `group`, `view` | No |
+| Page ID         | Parameters                | Visible in sidebar |
+| --------------- | ------------------------- | ------------------ |
+| `kafka`         | list filters/sort         | Yes                |
+| `kafka-cluster` | `target`, `view`          | No                 |
+| `kafka-topic`   | `target`, `topic`, `view` | No                 |
+| `kafka-group`   | `target`, `group`, `view` | No                 |
 
 Navigation uses the extension's own `navigate(pageId, params)` API. Page parameters are registered
 with parse/stringify functions and become URL query parameters. Browser back/forward and page reload
@@ -193,7 +183,6 @@ therefore preserve context without a custom router.
 ## Drawer Policy
 
 After this redesign, a Drawer is NOT used for:
-
 - Kafka cluster workspace;
 - topic list;
 - topic partition table;
@@ -201,7 +190,6 @@ After this redesign, a Drawer is NOT used for:
 - message browser.
 
 A Drawer or split inspector remains appropriate for:
-
 - selected-message inspection;
 - connection/security settings;
 - optional quick target diagnostics that do not replace navigation.
@@ -273,7 +261,6 @@ A Drawer or split inspector remains appropriate for:
 ## Approval Requested
 
 Recommended approval scope:
-
 1. accept the four-page information architecture;
 2. accept one static Kafka sidebar entry plus contextual page tabs;
 3. accept removing Topics/Partitions from the cluster Drawer;

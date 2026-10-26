@@ -100,12 +100,12 @@ cell or the keyboard.
 
 ## Supported sources
 
-| Source | Found through | Reached through |
-| --- | --- | --- |
-| Strimzi `Kafka` resources | CRs and broker pods | Per-broker port-forward |
-| In-cluster Services | Services on the Kafka ports | Port-forward or Direct |
-| External or managed Kafka | Workload env and config | Direct, when reachable |
-| Manual endpoints | **Add endpoint** on Clusters | Direct, TLS optional |
+| Source                    | Found through                | Reached through         |
+| ------------------------- | ---------------------------- | ----------------------- |
+| Strimzi `Kafka` resources | CRs and broker pods          | Per-broker port-forward |
+| In-cluster Services       | Services on the Kafka ports  | Port-forward or Direct  |
+| External or managed Kafka | Workload env and config      | Direct, when reachable  |
+| Manual endpoints          | **Add endpoint** on Clusters | Direct, TLS optional    |
 
 Strimzi clusters are reached through the pod-DNS advertised listeners of
 their broker pods; in-cluster Services are found best effort on the Kafka
@@ -255,7 +255,6 @@ authorized read-only runs; the evidence is in
 ## Development
 
 The repository is developed spec-first, with the specs in the repository:
-
 - [ARCHITECTURE.md](./ARCHITECTURE.md) — design, decisions, roadmap.
 - [Spec index](./docs/specs/README.md) — globally unique requirements,
   lifecycle and verification status, one spec per feature in
@@ -309,7 +308,6 @@ corepack pnpm demo:down    # deletes the demo cluster and the Docker broker
 ```
 
 What you get:
-
 - A dedicated kind cluster `freelens-kafka-demo` (context
   `kind-freelens-kafka-demo`, added to your kubeconfig). Your own `kind`
   cluster is never touched.

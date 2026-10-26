@@ -1,10 +1,10 @@
 # SPEC-010 — Schema Registry Integration
 
-| Field | Value |
-| --- | --- |
-| Status | Verified |
-| Date | 2026-08-06 |
-| Source | v1.0.0 parity gap analysis; accepted by user 2026-08-06 |
+| Field  | Value                                                                                                                                     |
+| ------ | ----------------------------------------------------------------------------------------------------------------------------------------- |
+| Status | Verified                                                                                                                                  |
+| Date   | 2026-08-06                                                                                                                                |
+| Source | v1.0.0 parity gap analysis; accepted by user 2026-08-06                                                                                   |
 | Safety | Reads are non-mutating. Write operations (register, delete) follow the write policy defined in SPEC-009. Governed by `TESTING-SAFETY.md`. |
 
 ## Problem
@@ -122,10 +122,10 @@ definition and confirms, **then** the new version appears in the subject detail.
 
 ## Verification Evidence
 
-| Requirement range | Evidence |
-| --- | --- |
-| REQ-116–REQ-119, REQ-125 | Per-target settings, conditional Schema Registry navigation, Subjects search/detail and persistence are covered by unit tests and the packaged Electron E2E fixture. |
-| REQ-120–REQ-121 | Avro and Protobuf Confluent payloads decode in the packaged message-browser E2E; unknown schema ID remains raw with a non-fatal warning. |
-| REQ-122–REQ-123 | Register and Delete Subject are write-mode gated; registration confirmation and reinforced typed deletion are exercised against the local HTTP Registry fixture in packaged E2E. |
-| REQ-124 | Schema Registry client uses bounded timeout/AbortController and Main IPC cleanup paths; timeout and HTTP adapter tests pass. |
-| SC-065–SC-070 | Packaged Freelens Electron Playwright suite: **8/8 tests passed** on 2026-08-18 using only local Docker Kafka, local HTTP Registry and local KinD discovery. Typecheck, build, Prettier and **133 unit tests** also passed. |
+| Requirement range        | Evidence                                                                                                                                                                                                                    |
+| ------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| REQ-116–REQ-119, REQ-125 | Per-target settings, conditional Schema Registry navigation, Subjects search/detail and persistence are covered by unit tests and the packaged Electron E2E fixture.                                                        |
+| REQ-120–REQ-121          | Avro and Protobuf Confluent payloads decode in the packaged message-browser E2E; unknown schema ID remains raw with a non-fatal warning.                                                                                    |
+| REQ-122–REQ-123          | Register and Delete Subject are write-mode gated; registration confirmation and reinforced typed deletion are exercised against the local HTTP Registry fixture in packaged E2E.                                            |
+| REQ-124                  | Schema Registry client uses bounded timeout/AbortController and Main IPC cleanup paths; timeout and HTTP adapter tests pass.                                                                                                |
+| SC-065–SC-070            | Packaged Freelens Electron Playwright suite: **8/8 tests passed** on 2026-08-18 using only local Docker Kafka, local HTTP Registry and local KinD discovery. Typecheck, build, Prettier and **133 unit tests** also passed. |

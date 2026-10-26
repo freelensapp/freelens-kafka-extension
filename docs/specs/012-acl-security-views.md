@@ -1,10 +1,10 @@
 # SPEC-012 — ACL and Security Views
 
-| Field | Value |
-| --- | --- |
-| Status | Verified |
-| Date | 2026-08-06 |
-| Source | v1.0.0 parity gap analysis; accepted by user 2026-08-06 |
+| Field  | Value                                                                                                                              |
+| ------ | ---------------------------------------------------------------------------------------------------------------------------------- |
+| Status | Verified                                                                                                                           |
+| Date   | 2026-08-06                                                                                                                         |
+| Source | v1.0.0 parity gap analysis; accepted by user 2026-08-06                                                                            |
 | Safety | DescribeAcls is read-only. CreateAcls and DeleteAcls follow the write policy defined in SPEC-009. Governed by `TESTING-SAFETY.md`. |
 
 ## Problem
@@ -106,16 +106,16 @@ resource name to confirm, **then** the rule is removed from the list.
 
 ## Traceability
 
-| Requirement | Implementation | Evidence |
-| --- | --- | --- |
-| REQ-136 | `src/renderer/kafka-acl-availability.ts`, `src/renderer/index.tsx`, `probeAclSupport` | Packaged E2E asserts the ACL menu is absent on the unauthorized broker and appears after the authorized one is opened |
-| REQ-137 | `src/main/kafka/acl.ts`, `src/renderer/kafka-acl-pages.tsx` | `acl.test.ts` numeric-enum mapping; packaged E2E asserts resource, principal, host, operation and permission |
-| REQ-138 | `src/renderer/kafka-acl-pages.tsx` | Packaged E2E filters by resource type and principal with no refetch |
-| REQ-139 | `unavailableMessage` in `src/main/kafka/acl.ts` | `acl.test.ts` covers the three codes and a real KafkaJS protocol error; packaged E2E asserts the degraded state |
-| REQ-140 | ACL rule form and `kafka-acl-rule-preview` | Packaged E2E asserts the full rule preview and the disabled-until-confirmed create button |
-| REQ-141 | Type-to-confirm delete via `canSubmitWriteAction` | Packaged E2E types the resource name before deletion is enabled |
-| REQ-142 | `withTimeout(..., 30_000, ...)` in `src/main/ipc.ts` | Bounded ACL read, create and delete handlers with `disconnect` in `finally` |
-| REQ-143 | `runWrite` reloads before reporting status | Packaged E2E sees the created rule appear and the deleted rule disappear without a manual reload |
+| Requirement | Implementation                                                                        | Evidence                                                                                                              |
+| ----------- | ------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------- |
+| REQ-136     | `src/renderer/kafka-acl-availability.ts`, `src/renderer/index.tsx`, `probeAclSupport` | Packaged E2E asserts the ACL menu is absent on the unauthorized broker and appears after the authorized one is opened |
+| REQ-137     | `src/main/kafka/acl.ts`, `src/renderer/kafka-acl-pages.tsx`                           | `acl.test.ts` numeric-enum mapping; packaged E2E asserts resource, principal, host, operation and permission          |
+| REQ-138     | `src/renderer/kafka-acl-pages.tsx`                                                    | Packaged E2E filters by resource type and principal with no refetch                                                   |
+| REQ-139     | `unavailableMessage` in `src/main/kafka/acl.ts`                                       | `acl.test.ts` covers the three codes and a real KafkaJS protocol error; packaged E2E asserts the degraded state       |
+| REQ-140     | ACL rule form and `kafka-acl-rule-preview`                                            | Packaged E2E asserts the full rule preview and the disabled-until-confirmed create button                             |
+| REQ-141     | Type-to-confirm delete via `canSubmitWriteAction`                                     | Packaged E2E types the resource name before deletion is enabled                                                       |
+| REQ-142     | `withTimeout(..., 30_000, ...)` in `src/main/ipc.ts`                                  | Bounded ACL read, create and delete handlers with `disconnect` in `finally`                                           |
+| REQ-143     | `runWrite` reloads before reporting status                                            | Packaged E2E sees the created rule appear and the deleted rule disappear without a manual reload                      |
 
 Evidence (2026-08-19): 147 unit tests, `type:check` and `build`/`smoke:main` pass. The packaged
 Electron suite passes 11/11, including the ACL lifecycle against the disposable authorized broker on

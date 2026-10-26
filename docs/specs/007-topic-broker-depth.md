@@ -1,11 +1,11 @@
 # SPEC-007 — Topic and Broker Depth
 
-| Field | Value |
-| --- | --- |
-| Status | Verified |
-| Date | 2026-08-06 |
+| Field  | Value                                                   |
+| ------ | ------------------------------------------------------- |
+| Status | Verified                                                |
+| Date   | 2026-08-06                                              |
 | Source | v1.0.0 parity gap analysis; accepted by user 2026-08-06 |
-| Safety | Kafka reads only; governed by `TESTING-SAFETY.md` |
+| Safety | Kafka reads only; governed by `TESTING-SAFETY.md`       |
 
 ## Problem
 
@@ -101,25 +101,25 @@ Kafka cluster.
 
 ## Implementation Progress
 
-| Slice | Status | Evidence |
-| --- | --- | --- |
-| Topic Configuration (REQ-084–085) | Done | `topic-config.test.ts`; packaged Topic Workspace E2E |
-| Topic Consumers + Group cross-link (REQ-086–087) | Done | Optimized bounded scan; `group-fetch.test.ts`; `itest:groups`; packaged keyboard-navigation E2E |
-| Consumer Group Topics + Topic cross-link (REQ-088–089) | Done | Existing group-detail protocol evidence; packaged tab/lag/keyboard-navigation E2E |
-| Broker configuration detail (REQ-090) | Done | `broker-config.test.ts`; `itest:broker-config`; packaged Broker Workspace E2E |
-| Shared bounded lifecycle and UI states (REQ-091–093) | Done | Bounded IPC review; error/empty unit coverage; packaged cluster-switch E2E |
+| Slice                                                  | Status | Evidence                                                                                        |
+| ------------------------------------------------------ | ------ | ----------------------------------------------------------------------------------------------- |
+| Topic Configuration (REQ-084–085)                      | Done   | `topic-config.test.ts`; packaged Topic Workspace E2E                                            |
+| Topic Consumers + Group cross-link (REQ-086–087)       | Done   | Optimized bounded scan; `group-fetch.test.ts`; `itest:groups`; packaged keyboard-navigation E2E |
+| Consumer Group Topics + Topic cross-link (REQ-088–089) | Done   | Existing group-detail protocol evidence; packaged tab/lag/keyboard-navigation E2E               |
+| Broker configuration detail (REQ-090)                  | Done   | `broker-config.test.ts`; `itest:broker-config`; packaged Broker Workspace E2E                   |
+| Shared bounded lifecycle and UI states (REQ-091–093)   | Done   | Bounded IPC review; error/empty unit coverage; packaged cluster-switch E2E                      |
 
 ## Traceability
 
-| Requirement | Delivered code | Verification evidence |
-| --- | --- | --- |
-| REQ-084–REQ-085 | Topic config DTO/adapter/IPC and lazy Configuration tab | `topic-config.test.ts`; packaged assertions for `cleanup.policy` and `retention.ms` |
+| Requirement     | Delivered code                                                                                                                                      | Verification evidence                                                                                       |
+| --------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------- |
+| REQ-084–REQ-085 | Topic config DTO/adapter/IPC and lazy Configuration tab                                                                                             | `topic-config.test.ts`; packaged assertions for `cleanup.policy` and `retention.ms`                         |
 | REQ-086–REQ-087 | Topic Consumers aggregation describes only matching groups, scans offsets with concurrency 16, reports progress, and preserves the Group cross-link | Scale/call-count cases in `group-fetch.test.ts`; `TOPIC_CONSUMERS_OK`; packaged lag and keyboard navigation |
-| REQ-088–REQ-089 | Group Topics tab using existing detail DTO and Topic cross-link | Group detail protocol evidence; packaged topic count/lag and keyboard navigation |
-| REQ-090 | Broker config DTO/adapter/IPC, URL-backed Broker Workspace and masked values | `broker-config.test.ts`; `BROKER_CONFIG_OK`; packaged config table and back navigation |
-| REQ-091 | 30-second point reads; 120-second bounded Topic Consumers scan; cancellation guards and final disconnect | Concurrency/progress unit tests; Main IPC review; local protocol cleanup; full packaged suite |
-| REQ-092 | Loading, empty, error and populated states for all new views | Adapter error/empty unit tests; static UI review; populated packaged regressions |
-| REQ-093 | Cluster switch clears Topic/Group/Broker entity state | Packaged Topic tail switch and Broker Workspace URL/workspace reset assertions |
+| REQ-088–REQ-089 | Group Topics tab using existing detail DTO and Topic cross-link                                                                                     | Group detail protocol evidence; packaged topic count/lag and keyboard navigation                            |
+| REQ-090         | Broker config DTO/adapter/IPC, URL-backed Broker Workspace and masked values                                                                        | `broker-config.test.ts`; `BROKER_CONFIG_OK`; packaged config table and back navigation                      |
+| REQ-091         | 30-second point reads; 120-second bounded Topic Consumers scan; cancellation guards and final disconnect                                            | Concurrency/progress unit tests; Main IPC review; local protocol cleanup; full packaged suite               |
+| REQ-092         | Loading, empty, error and populated states for all new views                                                                                        | Adapter error/empty unit tests; static UI review; populated packaged regressions                            |
+| REQ-093         | Cluster switch clears Topic/Group/Broker entity state                                                                                               | Packaged Topic tail switch and Broker Workspace URL/workspace reset assertions                              |
 
 ## Verification Evidence
 

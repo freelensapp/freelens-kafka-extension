@@ -1,10 +1,10 @@
 # SPEC-018 - Durable Settings Across Freelens Restarts
 
-| Field | Value |
-| --- | --- |
-| Status | Implemented |
-| Date | 2026-10-01 |
-| Source | Issue #76, opened after the reporter of #72 lost his settings when he reinstalled the extension |
+| Field  | Value                                                                                                               |
+| ------ | ------------------------------------------------------------------------------------------------------------------- |
+| Status | Implemented                                                                                                         |
+| Date   | 2026-10-01                                                                                                          |
+| Source | Issue #76, opened after the reporter of #72 lost his settings when he reinstalled the extension                     |
 | Safety | Read-only: nothing is sent to a cluster; passwords are still never written to disk; governed by `TESTING-SAFETY.md` |
 
 ## Problem
@@ -82,7 +82,7 @@ extension store and did not have the problem.
 
 ## Verification Evidence
 
-| Requirement range | Evidence |
-| --- | --- |
-| REQ-218–REQ-220, SC-129 | `src/renderer/kafka-connection-settings.test.ts` (persisted without password, session password, restore, cross-instance read, malformed entries, throwing storage), `src/renderer/kafka-overview-settings.test.ts`, `src/renderer/kafka-schema-registry-settings.test.ts`, `src/renderer/kafka-connect-settings.test.ts`, `src/renderer/kafka-write-settings.test.ts` (late storage and `reload()`), `src/common/kafka-persistent-state-store.test.ts` (one-time migration) |
-| SC-130 | Verified on 2026-10-01 in the packaged Freelens 1.10.3 with the single-bundle build of this branch and the same user data across two launches (renderer origins on ports 64183 and 64338): two unreachable manual endpoints, write mode, a Schema Registry URL and username, an `AWS IAM (MSK)` override with region and profile and a SASL/PLAIN override with username and password; the host wrote `extension-store/@freelensapp/kafka-extension/freelens-kafka-state-store.json` without the password, and after the restart the endpoints, the switch, the Schema Registry fields, the IAM mode with its region and profile and the PLAIN mode with its username were back, the password field empty (15 checks, driver and screenshots kept outside the repository) |
+| Requirement range       | Evidence                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  |
+| ----------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| REQ-218–REQ-220, SC-129 | `src/renderer/kafka-connection-settings.test.ts` (persisted without password, session password, restore, cross-instance read, malformed entries, throwing storage), `src/renderer/kafka-overview-settings.test.ts`, `src/renderer/kafka-schema-registry-settings.test.ts`, `src/renderer/kafka-connect-settings.test.ts`, `src/renderer/kafka-write-settings.test.ts` (late storage and `reload()`), `src/common/kafka-persistent-state-store.test.ts` (one-time migration)                                                                                                                                                                                                                                                                                               |
+| SC-130                  | Verified on 2026-10-01 in the packaged Freelens 1.10.3 with the single-bundle build of this branch and the same user data across two launches (renderer origins on ports 64183 and 64338): two unreachable manual endpoints, write mode, a Schema Registry URL and username, an `AWS IAM (MSK)` override with region and profile and a SASL/PLAIN override with username and password; the host wrote `extension-store/@freelensapp/kafka-extension/freelens-kafka-state-store.json` without the password, and after the restart the endpoints, the switch, the Schema Registry fields, the IAM mode with its region and profile and the PLAIN mode with its username were back, the password field empty (15 checks, driver and screenshots kept outside the repository) |
