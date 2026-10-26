@@ -6,7 +6,7 @@
 
 |                           |                                                                                                                                                                                                                                                                  |
 | ------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Last updated**          | 2026-09-26                                                                                                                                                                                                                                                       |
+| **Last updated**          | 2026-10-26                                                                                                                                                                                                                                                       |
 | **Phase**                 | **SPEC-001–014 Verified. Slices 0–16 and the v1.0.0 implementation sign-off are complete.**                                                                                                                                                                      |
 | **Testable in Freelens?** | **Yes — verified on Freelens 1.10.3.** The final production package passed 12/12 base Playwright/Jest scenarios and the three-run authorized browser paint gate, plus all local protocol, security and fallback gates. Install the generated `.tgz` in Freelens. |
 
@@ -94,7 +94,7 @@ Redpanda) — not only Strimzi CRDs.
 **Consequence:** the current artifact is a loadable, packaged Freelens extension with verified
 discovery, connectivity, security, UX v3 resource pages, read-only message browsing, consumer group lag inspection and local-safe write operations.
 Connection Settings is the only secondary Drawer. All SPEC-001–013 increments are verified with full traceability.
-SPEC-013 closes the original UX quality gate. SPEC-014 adds the production-scale performance architecture and extends the v1.0.0 release gate. v2.0.0 covers later stream-query, audit, topology and advanced-management capabilities.
+SPEC-013 closes the original UX quality gate. SPEC-014 adds the production-scale performance architecture and extends the v1.0.0 release gate. Version 2.0.0 is the port to the Freelens v2 extension API ([SPEC-019](./docs/specs/019-v2-port.md)); the later stream-query, audit, topology and advanced-management capabilities are unscheduled.
 
 ---
 
@@ -213,6 +213,12 @@ running kafkajs in the renderer (couples backend lifetime to the UI, fragile acr
 **Constraints to honor:** keep IPC payloads small — paginate message fetches, throttle the live tail, send message
 metadata with lazy body fetch; main owns consumer lifecycle and applies backpressure.
 
+**Freelens v2 (SPEC-019, open).** In v2 `Ipc.broadcast` reaches every frame of every window, so the progress
+events broadcast on `kafka:progress` reach the frames of other clusters, and the skill that guides the port keeps
+IPC for short request/response exchanges. Request/response stays on `invoke`/`handle`; how progress reaches only
+the frame that started the operation (REQ-227: polling over `invoke`, proposed; `broadcast` kept as a deviation;
+or the local server rejected above) is decided by the spike of feature C and recorded here.
+
 ### 6.2 Port-forward — DECIDED: client-side via `@kubernetes/client-node` from the Catalog kubeconfig
 
 **Verified against the API.** Freelens does **not** expose a port-forward helper to extensions
@@ -237,6 +243,14 @@ ephemeral). Optional advanced mode: opt-in in-cluster proxy for very large broke
 **Honest caveat:** via client-node _we_ handle auth from the raw kubeconfig (tokens, client-certs, exec
 plugins) instead of Lens's proxy; rare proxy-only auth setups degrade gracefully with a clear error + the kubectl fallback.
 
+**Freelens v2 (SPEC-019, open).** v2 asks extensions to reach a catalog cluster through Freelens, not through a
+client built from its `kubeConfigPath` (REQ-224), and gives main the kubectl and the environment its terminals use
+(`Main.Shell.getKubectlPath`, `Main.Shell.getEnvironment`, contract C15), whose `KUBECONFIG` goes through the
+Freelens proxy. The forward therefore moves to one of two routes, chosen by the spike of feature B and recorded
+here: the host's kubectl (`kubectl port-forward`, the way Freelens core port-forwards), or client-node's
+`PortForward` on the kubeconfig of that environment. Either way the forwards follow the cluster's connection
+(REQ-225).
+
 ### 6.3 Message deserialization & Schema Registry
 
 JSON/text/binary plus Confluent Avro/Protobuf decoding are implemented through the bounded Schema Registry client; custom serialization remains raw with a non-fatal warning.
@@ -251,7 +265,9 @@ fake; a fake Strimzi CRD + fixtures validate the real reads on kind. Strimzi dis
 qualifies only with a Kafka signal (kafka/`tcp-clients` port name, or 9092/9093 on a kafka-named service) — port 9093
 alone is ambiguous (Prometheus Alertmanager, caught during kind testing). Credentials come from Secrets: cluster CA
 (`<cluster>-cluster-ca-cert`), SCRAM (`KafkaUser` `password`), or mTLS (`user.crt`/`user.key`). The extension (P3) may
-back the seam with `Main.K8s` instead.
+back the seam with `Main.K8s` instead. It does: requests from the renderer read through `Main.K8s`
+(`src/main/catalog-kube-reader.ts`); the client-node reader remains for the itests, and SPEC-019 (REQ-224) keeps it
+out of every production path.
 
 ### 6.5 Advertised-host reconciliation — DONE: two-phase `connectDiscovered`
 
@@ -292,7 +308,8 @@ root tooling; its unit tests are the extension's `test:unit`; the Docker/KinD sc
 | **P3.5**        | **Read-only message browser (SPEC-005):** bounded Browse, explicit Tail and selected-message inspector without offset commits.                                                                                                                                                                      | **Verified**                          |
 | **P3.6**        | **Consumer Groups and lag (SPEC-006):** group list, offsets/lag, members/topics detail and Topic cross-links.                                                                                                                                                                                       | **Verified**                          |
 | **P4 / v1.0.0** | Topic and Broker depth (SPEC-007), Message browser enhancements (SPEC-008), Write policy + Produce + offset reset (SPEC-009), Schema Registry (SPEC-010), Kafka Connect (SPEC-011), ACL views (SPEC-012), UX quality gate (SPEC-013), production-scale performance (SPEC-014).                      | **Complete — SPEC-001–014 Verified.** |
-| **v2.0.0**      | Features beyond v1.0.0 scope: KsqlDB, audit log, Kafka Streams topology, advanced management, broker config write, relay pod and OAUTHBEARER. AWS MSK IAM was delivered by SPEC-017.                                                                                                                | Unscheduled                           |
+| **v2.0.0**      | Port to the Freelens v2 extension API ([SPEC-019](./docs/specs/019-v2-port.md)): parity with 1.4.3, cluster access through Freelens, HTTP through the host, per-frame progress, labs of the repository's own.                                                                                       | Planned                               |
+| **Later**       | Features beyond the v1.0.0 scope: KsqlDB, audit log, Kafka Streams topology, advanced management, broker config write, relay pod and OAUTHBEARER. AWS MSK IAM was delivered by SPEC-017.                                                                                                            | Unscheduled                           |
 
 ### P4 / SPEC-014 completion roadmap
 
