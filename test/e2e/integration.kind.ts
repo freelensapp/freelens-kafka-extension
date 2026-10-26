@@ -16,7 +16,7 @@
  */
 import fs from "node:fs";
 import { KafkaConnection } from "../../src/main/kafka/kafka-connection";
-import { createKubeForwarder } from "../../src/main/kafka/kube-forwarder";
+import { createKubeForwarder } from "./kube-forwarder";
 
 import type { BrokerRef } from "../../src/main/kafka/types";
 

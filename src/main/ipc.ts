@@ -45,7 +45,6 @@ import {
 import { kafkaPersistentStateStore } from "../common/kafka-persistent-state-store";
 import { createKafkaTargetId } from "../common/kafka-target";
 import { createCatalogKubeReader } from "./catalog-kube-reader";
-import { resolveForwarderOptions } from "./forwarder-options";
 import { createAcl, deleteAcl } from "./kafka/acl";
 import { aggregateHealthWorkerKey, KafkaAggregateHealthManager } from "./kafka/aggregate-health-manager";
 import { connectDiscovered } from "./kafka/connect-discovered";
@@ -58,57 +57,41 @@ import {
   resolveExternalCredentials,
 } from "./kafka/external-credentials";
 import { connectDirect, type KafkaConnection } from "./kafka/kafka-connection";
-import { createKubeForwarder } from "./kafka/kube-forwarder";
-import { createKubeReader, type KubeReader } from "./kafka/kube-reader";
+import { KubectlTunnels, type TunnelHost } from "./kafka/kubectl-tunnels";
 import { createProgressReporter, type KafkaProgressReporter } from "./kafka/progress";
 import { probeBootstrapReachable } from "./kafka/reachability";
 import { KafkaSessionManager } from "./kafka/session-manager";
 import { KafkaTargetSessionRegistry } from "./kafka/target-session-registry";
+import { createTunnelForwarder } from "./kafka/tunnel-forwarder";
 import { KafkaConnectClient } from "./kafka-connect/client";
 import { withFinalizer, withTimeout } from "./operation-timeout";
 import { SchemaRegistryClient } from "./schema-registry/client";
+import { createTunnelHost } from "./tunnel-host";
 import { WriteModeRegistry } from "./write-mode";
 
 import type { ExtensionVersionDto, KafkaSecurityHint, KafkaSecuritySummary } from "../common/ipc";
-import type { ForwarderRequest } from "./forwarder-options";
-import type { KubeForwarderOptions } from "./kafka/kube-forwarder";
+import type { KubeReader } from "./kafka/kube-reader";
 
-/**
- * The kubeconfig file and context for the request's cluster, used by the real port-forward:
- * the file the cluster was added to Freelens from (`kubeConfigPath`), which may live outside
- * the default `~/.kube/config` / `$KUBECONFIG` resolution.
- */
-function clusterForwarderOptions(request: ForwarderRequest): KubeForwarderOptions {
-  return resolveForwarderOptions(Main.Catalog.getAllClusters(), request);
-}
-
-/** The id of the cluster the user is currently viewing (falls back to the first). */
-function activeClusterId(): string {
-  const clusters = Main.Catalog.getAllClusters();
-  const active = clusters.find((c) => c.isActive) ?? clusters[0];
-  if (!active) throw new Error("no Kubernetes cluster is available");
-  return active.id;
+/** The Freelens cluster of a request: every request names one (SPEC-019, REQ-224). */
+function requireClusterId(request: { clusterId?: string }): string {
+  if (typeof request.clusterId !== "string" || !request.clusterId) {
+    throw new Error("no Kubernetes cluster was named for the request");
+  }
+  return request.clusterId;
 }
 
 function aggregateHealthIdentity(request: OverviewRequest): { contextId: string; targetId: string } {
   return {
-    contextId: request.clusterId ?? request.context ?? "active",
+    contextId: requireClusterId(request),
     targetId:
       request.targetId ??
       createKafkaTargetId(request.bootstrap ?? `${request.namespace}/${request.clusterName}/${request.user ?? ""}`),
   };
 }
 
-/**
- * Read Kubernetes objects through Freelens's connected cluster (`Main.K8s`) by default, so
- * no kubeconfig has to be loaded or authenticated again for reads.
- * An explicit kubeconfig in the request (e.g. tests) still uses direct client-node access.
- */
-function createReader(request: { clusterId?: string; kubeConfigPath?: string; context?: string }): KubeReader {
-  if (request.kubeConfigPath || request.context) {
-    return createKubeReader({ kubeConfigPath: request.kubeConfigPath, context: request.context });
-  }
-  return createCatalogKubeReader(request.clusterId ?? activeClusterId());
+/** Read Kubernetes objects through Freelens's connected cluster (`Main.K8s`), with the identity of the host. */
+function createReader(request: { clusterId?: string }): KubeReader {
+  return createCatalogKubeReader(requireClusterId(request));
 }
 
 /** Map an engine discovery result to the serializable DTO returned to the renderer. */
@@ -166,6 +149,7 @@ async function connectForRequest(
   report: KafkaProgressReporter,
   credentialProfiles: KafkaCredentialProfileCache,
   sessions: KafkaSessionManager,
+  tunnels: KubectlTunnels,
   onSessionKey: (sessionKey: string) => void,
 ): Promise<{ connection: KafkaConnection; security: KafkaSecuritySummary; sessionKey: string }> {
   report({
@@ -181,7 +165,7 @@ async function connectForRequest(
     const bootstrap = request.bootstrap;
     const sessionKey = credentialProfileKey({
       bootstrap,
-      contextId: request.clusterId ?? request.context ?? "active",
+      contextId: requireClusterId(request),
       namespace: request.namespace,
       sourceLocator: request.sourceLocator,
       security: request.security,
@@ -247,7 +231,7 @@ async function connectForRequest(
   }
   const sessionKey = credentialProfileKey({
     bootstrap: discovered.bootstrap,
-    contextId: request.clusterId ?? request.context ?? "active",
+    contextId: requireClusterId(request),
     namespace: request.namespace,
     security: request.security,
     targetId: request.targetId,
@@ -283,7 +267,7 @@ async function connectForRequest(
     override: request.security,
     source: "strimzi",
   });
-  const forwarder = createKubeForwarder(clusterForwarderOptions(request));
+  const clusterId = requireClusterId(request);
   report({
     value: 30,
     phase: "connection",
@@ -293,21 +277,39 @@ async function connectForRequest(
   onSessionKey(sessionKey);
   return {
     connection: (
-      await sessions.acquire(sessionKey, () =>
-        connectDiscovered({
-          discovered,
-          forwarder,
-          sasl: applied.sasl,
-          ssl: applied.ssl,
-          onPhase: (phase, info) => {
-            report(
-              phase === "metadata"
-                ? { value: 48, phase: "connection", label: "Bootstrap metadata received", detail: info }
-                : { value: 56, phase: "connection", label: "Opening broker port-forwards", detail: info },
-            );
+      await sessions.acquire(sessionKey, async () => {
+        // The tunnels of the session are kubectl port-forwards; they end with the session's connection (REQ-225).
+        let tunnelError: unknown;
+        const forwarder = createTunnelForwarder({
+          tunnels,
+          clusterId,
+          onPhase: (message) => report({ value: 30, phase: "connection", label: "Preparing kubectl", detail: message }),
+          onError: (error) => {
+            tunnelError ??= error;
           },
-        }),
-      )
+        });
+        try {
+          const connection = await connectDiscovered({
+            discovered,
+            forwarder: forwarder.forward,
+            sasl: applied.sasl,
+            ssl: applied.ssl,
+            onPhase: (phase, info) => {
+              report(
+                phase === "metadata"
+                  ? { value: 48, phase: "connection", label: "Bootstrap metadata received", detail: info }
+                  : { value: 56, phase: "connection", label: "Opening broker port-forwards", detail: info },
+              );
+            },
+          });
+          connection.onDisconnect(() => forwarder.close());
+          return connection;
+        } catch (error) {
+          await forwarder.close();
+          // Why kafkajs could not reach a broker is the tunnel's refusal, when there was one.
+          throw tunnelError ?? error;
+        }
+      })
     ).connection,
     security: applied.summary,
     sessionKey,
@@ -326,10 +328,12 @@ export class KafkaIpcMain extends Main.Ipc {
   private readonly pendingConnectionsByTarget = new Map<string, Set<Promise<unknown>>>();
   private readonly sessions = new KafkaSessionManager();
   private readonly targetSessions = new KafkaTargetSessionRegistry();
+  private readonly tunnels: KubectlTunnels;
   private readonly writeMode = new WriteModeRegistry();
 
-  constructor(extension: Main.LensExtension) {
+  constructor(extension: Main.LensExtension, tunnelHost: TunnelHost = createTunnelHost(() => extension.manifestPath)) {
     super(extension);
+    this.tunnels = new KubectlTunnels(tunnelHost);
 
     // The version of the code that is actually running here, not the one of the manifest (SPEC-016).
     this.handle(KAFKA_IPC.version, async (): Promise<ExtensionVersionDto> => ({ version: EXTENSION_VERSION }));
@@ -353,7 +357,7 @@ export class KafkaIpcMain extends Main.Ipc {
     });
 
     this.handle(KAFKA_IPC.healthInvalidate, async (_event, request: AggregateHealthInvalidateRequest) => {
-      const targetKey = aggregateHealthSnapshotKey(request.clusterId ?? request.context ?? "active", request.targetId);
+      const targetKey = aggregateHealthSnapshotKey(requireClusterId(request), request.targetId);
       await this.invalidateHealthTarget(targetKey, request.closeSessions === true);
       if (request.removePersisted) kafkaPersistentStateStore().removeItem(targetKey);
     });
@@ -974,6 +978,7 @@ export class KafkaIpcMain extends Main.Ipc {
         report,
         this.credentialProfiles,
         this.sessions,
+        this.tunnels,
         (candidate) => {
           sessionKey = candidate;
           if (this.closed || !this.targetSessions.register(targetKey, generation, candidate)) {
@@ -1007,6 +1012,8 @@ export class KafkaIpcMain extends Main.Ipc {
     await Promise.allSettled([...pending, sessionCleanup]);
     this.pendingConnectionsByTarget.clear();
     await this.sessions.clear();
+    // What a session left behind still ends with the extension.
+    this.tunnels.closeAll();
   }
 
   private async invalidateHealthTarget(targetKey: string, closeSessions: boolean): Promise<void> {

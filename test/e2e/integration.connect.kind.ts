@@ -14,7 +14,7 @@
 import assert from "node:assert/strict";
 import fs from "node:fs";
 import { connectDiscovered } from "../../src/main/kafka/connect-discovered";
-import { createKubeForwarder } from "../../src/main/kafka/kube-forwarder";
+import { createKubeForwarder } from "./kube-forwarder";
 
 import type { DiscoveredKafka } from "../../src/main/kafka/discovery";
 

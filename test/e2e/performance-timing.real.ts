@@ -23,12 +23,14 @@ import { resolveExternalCredentials } from "../../src/main/kafka/external-creden
 import { fetchConsumerGroupDetail, fetchTopicConsumers } from "../../src/main/kafka/group-fetch";
 import { type KafkaApiVersions, supportsGroupOffsetBatch } from "../../src/main/kafka/group-offset-batch-protocol";
 import { connectDirect, type KafkaConnection } from "../../src/main/kafka/kafka-connection";
-import { createKubeReader, type KubeReader } from "../../src/main/kafka/kube-reader";
 import { probeBootstrapReachable } from "../../src/main/kafka/reachability";
 import { assertSanitizedPerformanceEvidence } from "../evidence/performance-evidence";
 import { authorizeReadOnlyTarget, selectSingleAuthorizedTarget } from "../evidence/read-only-target-authorization";
+import { createKubeReader } from "./kube-reader";
 
 import type { Admin } from "kafkajs";
+
+import type { KubeReader } from "../../src/main/kafka/kube-reader";
 
 const STAGE_TIMEOUT_MS = 180_000;
 const KAFKA_JS_CREATE_CLUSTER_SYMBOL = "private:Kafka:createCluster";

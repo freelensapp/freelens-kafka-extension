@@ -12,12 +12,10 @@ sequenceDiagram
     participant Page as KafkaOverviewPage (renderer)
     participant Ipc as KafkaIpcRenderer (Renderer.Ipc)
     participant Main as KafkaIpcMain (Main.Ipc)
-    participant Cat as Main.Catalog
     participant Reader as KubeReader
 
     Page->>Ipc: discover({ clusterId })
     Ipc->>Main: invoke("kafka:discover", { clusterId })
-    Main->>Cat: getAllClusters() → active cluster id
     Main->>Reader: createCatalogKubeReader(clusterId)
     Main->>Main: discoverAllKafkas(reader, namespace?)
     Main-->>Ipc: DiscoveredKafkaInfo[] (source / provider)
@@ -68,13 +66,13 @@ crosses IPC, then all sockets/forwards are closed in `finally`.
 | [`src/renderer/kafka-topic-pages.tsx`](../src/renderer/kafka-topic-pages.tsx)               | Topics list and URL-backed Topic Workspace with partition detail.                                                                            |
 | [`src/renderer/kafka-overview.scss`](../src/renderer/kafka-overview.scss)                   | Responsive page tables, badges, states and Connection Settings; bundled with `?inline`.                                                      |
 
-## Active-cluster resolution
+## Cluster resolution
 
 The renderer sends the active cluster's `clusterId` (`Renderer.Catalog.getActiveCluster()?.id`)
-but never kubeconfig details. Main reads through the connected cluster with
-`createCatalogKubeReader(clusterId ?? activeClusterId())` (`Main.K8s`), and — only for metadata
-port-forward — resolves the kubeconfig **context** via `clusterContext()` from
-`Main.Catalog.getAllClusters()` (the entry matching `clusterId`, else `isActive`, else the first).
+but never kubeconfig details, and Main refuses a request without one (SPEC-019, REQ-224; v1 fell
+back to the active cluster). Main reads through the connected cluster with
+`createCatalogKubeReader(clusterId)` (`Main.K8s`), and the port-forward runs the host's kubectl
+with the environment Freelens gives for that cluster (`Main.Shell`).
 This keeps the renderer decoupled from cluster wiring.
 
 ## States
@@ -113,9 +111,10 @@ the page calls the `reachability` IPC, which **TCP-probes** each bootstrap's fir
 
 Opening Overview or explicitly reconnecting Settings picks a connection strategy
 (`chooseStrategy(source, pcReachable)`):
-- **port-forward** — Strimzi (brokers are pods): loads the standard kubeconfig
-  (`~/.kube/config` / `$KUBECONFIG`) and selects the cluster's context (the catalog's `kubeConfigPath`
-  points at the Freelens proxy, which cannot tunnel a port-forward), then tunnels each broker.
+- **port-forward** — Strimzi (brokers are pods): one `kubectl port-forward` per broker pod, run with
+  the host's kubectl and environment for the cluster (`Main.Shell.getKubectlPath` /
+  `getEnvironment`), so it goes through Freelens's proxy with the identity of the cluster's
+  connection; the tunnels end with the session, the extension and the cluster connection.
 - **direct** — a bootstrap reachable from this machine (public / VPN, e.g. MSK): `kafkajs` connects
   straight to the bootstrap, no port-forward. Its sockets are tracked and force-closed on disconnect
   (a leaked direct socket otherwise keeps the Electron main process alive).

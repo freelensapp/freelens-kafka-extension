@@ -1,8 +1,8 @@
 import { KubeConfig, PortForward } from "@kubernetes/client-node";
 import type { Duplex } from "node:stream";
 
-import type { Forwarder } from "./port-forward-manager";
-import type { PodPort } from "./types";
+import type { Forwarder } from "../../src/main/kafka/port-forward-manager";
+import type { PodPort } from "../../src/main/kafka/types";
 
 export interface KubeForwarderOptions {
   /**

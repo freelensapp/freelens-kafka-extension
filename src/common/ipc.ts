@@ -43,9 +43,8 @@ export const KAFKA_IPC = {
 
 export interface DiscoverRequest {
   operationId?: string;
+  /** The Freelens cluster the request is for; required by the main process (SPEC-019, REQ-224). */
   clusterId?: string;
-  kubeConfigPath?: string;
-  context?: string;
   namespace?: string;
 }
 
@@ -53,9 +52,8 @@ export interface OverviewRequest {
   operationId?: string;
   /** Stable non-secret renderer identity used to correlate shared metadata cache entries. */
   targetId?: string;
+  /** The Freelens cluster the request is for; required by the main process (SPEC-019, REQ-224). */
   clusterId?: string;
-  kubeConfigPath?: string;
-  context?: string;
   namespace: string;
   clusterName: string;
   user?: string;
@@ -82,7 +80,6 @@ export interface ClusterHealthRequest extends OverviewRequest {
 
 export interface AggregateHealthInvalidateRequest {
   clusterId?: string;
-  context?: string;
   targetId: string;
   closeSessions?: boolean;
   removePersisted?: boolean;

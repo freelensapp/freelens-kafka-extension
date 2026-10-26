@@ -42,8 +42,9 @@ Two implementations satisfy the seam (unit tests inject an in-memory fake):
   — the default inside Freelens. Reads through the **connected** cluster via `Main.K8s.queryCluster` /
   `Main.K8s.getResource`. This is required because the catalog's raw kubeconfig points at the Freelens
   proxy, which raw `@kubernetes/client-node` cannot reach (`ECONNREFUSED 127.0.0.1:<proxy>`).
-- **`createKubeReader({ kubeConfigPath?, context? })`** — direct `@kubernetes/client-node` against a real
-  kubeconfig. Used by the KinD e2e tests and when the request carries an explicit kubeconfig.
+- **`createKubeReader({ kubeConfigPath?, context? })`** ([`test/e2e/kube-reader.ts`](../test/e2e/kube-reader.ts))
+  — direct `@kubernetes/client-node` against a real kubeconfig. Used by the KinD and real-cluster itests only:
+  on Freelens v2 the requests carry no kubeconfig (SPEC-019, REQ-224).
 
 `CustomResourceRef` is `{ group, version, plural, kind }`: client-node needs the `plural`, `Main.K8s`
 needs the `kind`. All parsing is pure and separated from I/O for testability.
@@ -114,9 +115,9 @@ Limitations: MSK IAM/OAUTHBEARER is deferred. Certificate **file paths inside po
 ```ts
 import { resolveStrimziCredentials } from "../src/main/kafka/credentials";
 import { discoverStrimziKafkas } from "../src/main/kafka/discovery";
-import { createKubeReader } from "../src/main/kafka/kube-reader";
+import { createKubeReader } from "../test/e2e/kube-reader";
 
-const reader = createKubeReader({ kubeConfigPath, context }); // from Main.Catalog
+const reader = createKubeReader({ context: "kind-kafka-lab" }); // an itest; the extension uses createCatalogKubeReader(clusterId)
 const [kafka] = await discoverStrimziKafkas(reader, "kafka");
 const creds = await resolveStrimziCredentials(reader, {
   namespace: kafka.namespace,

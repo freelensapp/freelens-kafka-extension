@@ -6,7 +6,6 @@ import path from "node:path";
 import { firstBrokerAddress, splitBootstrap } from "../../src/common/reachability";
 import { type AnyDiscoveredKafka, discoverAllKafkas } from "../../src/main/kafka/discovery";
 import { resolveExternalCredentials } from "../../src/main/kafka/external-credentials";
-import { createKubeReader } from "../../src/main/kafka/kube-reader";
 import {
   AKHQ_DIGEST,
   AKHQ_HTTP_PORT,
@@ -15,6 +14,7 @@ import {
   createAkhqReadOnlyConfiguration,
 } from "../evidence/akhq-read-only-config";
 import { authorizeReadOnlyTarget, selectSingleAuthorizedTarget } from "../evidence/read-only-target-authorization";
+import { createKubeReader } from "./kube-reader";
 
 const OWNER_LABEL_NAME = "io.freelens.test";
 const STARTUP_TIMEOUT_MS = 180_000;

@@ -15,7 +15,7 @@ import assert from "node:assert/strict";
 import fs from "node:fs";
 import { resolveStrimziCredentials } from "../../src/main/kafka/credentials";
 import { discoverKafkaServices, discoverStrimziKafkas } from "../../src/main/kafka/discovery";
-import { createKubeReader } from "../../src/main/kafka/kube-reader";
+import { createKubeReader } from "./kube-reader";
 
 const log = (m = ""): void => void fs.writeSync(1, `${m}\n`);
 setTimeout(() => {

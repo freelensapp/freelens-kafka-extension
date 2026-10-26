@@ -71,6 +71,7 @@ export class KafkaConnection {
   private kafka!: Kafka;
   private directClose?: () => void;
   private disconnected = false;
+  private readonly disconnectListeners: Array<() => Promise<void> | void> = [];
   private messageCluster?: KafkaReadCluster;
   private messageClusterConnect?: Promise<KafkaReadCluster>;
   private groupOffsetBatchReader?: KafkaGroupOffsetBatchReader;
@@ -496,6 +497,19 @@ export class KafkaConnection {
     await cluster?.disconnect().catch(() => undefined);
     this.portForwards?.closeAll();
     this.directClose?.();
+    const listeners = this.disconnectListeners.splice(0);
+    await Promise.allSettled(listeners.map(async (listener) => listener()));
+  }
+
+  /** Run `listener` when the connection is torn down, such as to end the tunnels its forwarder opened. */
+  onDisconnect(listener: () => Promise<void> | void): void {
+    if (this.disconnected) {
+      void Promise.resolve()
+        .then(listener)
+        .catch(() => undefined);
+      return;
+    }
+    this.disconnectListeners.push(listener);
   }
 
   private async getMessageCluster(): Promise<KafkaReadCluster> {
