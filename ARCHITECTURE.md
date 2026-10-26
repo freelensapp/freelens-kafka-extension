@@ -217,7 +217,7 @@ broadcasts only its operation id, a random value; the frame that started the ope
 `invoke`. `broadcast` carries no data: the pattern of freelensapp/freelens-velero-extension. The local server stays
 rejected: there is no long stream to carry.
 
-### 6.2 Port-forward — DECIDED: client-side via `@kubernetes/client-node` from the Catalog kubeconfig
+### 6.2 Port-forward — DECIDED: client-side, kubectl through the host on Freelens 2 (client-node on 1.x)
 
 **Verified against the API.** Freelens does **not** expose a port-forward helper to extensions
 (Main API = `Ipc`, `Catalog`, `K8s` CRUD, `K8sApi`, `Navigation`, `Power`). Core's own port-forward
@@ -260,7 +260,7 @@ the itests' reader and forwarder ([`test/e2e/kube-reader.ts`](./test/e2e/kube-re
 
 JSON/text/binary plus Confluent Avro/Protobuf decoding are implemented through the bounded Schema Registry client; custom serialization remains raw with a non-fatal warning.
 
-### 6.4 Discovery & credentials — DECIDED: `KubeReader` seam over client-node
+### 6.4 Discovery & credentials — DECIDED: `KubeReader` seam, `Main.K8s` in the extension
 
 Discovery/credential reads go through a `KubeReader` seam (`listCustomResources`/`listPods`/`listServices`/`getSecret`),
 implemented with `@kubernetes/client-node` from the same kubeconfig as the port-forward. Unit tests inject an in-memory
@@ -271,8 +271,8 @@ qualifies only with a Kafka signal (kafka/`tcp-clients` port name, or 9092/9093 
 alone is ambiguous (Prometheus Alertmanager, caught during kind testing). Credentials come from Secrets: cluster CA
 (`<cluster>-cluster-ca-cert`), SCRAM (`KafkaUser` `password`), or mTLS (`user.crt`/`user.key`). The extension (P3) may
 back the seam with `Main.K8s` instead. It does: requests from the renderer read through `Main.K8s`
-(`src/main/catalog-kube-reader.ts`); the client-node reader remains for the itests, and SPEC-019 (REQ-224) keeps it
-out of every production path.
+(`src/main/catalog-kube-reader.ts`); the client-node reader remains for the itests (`test/e2e/kube-reader.ts`), and
+SPEC-019 (REQ-224) keeps it out of every production path.
 
 ### 6.5 Advertised-host reconciliation — DONE: two-phase `connectDiscovered`
 
