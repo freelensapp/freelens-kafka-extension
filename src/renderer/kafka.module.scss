@@ -2527,135 +2527,135 @@
       gap: 4px;
     }
   }
+}
 
-  // ─── Consumer Groups ──────────────────────────────────────────────────────
+// ─── Consumer Groups ──────────────────────────────────────────────────────
 
-  .KafkaGroupWorkspace {
-    display: flex;
-    flex-direction: column;
-    gap: 16px;
-  }
+.KafkaGroupWorkspace {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
 
-  .KafkaGroupOffsetSection {
-    display: flex;
-    flex-direction: column;
-    gap: 20px;
-  }
+.KafkaGroupOffsetSection {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
 
-  .KafkaGroupTopicSection {
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-  }
+.KafkaGroupTopicSection {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
 
-  .KafkaGroupTopicHeader {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    font-size: 14px;
-    font-weight: 600;
+.KafkaGroupTopicHeader {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  font-weight: 600;
 
-    .KafkaGroupTopicName {
-      flex: 1 1 0;
-      min-width: 0;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
-    }
-
-    .KafkaGroupTopicLag {
-      color: var(--kafka-muted);
-      font-size: 12px;
-      font-weight: 400;
-      white-space: nowrap;
-
-      strong {
-        color: var(--textColorPrimary);
-        font-weight: 600;
-      }
-    }
-  }
-
-  .KafkaGroupMemberSection {
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
-  }
-
-  .KafkaGroupTopicsSection {
-    display: flex;
+  .KafkaGroupTopicName {
+    flex: 1 1 0;
     min-width: 0;
-    flex-direction: column;
-    gap: 12px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
 
-  .KafkaGroupTopicsTable {
-    height: 320px;
-
-    :global(.groupTopicNameCell),
-    :global(.groupTopicPartitionsCell),
-    :global(.groupTopicLagCell),
-    :global(.groupTopicActionCell) {
-      box-sizing: border-box;
-    }
-
-    :global(.groupTopicNameCell) {
-      gap: 8px;
-      overflow: hidden;
-
-      :global(.Icon) {
-        flex: 0 0 auto;
-        color: var(--primary);
-      }
-    }
-
-    :global(.groupTopicPartitionsCell),
-    :global(.groupTopicLagCell) {
-      justify-content: flex-end;
-      font-variant-numeric: tabular-nums;
-      text-align: right;
-    }
-
-    :global(.groupTopicActionCell) {
-      justify-content: center;
-    }
-  }
-
-  .KafkaLagZero {
-    color: var(--colorSuccess, #3dc43d);
-  }
-  .KafkaLagLow {
-    color: var(--colorWarning, #f0a500);
-  }
-  .KafkaLagHigh {
-    color: var(--colorError, #e05454);
-  }
-  .KafkaLagUnknown {
-    color: var(--kafka-muted);
-  }
-
-  .KafkaGroupProtocol {
+  .KafkaGroupTopicLag {
     color: var(--kafka-muted);
     font-size: 12px;
-  }
+    font-weight: 400;
+    white-space: nowrap;
 
-  .KafkaGroupsPage,
-  .KafkaGroupWorkspace {
-    :global(.groupNameCell) {
-      overflow: hidden;
-    }
-    :global(.groupMembersCell) {
-      font-variant-numeric: tabular-nums;
+    strong {
+      color: var(--textColorPrimary);
+      font-weight: 600;
     }
   }
+}
 
-  .KafkaHealthyBadge {
-    --badge-bg: var(--colorSuccess, #3dc43d);
+.KafkaGroupMemberSection {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.KafkaGroupTopicsSection {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.KafkaGroupTopicsTable {
+  height: 320px;
+
+  :global(.groupTopicNameCell),
+  :global(.groupTopicPartitionsCell),
+  :global(.groupTopicLagCell),
+  :global(.groupTopicActionCell) {
+    box-sizing: border-box;
   }
-  .KafkaWarningBadge {
-    --badge-bg: var(--colorWarning, #f0a500);
+
+  :global(.groupTopicNameCell) {
+    gap: 8px;
+    overflow: hidden;
+
+    :global(.Icon) {
+      flex: 0 0 auto;
+      color: var(--primary);
+    }
   }
-  .KafkaErrorBadge {
-    --badge-bg: var(--colorError, #e05454);
+
+  :global(.groupTopicPartitionsCell),
+  :global(.groupTopicLagCell) {
+    justify-content: flex-end;
+    font-variant-numeric: tabular-nums;
+    text-align: right;
   }
+
+  :global(.groupTopicActionCell) {
+    justify-content: center;
+  }
+}
+
+.KafkaLagZero {
+  color: var(--colorSuccess, #3dc43d);
+}
+.KafkaLagLow {
+  color: var(--colorWarning, #f0a500);
+}
+.KafkaLagHigh {
+  color: var(--colorError, #e05454);
+}
+.KafkaLagUnknown {
+  color: var(--kafka-muted);
+}
+
+.KafkaGroupProtocol {
+  color: var(--kafka-muted);
+  font-size: 12px;
+}
+
+.KafkaGroupsPage,
+.KafkaGroupWorkspace {
+  :global(.groupNameCell) {
+    overflow: hidden;
+  }
+  :global(.groupMembersCell) {
+    font-variant-numeric: tabular-nums;
+  }
+}
+
+.KafkaHealthyBadge {
+  --badge-bg: var(--colorSuccess, #3dc43d);
+}
+.KafkaWarningBadge {
+  --badge-bg: var(--colorWarning, #f0a500);
+}
+.KafkaErrorBadge {
+  --badge-bg: var(--colorError, #e05454);
 }

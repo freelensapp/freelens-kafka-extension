@@ -6,6 +6,36 @@ import { join } from "node:path";
 import { compile } from "sass-embedded";
 import { describe, expect, it } from "vitest";
 
+// The style selectors of the compiled CSS, each with whether it sits in a @media block.
+function styleRules(css: string): { selector: string; inMedia: boolean }[] {
+  const text = css.replace(/\/\*[\s\S]*?\*\//g, "");
+  const stack: string[] = [];
+  const rules: { selector: string; inMedia: boolean }[] = [];
+  let buffer = "";
+
+  for (const character of text) {
+    if (character === "{") {
+      const prelude = buffer.trim();
+      const inKeyframes = stack.some((outer) => /^@(-webkit-)?keyframes/.test(outer));
+      const inMedia = stack.some((outer) => outer.startsWith("@media"));
+
+      stack.push(prelude);
+      buffer = "";
+      if (!prelude.startsWith("@") && !inKeyframes) {
+        for (const part of prelude.split(",")) rules.push({ selector: part.trim(), inMedia });
+      }
+    } else if (character === "}") {
+      stack.pop();
+      buffer = "";
+    } else if (character === ";") {
+      buffer = "";
+    } else {
+      buffer += character;
+    }
+  }
+  return rules;
+}
+
 function styleSelectors(css: string): string[] {
   const text = css.replace(/\/\*[\s\S]*?\*\//g, "");
   const stack: string[] = [];
@@ -39,6 +69,19 @@ describe("kafka.module.scss", () => {
   it("puts every style rule under a class of the extension", () => {
     expect(selectors.length).toBeGreaterThan(300);
     expect(selectors.filter((selector) => !/\.Kafka[A-Z][A-Za-z0-9]*/.test(selector))).toEqual([]);
+  });
+
+  it("styles in a @media block only what it also styles outside one", () => {
+    const rules = styleRules(css);
+    const classes = (selector: string) =>
+      [...selector.replace(/:global\([^)]*\)/g, "").matchAll(/\.(Kafka[A-Za-z0-9]*)/g)].map((match) => match[1]);
+    const outside = new Set(rules.filter((rule) => !rule.inMedia).flatMap((rule) => classes(rule.selector)));
+    const onlyInMedia = rules
+      .filter((rule) => rule.inMedia)
+      .flatMap((rule) => classes(rule.selector))
+      .filter((name) => !outside.has(name));
+
+    expect([...new Set(onlyInMedia)]).toEqual([]);
   });
 
   it("names the host's classes only as :global", () => {
