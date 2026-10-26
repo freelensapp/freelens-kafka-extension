@@ -45,8 +45,11 @@ for main. They cannot share settings: the renderer runs in a browser page, main 
 - **Decorators.** `build/vite-plugin-standard-decorators.mjs` lowers standard decorators, which neither Node nor
   Chromium runs yet.
 
-What the build does not check, because it does not evaluate the bundle: that `dist/main.js` loads in Node. Load it
-with a stand-in `globalThis.FreelensExtensionApi` after a change to the main build or to a library it bundles.
+Vite does not evaluate the bundle, so `pnpm build` ends with `pnpm check:main` (`scripts/check-main.mjs`): it imports
+`dist/main.js` in Node with a stand-in `globalThis.FreelensExtensionApi` and checks that the default export extends
+`Main.LensExtension`. A bundled library that throws while it is imported (a CommonJS package reading `__dirname`,
+a `require()` of a package the installed extension does not have) fails the build there, instead of the activation
+in Freelens.
 
 ## TypeScript
 
