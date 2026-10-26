@@ -7,6 +7,11 @@ allowBuilds:
 
 engineStrict: true
 
+overrides:
+  # As in Freelens: @kubernetes/client-node declares @types/node of a newer major than the catalog's as a runtime
+  # dependency, which would install a second copy of the Node typings. Keep the tree on the catalog's version.
+  '@kubernetes/client-node>@types/node': 24.19.2
+
 # pnpm holds back any version younger than minimumReleaseAge (1 day by
 # default). @freelensapp/extensions is pinned exactly to a nightly that is
 # often published on the day it is adopted.
