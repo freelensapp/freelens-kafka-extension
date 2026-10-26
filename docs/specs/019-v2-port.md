@@ -2,7 +2,7 @@
 
 | Field | Value |
 | --- | --- |
-| Status | Draft |
+| Status | Accepted |
 | Date | 2026-10-26 |
 | Source | Freelens 2.0 replaces the extension API of 1.x; the plan is the migration issue of this repository and its feature issues A-F, opened from the `port-freelens-extension-to-v2` skill of freelensapp/freelens-example-extension |
 | Safety | Writes only on the labs the repository's scripts create; real clusters and real Kafka only read-only, on targets the maintainer names; governed by `TESTING-SAFETY.md` |
@@ -78,6 +78,10 @@ of one cluster's Kafka reaches the frames of the other clusters.
 - **REQ-232** — The repository's tests and scripts MUST use only the clusters and kubeconfig files
   they create themselves; they MUST refuse any other context and any API server that is not local,
   and MUST leave the developer's kubeconfig unchanged.
+- **REQ-233** — Main MUST decide whether a write is allowed from the write mode persisted in its own
+  copy of the extension store, which the host keeps in sync with the renderer, rather than from what a
+  renderer told it in the current session: the guard of SPEC-009 holds before any cluster frame has
+  started and does not depend on the frames agreeing.
 
 ## Success Criteria
 
@@ -101,6 +105,8 @@ of one cluster's Kafka reaches the frames of the other clusters.
 - **SC-140** — Manual verification, read-only, on targets the maintainer names: a cluster whose
   kubeconfig uses an `exec` credential plugin (discovery and port-forward), and Amazon MSK with IAM
   (connect and metadata).
+- **SC-141** — Unit: main refuses a write for a target whose persisted write mode is off and allows it
+  when it is on, with no renderer message involved; a change of the store reaches the guard.
 
 ## Decision Log
 
@@ -112,6 +118,8 @@ of one cluster's Kafka reaches the frames of the other clusters.
   and reads the Freelens docs at freelensapp/freelens@7801fb10, the commit that nightly was built
   from; the pin moves with the nightly.
 - **2026-10-26** — Kafka's own TCP stays on kafkajs over `node:net` and `node:tls`.
+- **2026-10-26** — SPEC-019 accepted by the maintainer, with the store-based write guard of
+  REQ-233 proposed during the analysis: the renderer's mirror of the write mode over IPC goes.
 - **2026-10-26** — The tests and scripts get labs of their own (REQ-232): until 1.4.3 they wrote to
   the context `kind-kind`, which is the developer's own kind cluster.
 
@@ -122,8 +130,6 @@ of one cluster's Kafka reaches the frames of the other clusters.
   ARCHITECTURE.md 6.2).
 - How progress reaches its frame: polling over `invoke` (proposed), `broadcast` kept as a
   deviation, or a local HTTP server (spike C0, then ARCHITECTURE.md 6.1).
-- Whether main reads the write mode from its own copy of the extension store instead of the
-  renderer's mirror (proposal of feature E, needs approval).
 
 ## Manual Verification
 
@@ -133,4 +139,4 @@ Not run yet (SC-140).
 
 | Requirement range | Evidence |
 | --- | --- |
-| REQ-222–REQ-232 | Not verified yet |
+| REQ-222–REQ-233 | Not verified yet |
