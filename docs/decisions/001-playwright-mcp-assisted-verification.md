@@ -111,3 +111,9 @@ flowchart LR
 Review after five UI iterations or three months. Measure attach/setup time, number of findings
 promoted to tests, false positives, token cost and any safety/flake incident. Migrate repeatable flows
 to CLI + Skill if it is materially more efficient.
+
+## Amendment (2026-10-26, SPEC-019)
+
+The default and autonomous target is now the repository's lab, context `kind-freelens-kafka-lab` from
+`.lab/kubeconfig` (or the demo's, `.demo/kubeconfig`), instead of `kind-kind`: the scripts no longer use
+the developer's own clusters or kubeconfig (REQ-232). The rest of this decision holds.

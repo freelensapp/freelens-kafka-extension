@@ -48,3 +48,7 @@
 *.pfx
 *.pem
 *.key
+
+# The kubeconfig files of the lab and of the demo cluster (scripts/lab.sh, scripts/demo.mjs).
+/.lab/
+/.demo/

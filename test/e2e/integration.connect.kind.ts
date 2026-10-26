@@ -7,6 +7,7 @@
  * (phase 2), and produces/consumes — all via the real client-node port-forward.
  *
  * Run:
+ *   pnpm lab:up              # once: the lab cluster (.lab/kubeconfig)
  *   pnpm kind:p25:up
  *   pnpm itest:p25:kind
  *   pnpm kind:p25:down
@@ -15,6 +16,7 @@ import assert from "node:assert/strict";
 import fs from "node:fs";
 import { connectDiscovered } from "../../src/main/kafka/connect-discovered";
 import { createKubeForwarder } from "./kube-forwarder";
+import { labKube } from "./lab";
 
 import type { DiscoveredKafka } from "../../src/main/kafka/discovery";
 
@@ -24,7 +26,7 @@ setTimeout(() => {
   process.exit(2);
 }, 60_000);
 
-const CONTEXT = process.env.KUBE_CONTEXT ?? "kind-kind";
+const LAB = labKube();
 
 // What P2 discovery would have produced for this broker.
 const discovered: DiscoveredKafka = {
@@ -39,7 +41,7 @@ const discovered: DiscoveredKafka = {
 };
 
 async function main(): Promise<void> {
-  const forwarder = createKubeForwarder({ context: CONTEXT });
+  const forwarder = createKubeForwarder(LAB);
   const connection = await connectDiscovered({
     clientId: "freelens-kafka-p25",
     discovered,

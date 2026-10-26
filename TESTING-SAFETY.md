@@ -21,16 +21,22 @@
 - **Producing** messages; **creating / deleting / altering** topics or partitions; **altering
   configs**; **deleting records**; **committing** consumer-group offsets; creating / altering **ACLs**.
 - Creating / modifying / deleting **any Kubernetes resource** on a real cluster — including the
-  **relay-pod** strategy (P3.2 i), which creates a Pod → **`kind` only** in autonomous runs.
+  **relay-pod** strategy (P3.2 i), which creates a Pod → **the lab only** in autonomous runs.
 - **Changing the active kube context** to a real cluster for a mutating step.
 
 ## Practice
 
-- Anything that **writes** is verified on the local **`kind`** cluster only. Test-created fixtures
-  are disposable and must be torn down afterwards, but the `kind` / `kind-kind` cluster itself is
-  persistent user-owned infrastructure. Never run `kind delete cluster --name kind` or remove its
-  context unless the user explicitly requests it. Cleanup may stop `kind-control-plane`, but must
-  preserve unrelated add-ons such as Metrics Server and kube-prometheus-stack.
+- Anything that **writes** is verified only on the **labs the repository's scripts create**
+  (SPEC-019, REQ-232):
+  - the kind cluster `freelens-kafka-lab`, whose kubeconfig is the file `.lab/kubeconfig`
+    (`pnpm lab:up`, `pnpm lab:apply <profile>`, `pnpm lab:down`; `scripts/lab.sh`);
+  - the demo cluster `freelens-kafka-demo`, with `.demo/kubeconfig` (`pnpm demo:up` / `demo:down`);
+  - the docker-compose brokers of `test/e2e/` on loopback ports.
+
+  The scripts and tests read only those kubeconfig files, refuse any other context and any API
+  server that is not local, and never read or change the developer's kubeconfig. The developer's
+  own clusters, the `kind` cluster included, are never used. Test-created fixtures are torn down
+  afterwards; `lab:down` and `demo:down` leave no cluster, container, network or volume behind.
 - Read-only features (discovery, reachability, topic / group listing, metadata) may be validated
   against a real cluster or managed Kafka service **when the user points to a specific target** — never by
   guessing which context is safe.
@@ -43,10 +49,13 @@
 
 - Playwright MCP is **not a security boundary** and can control every page/context visible to the
   attached Freelens process.
-- Autonomous MCP sessions MUST use `pnpm mcp:app`, which creates a one-context kubeconfig. Default is
-  exactly `kind-kind`.
-- A user-approved real context requires both its exact name and `ALLOW_REAL_READ_ONLY=1`; all actions
-  remain read-only under this document.
+- Autonomous MCP sessions MUST use `pnpm mcp:app`, which gives Freelens a one-context copy of a
+  kubeconfig in a private runtime. By default it is the lab's (`.lab/kubeconfig`, context
+  `kind-freelens-kafka-lab`); `MCP_KUBECONFIG=.demo/kubeconfig` with `kind-freelens-kafka-demo`
+  selects the demo cluster. Any other file, or a context whose API server is not local, is refused.
+- A user-approved real context requires both its exact name and `ALLOW_REAL_READ_ONLY=1` (the context
+  is then copied, read-only, from `MCP_KUBECONFIG` or the developer's kubeconfig, which is never
+  written); all actions remain read-only under this document.
 - Cluster rows MUST be selected by exact allowlisted text/id. Never click the first row or use broad
   matching when multiple contexts are visible.
 - Temporary MCP kubeconfig/app data MUST remain private and be removed by the launcher watchdog;

@@ -2,7 +2,16 @@
 set -euo pipefail
 umask 077
 
-context=${1:-kind-kind}
+repo="$(cd "$(dirname "$0")/.." && pwd)"
+# The lab's kubeconfig and context by default (SPEC-019, REQ-232); MCP_KUBECONFIG=.demo/kubeconfig with
+# kind-freelens-kafka-demo for the demo cluster. The developer's kubeconfig is read only for a real read-only target
+# the maintainer names (ALLOW_REAL_READ_ONLY=1), and never written.
+context=${1:-kind-freelens-kafka-lab}
+if [[ ${ALLOW_REAL_READ_ONLY:-0} == "1" ]]; then
+  source_kubeconfig=${MCP_KUBECONFIG:-${KUBECONFIG:-${HOME}/.kube/config}}
+else
+  source_kubeconfig=${MCP_KUBECONFIG:-${repo}/.lab/kubeconfig}
+fi
 port=${PLAYWRIGHT_MCP_CDP_PORT:-9223}
 app=${FREELENS_APP_BINARY:-"$(cd "$(dirname "$0")/../../freelens/freelens" && pwd)/dist/linux-unpacked/freelens"}
 app_name=Freelens
@@ -18,9 +27,27 @@ fi
 
 runtime_marker="freelens-kafka-mcp:$$:${RANDOM}:${RANDOM}"
 
-if [[ ${context} != "kind-kind" && ${ALLOW_REAL_READ_ONLY:-0} != "1" ]]; then
-  echo "Refusing non-kind context '${context}'. Set ALLOW_REAL_READ_ONLY=1 only for a user-approved read-only target." >&2
+if [[ ! -f ${source_kubeconfig} ]]; then
+  echo "No kubeconfig at ${source_kubeconfig}: run 'pnpm lab:up' (or 'pnpm demo:up' with MCP_KUBECONFIG=.demo/kubeconfig)" >&2
   exit 2
+fi
+
+if [[ ${ALLOW_REAL_READ_ONLY:-0} != "1" ]]; then
+  source_dir="$(cd "$(dirname "${source_kubeconfig}")" && pwd)"
+  source_name="$(basename "${source_kubeconfig}")"
+  case "${source_dir}/${source_name}" in
+    "${repo}/.lab/kubeconfig" | "${repo}/.demo/kubeconfig") ;;
+    *)
+      echo "Refusing ${source_kubeconfig}: only the lab's or the demo's kubeconfig. Set ALLOW_REAL_READ_ONLY=1 only for a user-approved read-only target." >&2
+      exit 2
+      ;;
+  esac
+  server=$(kubectl --kubeconfig "${source_kubeconfig}" config view --raw --minify --context "${context}" \
+    -o jsonpath='{.clusters[0].cluster.server}' 2>/dev/null || true)
+  if [[ ! ${server} =~ ^https://(127\.0\.0\.1|localhost|\[::1\]):[0-9]+/?$ ]]; then
+    echo "Refusing context '${context}': its API server '${server}' is not local." >&2
+    exit 2
+  fi
 fi
 
 if [[ ! -x ${app} ]]; then
@@ -33,7 +60,7 @@ if ! command -v node >/dev/null 2>&1 || ! command -v setsid >/dev/null 2>&1 || !
   exit 2
 fi
 
-if ! kubectl config get-contexts "${context}" --no-headers >/dev/null 2>&1; then
+if ! kubectl --kubeconfig "${source_kubeconfig}" config get-contexts "${context}" --no-headers >/dev/null 2>&1; then
   echo "Kubernetes context not found: ${context}" >&2
   exit 2
 fi
@@ -74,7 +101,7 @@ mkdir -p "${runtime_root}"
 printf '%s\n' "${runtime_marker}" >"${runtime_root}/.freelens-kafka-mcp-runtime"
 
 mkdir -p "${runtime_root}/home/.kube" "${runtime_root}/app-data/${app_name}" "${runtime_root}/artifacts"
-kubectl config view --raw --minify --context "${context}" >"${runtime_root}/home/.kube/config"
+kubectl --kubeconfig "${source_kubeconfig}" config view --raw --minify --context "${context}" >"${runtime_root}/home/.kube/config"
 chmod 600 "${runtime_root}/home/.kube/config"
 
 node - "${runtime_root}/app-data/${app_name}/lens-user-store.json" "${runtime_root}/home/.kube/config" <<'NODE'

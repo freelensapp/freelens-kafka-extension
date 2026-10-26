@@ -309,12 +309,15 @@ corepack pnpm demo:down    # deletes the demo cluster and the Docker broker
 
 What you get:
 - A dedicated kind cluster `freelens-kafka-demo` (context
-  `kind-freelens-kafka-demo`, added to your kubeconfig). Your own `kind`
-  cluster is never touched.
+  `kind-freelens-kafka-demo`) whose kubeconfig is a file of its own,
+  `.demo/kubeconfig`: add it to Freelens (Preferences, Kubernetes, sync a
+  kubeconfig file). Your own kubeconfig and your own `kind` cluster are never
+  touched.
 - A real single-broker Kafka 3.9 inside the cluster, discovered as the
   Strimzi cluster `orders` in namespace `kafka-demo` and reached through a
   port-forward.
-- A second broker in Docker on `127.0.0.1:19093`, referenced by the
+- A second broker in Docker on `127.0.0.1:19093` (`DEMO_DIRECT_PORT` moves it,
+  for instance when the `kafka:auth` broker of the tests holds 19093), referenced by the
   `checkout-service` workload in the cluster, discovered as an external
   Kafka and reached directly.
 - On both brokers: the topics `orders` (6 partitions), `payments`,
@@ -343,6 +346,12 @@ forwarding, which is on by default.
 
 ### Local fixtures (kind and Docker)
 
+The tests and the fixtures below run on the repository's own lab: a kind
+cluster `freelens-kafka-lab` whose kubeconfig is `.lab/kubeconfig`. Create it
+once with `corepack pnpm lab:up` (`lab:status`, `lab:down`); every script
+names that file and its context, refuses anything else, and leaves your
+kubeconfig unchanged (see [TESTING-SAFETY.md](./TESTING-SAFETY.md)). To see
+the lab in Freelens, add `.lab/kubeconfig` in Preferences, Kubernetes.
 - **Discovery only** (populate the Overview table, no real brokers): deploy
   the Strimzi CRD and sample `Kafka` fixtures used by the tests:
 
@@ -357,14 +366,14 @@ forwarding, which is on by default.
   remains available independently.
 
 - **Fastest Overview + Topics test** uses a disposable host-reachable Kafka
-  and a zero-impact workload reference in `kind-kind`:
+  and a zero-impact workload reference in the lab cluster:
 
   ```sh
   # starts Kafka and creates freelens-orders (3 partitions)
   corepack pnpm kafka:direct:up
-  # makes the bootstrap discoverable from kind-kind
+  # makes the bootstrap discoverable from the lab cluster
   corepack pnpm kind:direct:up
-  # Open kind-kind → Kafka → 127.0.0.1 → Topics → freelens-orders
+  # Open kind-freelens-kafka-lab → Kafka → 127.0.0.1 → Topics → freelens-orders
   corepack pnpm kind:direct:down
   corepack pnpm kafka:direct:down
   ```
@@ -376,7 +385,7 @@ forwarding, which is on by default.
 ### Assisted UI verification with Playwright MCP
 
 For fast frame-aware exploratory UI verification, start an isolated Freelens
-CDP session containing only `kind-kind`:
+CDP session containing only the lab cluster:
 
 ```sh
 corepack pnpm mcp:app

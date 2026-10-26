@@ -115,7 +115,8 @@ pnpm itest                # PortForwardManager → map → socketFactory → kaf
 pnpm kafka:down
 
 # Real-cluster end-to-end (kind; the actual @kubernetes/client-node SPDY port-forward):
-pnpm kind:up              # side-load image + apply test/fixtures/kafka-kind.yaml + wait Ready
+pnpm lab:up               # once: the lab cluster freelens-kafka-lab (.lab/kubeconfig), image loaded
+pnpm kind:up              # apply test/e2e/fixtures/kafka-kind.yaml on the lab + wait Ready
 pnpm itest:kind           # createKubeForwarder → real port-forward → kafkajs (produce+consume)
 pnpm kind:down
 
