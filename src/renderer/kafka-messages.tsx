@@ -107,7 +107,7 @@ const COPY_STATUS_RESET_MS = 1800;
 /** Copy-to-clipboard affordance for the inspector (read-only: outside the SPEC-009 write policy). */
 function CopyButton({ label, text, testId, title }: { label: string; text: string; testId: string; title: string }) {
   const [status, setStatus] = useState<CopyStatus>("idle");
-  const resetTimer = useRef<ReturnType<typeof setTimeout>>();
+  const resetTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   useEffect(() => () => clearTimeout(resetTimer.current), []);
   const flash = (next: CopyStatus) => {
     setStatus(next);
@@ -279,9 +279,9 @@ export function KafkaMessagesBrowser({
   const [selectedOffset, setSelectedOffset] = useState<string>();
   const [tailState, setTailState] = useState<TailState>({ active: false, bufferLimit: 0, droppedCount: 0 });
   const [browseRequests, setBrowseRequests] = useState(0);
-  const operationId = useRef<string>();
+  const operationId = useRef<string | undefined>(undefined);
   const tailSession = useRef(0);
-  const tailTimer = useRef<number>();
+  const tailTimer = useRef<number | undefined>(undefined);
 
   useEffect(
     () =>

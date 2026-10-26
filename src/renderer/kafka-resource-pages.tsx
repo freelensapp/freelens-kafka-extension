@@ -153,10 +153,10 @@ export function useKafkaResourcePage({
   const [metadataProgress, setMetadataProgress] = useState<KafkaProgressEvent>();
   const [healthProgress, setHealthProgress] = useState<KafkaProgressEvent>();
   const [pcReachable, setPcReachable] = useState<boolean>();
-  const discoveryOperationId = useRef<string>();
-  const lastNetworkMetadata = useRef<{ targetId: string; updatedAt?: number }>();
-  const metadataOperationId = useRef<string>();
-  const healthOperationId = useRef<string>();
+  const discoveryOperationId = useRef<string | undefined>(undefined);
+  const lastNetworkMetadata = useRef<{ targetId: string; updatedAt?: number } | undefined>(undefined);
+  const metadataOperationId = useRef<string | undefined>(undefined);
+  const healthOperationId = useRef<string | undefined>(undefined);
   const forcedHealthRefresh = useRef<{ targetId?: string; version: number }>({ version: 0 });
 
   useEffect(
@@ -1098,8 +1098,8 @@ export function KafkaBrokersPage(props: KafkaBrokersPageProps) {
   const data = state.metadataState.data;
   const parsedBrokerId = /^\d+$/.test(rawBrokerId) ? Number(rawBrokerId) : undefined;
   const broker = data?.brokers.find((candidate) => candidate.nodeId === parsedBrokerId);
-  const workspaceTargetId = useRef<string>();
-  const operationId = useRef<string>();
+  const workspaceTargetId = useRef<string | undefined>(undefined);
+  const operationId = useRef<string | undefined>(undefined);
   const [configState, setConfigState] = useState<BrokerConfigState>({ loading: false });
 
   useEffect(

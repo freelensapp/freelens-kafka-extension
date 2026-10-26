@@ -73,6 +73,15 @@ that starts letting one through fails the type check with an unused directive.
 
 `pnpm type:check` runs every program.
 
+## Renderer
+
+- **Pages** get only their parameters (C9): every entry of `clusterPages` renders with
+  `Common.Types.PageComponentProps`, one `PageParam` per entry of the registration's `params`, which
+  `KAFKA_CLUSTER_PAGE_MANIFEST` declares; whatever else a page needs comes from the registration, inside the
+  extension class.
+- **Styles** come from one stylesheet, imported by `kafka-page-shell.tsx`; the build extracts it into
+  `dist/renderer.css`, which the host links next to the renderer entry. No style is injected at runtime.
+
 ## Slice Boundaries
 
 - Before starting the next implementation slice, update the phase, test evidence and roadmap in `ARCHITECTURE.md` and the task/evidence state in the owning spec for every slice that was completed, reopened or rescheduled.

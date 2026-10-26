@@ -1,7 +1,7 @@
 import { Renderer } from "@freelensapp/extensions";
-import { useEffect } from "react";
-import kafkaStyles from "./kafka-overview.scss?inline";
 import { describeVersionSkew, useKafkaVersionSkew } from "./kafka-version-skew";
+// The extension's stylesheet: the build extracts it into dist/renderer.css, which the host links (C10).
+import "./kafka-overview.scss";
 
 import type { ReactNode } from "react";
 
@@ -33,18 +33,6 @@ interface KafkaMetricStripProps {
   metrics: KafkaMetric[];
 }
 
-const KAFKA_STYLE_ID = "freelens-kafka-extension-styles";
-
-function ensureKafkaStyles(): void {
-  let style = document.getElementById(KAFKA_STYLE_ID) as HTMLStyleElement | null;
-  if (!style) {
-    style = document.createElement("style");
-    style.id = KAFKA_STYLE_ID;
-    document.head.append(style);
-  }
-  if (style.textContent !== kafkaStyles) style.textContent = kafkaStyles;
-}
-
 /** Restart notice shown on every Kafka page while the two halves of the extension differ (SPEC-016). */
 function KafkaVersionSkewNotice() {
   const skew = useKafkaVersionSkew();
@@ -63,8 +51,6 @@ function KafkaVersionSkewNotice() {
 }
 
 export function KafkaPageShell({ title, subtitle, actions, children }: KafkaPageShellProps) {
-  useEffect(() => ensureKafkaStyles(), []);
-
   return (
     <div className="KafkaOverviewPage KafkaPageShell">
       <KafkaVersionSkewNotice />

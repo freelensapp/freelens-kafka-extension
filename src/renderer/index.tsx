@@ -1,4 +1,4 @@
-import { Renderer } from "@freelensapp/extensions";
+import { Common, Renderer } from "@freelensapp/extensions";
 import { computed } from "mobx";
 import { EXTENSION_VERSION } from "../common/extension-version";
 import { kafkaPersistentStateStore } from "../common/kafka-persistent-state-store";
@@ -61,6 +61,12 @@ import type {
   TopicRequest,
   TopicSizesRequest,
 } from "../common/ipc";
+
+/**
+ * The host renders a page with the general `PageComponentProps` (C9): one `PageParam` for each entry of the
+ * registration's `params`, which `KAFKA_CLUSTER_PAGE_MANIFEST` declares, so the names each page reads are there.
+ */
+type PageProps = Common.Types.PageComponentProps;
 
 export default class KafkaExtensionRenderer extends Renderer.LensExtension {
   /** Host-managed durable state: it survives a Freelens restart, unlike the window storage (SPEC-018). */
@@ -217,9 +223,9 @@ export default class KafkaExtensionRenderer extends Renderer.LensExtension {
     {
       ...KAFKA_CLUSTER_PAGE_MANIFEST[0],
       components: {
-        Page: ({ params }: Pick<KafkaClustersPageProps, "params">) => (
+        Page: ({ params }: PageProps) => (
           <KafkaClustersPage
-            params={params}
+            params={params as KafkaClustersPageProps["params"]}
             connectionSettings={this.connectionSettings}
             writeSettings={this.writeSettings}
             schemaRegistrySettings={this.schemaRegistrySettings}
@@ -242,9 +248,9 @@ export default class KafkaExtensionRenderer extends Renderer.LensExtension {
     {
       ...KAFKA_CLUSTER_PAGE_MANIFEST[1],
       components: {
-        Page: ({ params }: Pick<KafkaTargetPageProps, "params">) => (
+        Page: ({ params }: PageProps) => (
           <KafkaClusterOverviewPage
-            params={params}
+            params={params as KafkaTargetPageProps["params"]}
             connectionSettings={this.connectionSettings}
             writeSettings={this.writeSettings}
             overviewSettings={this.overviewSettings}
@@ -262,9 +268,9 @@ export default class KafkaExtensionRenderer extends Renderer.LensExtension {
     {
       ...KAFKA_CLUSTER_PAGE_MANIFEST[2],
       components: {
-        Page: ({ params }: Pick<KafkaTopicsPageProps, "params">) => (
+        Page: ({ params }: PageProps) => (
           <KafkaTopicsPage
-            params={params}
+            params={params as KafkaTopicsPageProps["params"]}
             connectionSettings={this.connectionSettings}
             writeSettings={this.writeSettings}
             kubernetesClusterId={this.clusterId}
@@ -293,9 +299,9 @@ export default class KafkaExtensionRenderer extends Renderer.LensExtension {
     {
       ...KAFKA_CLUSTER_PAGE_MANIFEST[3],
       components: {
-        Page: ({ params }: Pick<KafkaGroupsPageProps, "params">) => (
+        Page: ({ params }: PageProps) => (
           <KafkaGroupsPage
-            params={params}
+            params={params as KafkaGroupsPageProps["params"]}
             connectionSettings={this.connectionSettings}
             writeSettings={this.writeSettings}
             kubernetesClusterId={this.clusterId}
@@ -317,9 +323,9 @@ export default class KafkaExtensionRenderer extends Renderer.LensExtension {
     {
       ...KAFKA_CLUSTER_PAGE_MANIFEST[4],
       components: {
-        Page: ({ params }: Pick<KafkaBrokersPageProps, "params">) => (
+        Page: ({ params }: PageProps) => (
           <KafkaBrokersPage
-            params={params}
+            params={params as KafkaBrokersPageProps["params"]}
             connectionSettings={this.connectionSettings}
             writeSettings={this.writeSettings}
             kubernetesClusterId={this.clusterId}
@@ -336,9 +342,9 @@ export default class KafkaExtensionRenderer extends Renderer.LensExtension {
     {
       ...KAFKA_CLUSTER_PAGE_MANIFEST[5],
       components: {
-        Page: ({ params }: Pick<KafkaSchemaRegistryPageProps, "params">) => (
+        Page: ({ params }: PageProps) => (
           <KafkaSchemaRegistryPage
-            params={params}
+            params={params as KafkaSchemaRegistryPageProps["params"]}
             connectionSettings={this.connectionSettings}
             writeSettings={this.writeSettings}
             kubernetesClusterId={this.clusterId}
@@ -360,9 +366,9 @@ export default class KafkaExtensionRenderer extends Renderer.LensExtension {
     {
       ...KAFKA_CLUSTER_PAGE_MANIFEST[6],
       components: {
-        Page: ({ params }: Pick<KafkaConnectPageProps, "params">) => (
+        Page: ({ params }: PageProps) => (
           <KafkaConnectPage
-            params={params}
+            params={params as KafkaConnectPageProps["params"]}
             connectionSettings={this.connectionSettings}
             writeSettings={this.writeSettings}
             kubernetesClusterId={this.clusterId}
@@ -388,9 +394,9 @@ export default class KafkaExtensionRenderer extends Renderer.LensExtension {
     {
       ...KAFKA_CLUSTER_PAGE_MANIFEST[7],
       components: {
-        Page: ({ params }: Pick<KafkaAclPageProps, "params">) => (
+        Page: ({ params }: PageProps) => (
           <KafkaAclPage
-            params={params}
+            params={params as KafkaAclPageProps["params"]}
             connectionSettings={this.connectionSettings}
             writeSettings={this.writeSettings}
             kubernetesClusterId={this.clusterId}

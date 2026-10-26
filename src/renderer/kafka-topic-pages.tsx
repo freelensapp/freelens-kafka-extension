@@ -434,7 +434,7 @@ export function KafkaTopicsPage({
   const [sizesState, setSizesState] = useState<TopicSizesState>({ loading: false });
   const [produceOpen, setProduceOpen] = useState(false);
   // The cluster and topic locked when the compose panel opened (SPEC-009 REQ-106).
-  const produceTarget = useRef<{ targetId: string; topic: string }>();
+  const produceTarget = useRef<{ targetId: string; topic: string } | undefined>(undefined);
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [deleteConfirmed, setDeleteConfirmed] = useState(false);
   const [deleteText, setDeleteText] = useState("");
@@ -442,7 +442,7 @@ export function KafkaTopicsPage({
   const [deleteError, setDeleteError] = useState<string>();
   const [writeStatus, setWriteStatus] = useState<string>();
   // The cluster and topic locked when the delete confirmation opened (SPEC-009 REQ-106).
-  const deleteTarget = useRef<{ targetId: string; topic: string }>();
+  const deleteTarget = useRef<{ targetId: string; topic: string } | undefined>(undefined);
   // Batch deletion from the list (SPEC-009 REQ-203–REQ-205): the selection belongs to one cluster,
   // the names are locked when the confirmation opens (REQ-106).
   const [selectedTopics, setSelectedTopics] = useState<ReadonlySet<string>>(() => new Set());
@@ -452,11 +452,11 @@ export function KafkaTopicsPage({
   const [batchBusy, setBatchBusy] = useState(false);
   const [batchError, setBatchError] = useState<string>();
   const [batchFailures, setBatchFailures] = useState<DeleteTopicsFailureDto[]>([]);
-  const batchTarget = useRef<{ targetId: string; topics: string[] }>();
-  const topicOperationId = useRef<string>();
-  const topicConfigOperationId = useRef<string>();
-  const topicConsumersOperationId = useRef<string>();
-  const workspaceTargetId = useRef<string>();
+  const batchTarget = useRef<{ targetId: string; topics: string[] } | undefined>(undefined);
+  const topicOperationId = useRef<string | undefined>(undefined);
+  const topicConfigOperationId = useRef<string | undefined>(undefined);
+  const topicConsumersOperationId = useRef<string | undefined>(undefined);
+  const workspaceTargetId = useRef<string | undefined>(undefined);
   const [topicPage, setTopicPage] = useState(0);
 
   useEffect(() => setTopicPage(0), [query]);

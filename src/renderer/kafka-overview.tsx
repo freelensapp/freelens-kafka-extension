@@ -1024,8 +1024,8 @@ export function KafkaOverviewPage({
   const [reach, setReach] = useState<Record<string, boolean>>({});
   const [discoveryProgress, setDiscoveryProgress] = useState<KafkaProgressEvent>();
   const [detailProgress, setDetailProgress] = useState<KafkaProgressEvent>();
-  const discoveryOperationId = useRef<string>();
-  const detailOperationId = useRef<string>();
+  const discoveryOperationId = useRef<string | undefined>(undefined);
+  const detailOperationId = useRef<string | undefined>(undefined);
   const [localQuery, setLocalQuery] = useState("");
   const [reachabilityFilter, setReachabilityFilter] = useState<ReachabilityFilter>("all");
   const [manualOpen, setManualOpen] = useState(false);

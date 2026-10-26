@@ -73,7 +73,7 @@ export function KafkaGroupsPage({
   const [groupId, setGroupId] = useKafkaPageParam(params?.group);
   const [rawView, setRawView] = useKafkaPageParam(params?.view);
   const view = groupId ? implementedGroupView(rawView) : "offsets";
-  const workspaceTargetId = useRef<string>();
+  const workspaceTargetId = useRef<string | undefined>(undefined);
 
   const [groupsState, setGroupsState] = useState<{
     loading: boolean;
@@ -97,8 +97,8 @@ export function KafkaGroupsPage({
     progress?: KafkaProgressEvent;
   }>({ loading: false });
 
-  const groupsOperationId = useRef<string>();
-  const detailOperationId = useRef<string>();
+  const groupsOperationId = useRef<string | undefined>(undefined);
+  const detailOperationId = useRef<string | undefined>(undefined);
   const [groupPage, setGroupPage] = useState(0);
 
   useEffect(() => setGroupPage(0), [query]);
