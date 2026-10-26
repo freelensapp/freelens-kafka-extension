@@ -5,6 +5,25 @@
 - Treat `ARCHITECTURE.md` as the living architectural source of truth and `docs/specs/` as the detailed requirement and verification record.
 - Follow `TESTING-SAFETY.md` for every Kubernetes, Kafka, Electron and Playwright validation. Restrict all autonomous mutations to disposable local fixtures explicitly allowed there.
 
+## Toolchain and Commands
+
+The extension targets the Freelens v2 extension API (`engines.freelens: ^2.0.0`) and is built with the stack of
+Freelens itself: Node from `mise.toml` (locked in `mise.lock`, mirrored by `.nvmrc`), pnpm through Corepack at the
+version of `packageManager`, and the library versions of the Freelens catalog. `@freelensapp/extensions` is pinned
+exactly to the nightly the port is checked against.
+
+| Command | What it does |
+| --- | --- |
+| `pnpm install --frozen-lockfile` | install; `strictPeerDependencies` fails it when a library shared with the host leaves the peer range of `@freelensapp/extensions` |
+| `pnpm build` | build the renderer and the main entry into `dist/` |
+| `pnpm dev` | rebuild both entries on change, for a directory install in Freelens dev |
+| `pnpm type:check` | type-check every TypeScript program of the repository |
+| `pnpm test:unit` | unit tests |
+| `pnpm lint:check`, `pnpm knip:check`, `pnpm trunk:check` | Biome, Knip, Trunk |
+
+The libraries of the main process (kafkajs, the AWS SDK, client-node, avsc, protobufjs, lz4-asm) are bundled into
+the main entry, so every dependency is a `devDependency` and the published package has no runtime `dependencies`.
+
 ## Slice Boundaries
 
 - Before starting the next implementation slice, update the phase, test evidence and roadmap in `ARCHITECTURE.md` and the task/evidence state in the owning spec for every slice that was completed, reopened or rescheduled.
