@@ -13,9 +13,10 @@ import { KafkaEndpointSecretsStore } from "./kafka-endpoint-secrets";
 import { KafkaGroupsPage, type KafkaGroupsPageProps } from "./kafka-group-pages";
 import { KafkaIpcRenderer } from "./kafka-ipc";
 import { MANUAL_ENDPOINTS_KEY } from "./kafka-manual-endpoints";
-import { KAFKA_PAGE_IDS, KAFKA_SELECTIONS_KEY, type KafkaReloadRoute } from "./kafka-navigation";
+import { clearKafkaReloadRoute, KAFKA_PAGE_IDS, KAFKA_SELECTIONS_KEY, type KafkaReloadRoute } from "./kafka-navigation";
 import { KAFKA_OVERVIEW_SETTINGS_KEY, KafkaOverviewSettingsStore } from "./kafka-overview-settings";
 import {
+  declaredKafkaPageParams,
   KAFKA_CLUSTER_MENU_MANIFEST,
   KAFKA_CLUSTER_PAGE_MANIFEST,
   KAFKA_ROUTE_OWNER_MENU_MANIFEST,
@@ -221,7 +222,13 @@ export default class KafkaExtensionRenderer extends Renderer.LensExtension {
   private readonly subscribeProgress = (listener: (progress: KafkaProgressEvent) => void) =>
     this.client.onProgress(listener);
   private readonly restoreReloadRoute = (route: KafkaReloadRoute) => {
-    void this.navigate(route.pageId, route.params);
+    const params = declaredKafkaPageParams(route.pageId, route.params);
+
+    if (!params) {
+      clearKafkaReloadRoute();
+      return;
+    }
+    void this.navigate(route.pageId, params);
   };
 
   clusterFrameComponents = [

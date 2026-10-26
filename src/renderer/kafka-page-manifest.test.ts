@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { KAFKA_PAGE_IDS } from "./kafka-navigation";
 import {
+  declaredKafkaPageParams,
   KAFKA_CLUSTER_MENU_MANIFEST,
   KAFKA_CLUSTER_PAGE_MANIFEST,
   KAFKA_MENU_IDS,
@@ -126,5 +127,31 @@ describe("Kafka page registration manifest", () => {
     ).map((menu) => menu.pageId);
     expect(KAFKA_ROUTE_OWNER_MENU_MANIFEST.map((owner) => owner.pageId)).toEqual(nestedPageIds);
     expect(KAFKA_ROUTE_OWNER_MENU_MANIFEST.every((owner) => !("parentId" in owner))).toBe(true);
+  });
+});
+
+describe("declaredKafkaPageParams", () => {
+  it("keeps the params a page declares and drops the others, which Freelens 2's navigate would throw on", () => {
+    expect(
+      declaredKafkaPageParams(KAFKA_PAGE_IDS.topics, {
+        target: "t-1",
+        topic: "orders",
+        view: "messages",
+        removedInAnOlderVersion: "x",
+        timestamp: 42,
+      }),
+    ).toEqual({ target: "t-1", topic: "orders", view: "messages" });
+    expect(declaredKafkaPageParams(KAFKA_PAGE_IDS.acls, { target: "t-1", query: "q" })).toEqual({ target: "t-1" });
+  });
+
+  it("says nothing for a page the extension does not have", () => {
+    expect(declaredKafkaPageParams("kafka-gone", { target: "t-1" })).toBeUndefined();
+  });
+
+  it("keeps every param a navigation target of the extension uses", () => {
+    for (const page of KAFKA_CLUSTER_PAGE_MANIFEST) {
+      const params = Object.fromEntries(Object.keys(page.params).map((key) => [key, "v"]));
+      expect(declaredKafkaPageParams(page.id, params)).toEqual(params);
+    }
   });
 });
