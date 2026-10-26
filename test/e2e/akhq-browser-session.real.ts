@@ -9,9 +9,9 @@ import {
   AKHQ_IMAGE,
   AKHQ_MANAGEMENT_PORT,
   createAkhqReadOnlyConfiguration,
-} from "../../src/common/akhq-read-only-config";
+} from "../evidence/akhq-read-only-config";
 import { firstBrokerAddress, splitBootstrap } from "../../src/common/reachability";
-import { authorizeReadOnlyTarget, selectSingleAuthorizedTarget } from "../../src/common/read-only-target-authorization";
+import { authorizeReadOnlyTarget, selectSingleAuthorizedTarget } from "../evidence/read-only-target-authorization";
 import { type AnyDiscoveredKafka, discoverAllKafkas } from "../../src/main/kafka/discovery";
 import { resolveExternalCredentials } from "../../src/main/kafka/external-credentials";
 import { createKubeReader } from "../../src/main/kafka/kube-reader";

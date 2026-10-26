@@ -49,6 +49,30 @@ for main. They cannot share settings: the renderer runs in a browser page, main 
 What the build does not check, because it does not evaluate the bundle: that `dist/main.js` loads in Node. Load it
 with a stand-in `globalThis.FreelensExtensionApi` after a change to the main build or to a library it bundles.
 
+## TypeScript
+
+Each runtime environment is its own program, so that code cannot reach an API its process does not have:
+
+| Config | Environment | Types |
+| --- | --- | --- |
+| `src/main/tsconfig.json` | main and `src/common` | ES2024 and Node |
+| `src/renderer/tsconfig.json` | renderer and `src/common` | ES2024, DOM, `vite/client` |
+| `src/common/tsconfig.json` | `src/common` alone | ES2024 and WebWorker: neither Node nor DOM |
+| `src/tsconfig.json` | the unit tests and `test/` (itests, evidence tooling) | ES2024, DOM, Node |
+| `tsconfig.json` | the tooling: Vite and Vitest configs, `build/` | ES2024 and Node, JavaScript checked |
+
+All of them extend `tsconfig.base.json`, the compiler options of Freelens. `src/common` holds only what both
+processes use (the IPC contract, its DTOs, the extension store); code that needs Node and runs only in tests or
+scripts lives under `test/` (the performance evidence tooling is in `test/evidence/`). A declaration that brings
+Node in, such as kafkajs's, must not be imported from `src/common`: it makes Node's types visible to every file of
+the program.
+
+`environment-tests/` proves the split: each file lists APIs an environment must not reach, every line marked
+`@ts-expect-error`, and is compiled with the configs where they have to fail (`type:check:environments`). A config
+that starts letting one through fails the type check with an unused directive.
+
+`pnpm type:check` runs every program.
+
 ## Slice Boundaries
 
 - Before starting the next implementation slice, update the phase, test evidence and roadmap in `ARCHITECTURE.md` and the task/evidence state in the owning spec for every slice that was completed, reopened or rescheduled.

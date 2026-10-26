@@ -19,13 +19,10 @@ import {
   AkhqPageValidationError,
   assertAkhqUsefulPage,
   createAkhqReadOnlyConfiguration,
-} from "../../src/common/akhq-read-only-config";
-import {
-  assertSanitizedPerformanceEvidence,
-  summarizePerformanceDurations,
-} from "../../src/common/performance-evidence";
+} from "../evidence/akhq-read-only-config";
+import { assertSanitizedPerformanceEvidence, summarizePerformanceDurations } from "../evidence/performance-evidence";
 import { firstBrokerAddress, splitBootstrap } from "../../src/common/reachability";
-import { authorizeReadOnlyTarget, selectSingleAuthorizedTarget } from "../../src/common/read-only-target-authorization";
+import { authorizeReadOnlyTarget, selectSingleAuthorizedTarget } from "../evidence/read-only-target-authorization";
 import { type AnyDiscoveredKafka, discoverAllKafkas } from "../../src/main/kafka/discovery";
 import { resolveExternalCredentials } from "../../src/main/kafka/external-credentials";
 import { createKubeReader } from "../../src/main/kafka/kube-reader";

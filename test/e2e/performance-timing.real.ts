@@ -15,9 +15,9 @@
  */
 
 import { randomUUID } from "node:crypto";
-import { assertSanitizedPerformanceEvidence } from "../../src/common/performance-evidence";
+import { assertSanitizedPerformanceEvidence } from "../evidence/performance-evidence";
 import { firstBrokerAddress, splitBootstrap } from "../../src/common/reachability";
-import { authorizeReadOnlyTarget, selectSingleAuthorizedTarget } from "../../src/common/read-only-target-authorization";
+import { authorizeReadOnlyTarget, selectSingleAuthorizedTarget } from "../evidence/read-only-target-authorization";
 import { probeAclSupport } from "../../src/main/kafka/acl";
 import { aggregateHealthWorkerKey, KafkaAggregateHealthManager } from "../../src/main/kafka/aggregate-health-manager";
 import { type AnyDiscoveredKafka, discoverAllKafkas } from "../../src/main/kafka/discovery";

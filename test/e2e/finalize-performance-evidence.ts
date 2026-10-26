@@ -1,5 +1,5 @@
 import { readFileSync } from "node:fs";
-import { attachAkhqComparison, attachPackagedBrowserEvidence } from "../../src/common/performance-comparison";
+import { attachAkhqComparison, attachPackagedBrowserEvidence } from "../evidence/performance-comparison";
 
 function main(): void {
   const [performanceFile, comparisonFile, browserFile] = process.argv.slice(2);
