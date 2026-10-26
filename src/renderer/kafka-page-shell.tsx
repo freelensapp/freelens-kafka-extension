@@ -1,7 +1,8 @@
 import { Renderer } from "@freelensapp/extensions";
+// The extension's stylesheet, one CSS module: the build extracts it into dist/renderer.css, which the host links
+// (C10).
+import styles from "./kafka.module.scss";
 import { describeVersionSkew, useKafkaVersionSkew } from "./kafka-version-skew";
-// The extension's stylesheet: the build extracts it into dist/renderer.css, which the host links (C10).
-import "./kafka-overview.scss";
 
 import type { ReactNode } from "react";
 
@@ -40,7 +41,7 @@ function KafkaVersionSkewNotice() {
   const { title, detail } = describeVersionSkew(skew);
 
   return (
-    <div className="KafkaVersionSkewNotice" role="alert" data-testid="kafka-version-skew-notice">
+    <div className={styles.kafkaVersionSkewNotice} role="alert" data-testid="kafka-version-skew-notice">
       <Renderer.Component.Icon material="restart_alt" />
       <div>
         <strong>{title}</strong>
@@ -52,14 +53,14 @@ function KafkaVersionSkewNotice() {
 
 export function KafkaPageShell({ title, subtitle, actions, children }: KafkaPageShellProps) {
   return (
-    <div className="KafkaOverviewPage KafkaPageShell">
+    <div className={`${styles.kafkaOverviewPage} KafkaPageShell`}>
       <KafkaVersionSkewNotice />
-      <header className="KafkaPageHeader">
+      <header className={styles.kafkaPageHeader}>
         <div>
           <h1>{title}</h1>
           <span>{subtitle}</span>
         </div>
-        {actions && <div className="KafkaHeaderActions">{actions}</div>}
+        {actions && <div className={styles.kafkaHeaderActions}>{actions}</div>}
       </header>
       {children}
     </div>
@@ -68,11 +69,15 @@ export function KafkaPageShell({ title, subtitle, actions, children }: KafkaPage
 
 export function KafkaMetricStrip({ ariaLabel, className = "", metrics }: KafkaMetricStripProps) {
   return (
-    <section className={`KafkaMetrics ${className}`.trim()} aria-label={ariaLabel} data-metric-count={metrics.length}>
+    <section
+      className={`${styles.kafkaMetrics} ${className}`.trim()}
+      aria-label={ariaLabel}
+      data-metric-count={metrics.length}
+    >
       {metrics.map((metric) => (
-        <div key={metric.label} className={`KafkaMetric ${metric.tone ?? ""}`.trim()}>
-          <strong className="KafkaMetricValue">{metric.value}</strong>
-          <span className="KafkaMetricLabel">{metric.label}</span>
+        <div key={metric.label} className={`${styles.kafkaMetric} ${metric.tone ?? ""}`.trim()}>
+          <strong className={styles.kafkaMetricValue}>{metric.value}</strong>
+          <span className={styles.kafkaMetricLabel}>{metric.label}</span>
         </div>
       ))}
     </section>
@@ -86,7 +91,7 @@ export function KafkaClusterSelector({ clusters, selectedTargetId, onChange, dis
   }));
 
   return (
-    <label className="KafkaClusterSelector">
+    <label className={styles.kafkaClusterSelector}>
       <span>Kafka cluster</span>
       <Renderer.Component.Select
         options={options}

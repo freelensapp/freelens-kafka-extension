@@ -1,6 +1,7 @@
 import { Renderer } from "@freelensapp/extensions";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { kafkaPersistentStateStore } from "../common/kafka-persistent-state-store";
+import styles from "./kafka.module.scss";
 import { kafkaListWindow } from "./kafka-list-window";
 import { rememberKafkaClusterSelection } from "./kafka-navigation";
 import { KafkaMetricStrip, KafkaPageShell } from "./kafka-page-shell";
@@ -283,14 +284,17 @@ export function KafkaGroupsPage({
       >
         <KafkaResourceState state={state} />
         {state.selectedCluster && (
-          <main className="KafkaResourcePage KafkaGroupWorkspace" data-testid="kafka-group-workspace">
+          <main
+            className={`${styles.kafkaResourcePage} ${styles.kafkaGroupWorkspace}`}
+            data-testid="kafka-group-workspace"
+          >
             {resetOpen && groupId && (
               <section
                 className="KafkaWriteDrawer"
                 data-testid="kafka-reset-offsets-drawer"
                 aria-label="Reset offsets confirmation"
               >
-                <div className="KafkaPageState warning">
+                <div className={`${styles.kafkaPageState} warning`}>
                   <Renderer.Component.Icon material="restart_alt" />
                   <div>
                     <strong>Reset offsets</strong>
@@ -331,7 +335,7 @@ export function KafkaGroupsPage({
                       aria-label="Reset timestamp"
                     />
                   )}
-                  <div className="KafkaWriteSummary">
+                  <div className={styles.kafkaWriteSummary}>
                     <strong>Group</strong>
                     <span>{groupId}</span>
                     <strong>Cluster</strong>
@@ -411,7 +415,7 @@ export function KafkaGroupsPage({
                 </div>
               </section>
             )}
-            <nav className="KafkaEntityTabs" role="tablist" aria-label="Group sections">
+            <nav className={styles.kafkaEntityTabs} role="tablist" aria-label="Group sections">
               {(["offsets", "members", "topics"] as const).map((tab) => (
                 <Renderer.Component.Button
                   key={tab}
@@ -426,13 +430,13 @@ export function KafkaGroupsPage({
               ))}
             </nav>
             {detailState.loading && (
-              <div className="KafkaPageState loading">
+              <div className={`${styles.kafkaPageState} loading`}>
                 <Renderer.Component.Spinner />
                 <span>Loading group detail…</span>
               </div>
             )}
             {!detailState.loading && detailState.error && (
-              <div className="KafkaPageState error" role="alert">
+              <div className={`${styles.kafkaPageState} error`} role="alert">
                 <Renderer.Component.Icon material="error_outline" />
                 <div>
                   <strong>Failed to load group detail</strong>
@@ -475,15 +479,15 @@ export function KafkaGroupsPage({
     >
       <KafkaResourceState state={state} />
       {state.selectedCluster && (
-        <main className="KafkaResourcePage KafkaGroupsPage" data-testid="kafka-groups-page">
+        <main className={`${styles.kafkaResourcePage} ${styles.kafkaGroupsPage}`} data-testid="kafka-groups-page">
           {groupsState.loading && !groupsState.data && (
-            <div className="KafkaPageState loading">
+            <div className={`${styles.kafkaPageState} loading`}>
               <Renderer.Component.Spinner />
               <span>Loading consumer groups…</span>
             </div>
           )}
           {!groupsState.loading && groupsState.error && (
-            <div className="KafkaPageState error" role="alert">
+            <div className={`${styles.kafkaPageState} error`} role="alert">
               <Renderer.Component.Icon material="error_outline" />
               <div>
                 <strong>Failed to load consumer groups</strong>
@@ -498,11 +502,11 @@ export function KafkaGroupsPage({
             <>
               <KafkaMetricStrip
                 ariaLabel="Kafka consumer group summary"
-                className="KafkaResourceMetricStrip"
+                className={styles.kafkaResourceMetricStrip}
                 metrics={[{ label: "Groups", value: allGroups.length }]}
               />
               {allGroups.length === 0 ? (
-                <div className="KafkaPageState empty">
+                <div className={`${styles.kafkaPageState} empty`}>
                   <Renderer.Component.Icon material="group" />
                   <div>
                     <strong>No consumer groups</strong>
@@ -512,7 +516,7 @@ export function KafkaGroupsPage({
               ) : (
                 <>
                   <Renderer.Component.Input
-                    className="KafkaTopicSearch"
+                    className={styles.kafkaTopicSearch}
                     value={query}
                     onChange={(nextQuery) => setQuery(nextQuery, true)}
                     iconLeft="search"
@@ -528,7 +532,7 @@ export function KafkaGroupsPage({
                     sortByDefault={{ sortBy: "id", orderBy: "asc" }}
                     sortable={{ id: (g) => g.groupId.toLowerCase() }}
                     noItems={
-                      <div className="KafkaTopicPrompt">
+                      <div className={styles.kafkaTopicPrompt}>
                         <Renderer.Component.Icon material="filter_alt_off" />
                         <span>No groups match the current filter.</span>
                       </div>
@@ -574,7 +578,7 @@ export function KafkaGroupsPage({
                       return (
                         <Renderer.Component.TableRow
                           {...interaction}
-                          className="KafkaInteractiveRow"
+                          className={styles.kafkaInteractiveRow}
                           key={group.groupId}
                           sortItem={group}
                           data-group={group.groupId}
@@ -582,7 +586,7 @@ export function KafkaGroupsPage({
                         >
                           <Renderer.Component.TableCell className="groupNameCell" style={GROUP_NAME_COLUMN_STYLE}>
                             <Renderer.Component.Icon material="group" />
-                            <span className="KafkaEllipsis" title={group.groupId}>
+                            <span className={styles.kafkaEllipsis} title={group.groupId}>
                               {group.groupId}
                             </span>
                           </Renderer.Component.TableCell>
@@ -590,7 +594,7 @@ export function KafkaGroupsPage({
                             <GroupStateBadge state={group.state} />
                           </Renderer.Component.TableCell>
                           <Renderer.Component.TableCell className="groupTypeCell" style={GROUP_TYPE_COLUMN_STYLE}>
-                            <span className="KafkaGroupProtocol">{group.protocolType || "—"}</span>
+                            <span className={styles.kafkaGroupProtocol}>{group.protocolType || "—"}</span>
                           </Renderer.Component.TableCell>
                           <Renderer.Component.TableCell className="groupMembersCell" style={GROUP_MEMBERS_COLUMN_STYLE}>
                             {group.memberCount}
@@ -638,10 +642,10 @@ export function KafkaGroupsPage({
 function GroupStateBadge({ state }: { state: string }) {
   const tone =
     state === "Stable"
-      ? "KafkaHealthyBadge"
+      ? styles.kafkaHealthyBadge
       : state === "Dead" || state === "Unknown"
-        ? "KafkaErrorBadge"
-        : "KafkaWarningBadge";
+        ? styles.kafkaErrorBadge
+        : styles.kafkaWarningBadge;
   return <Renderer.Component.Badge small className={tone} label={state || "Unknown"} />;
 }
 
@@ -652,7 +656,7 @@ const OFFSET_LAG_STYLE: CSSProperties = { flex: "0 0 100px", minWidth: 100, widt
 function KafkaGroupOffsets({ detail }: { detail: ConsumerGroupDetailDto }) {
   if (detail.topicOffsets.length === 0) {
     return (
-      <div className="KafkaPageState empty">
+      <div className={`${styles.kafkaPageState} empty`}>
         <Renderer.Component.Icon material="rule" />
         <div>
           <strong>No committed offsets</strong>
@@ -663,13 +667,13 @@ function KafkaGroupOffsets({ detail }: { detail: ConsumerGroupDetailDto }) {
   }
 
   return (
-    <div className="KafkaGroupOffsetSection" data-testid="kafka-group-offsets">
+    <div className={styles.kafkaGroupOffsetSection} data-testid="kafka-group-offsets">
       {detail.topicOffsets.map((topicData) => (
-        <section key={topicData.topic} className="KafkaGroupTopicSection">
-          <header className="KafkaGroupTopicHeader">
+        <section key={topicData.topic} className={styles.kafkaGroupTopicSection}>
+          <header className={styles.kafkaGroupTopicHeader}>
             <Renderer.Component.Icon material="topic" />
-            <span className="KafkaGroupTopicName">{topicData.topic}</span>
-            <span className="KafkaGroupTopicLag">
+            <span className={styles.kafkaGroupTopicName}>{topicData.topic}</span>
+            <span className={styles.kafkaGroupTopicLag}>
               Total lag: <strong>{topicData.totalLag}</strong>
             </span>
           </header>
@@ -712,9 +716,9 @@ function KafkaGroupOffsets({ detail }: { detail: ConsumerGroupDetailDto }) {
 }
 
 function LagValue({ lag }: { lag: string }) {
-  if (lag === "—") return <span className="KafkaLagUnknown">—</span>;
+  if (lag === "—") return <span className={styles.kafkaLagUnknown}>—</span>;
   const n = BigInt(lag);
-  const tone = n === 0n ? "KafkaLagZero" : n < 1000n ? "KafkaLagLow" : "KafkaLagHigh";
+  const tone = n === 0n ? styles.kafkaLagZero : n < 1000n ? styles.kafkaLagLow : styles.kafkaLagHigh;
   return <strong className={tone}>{lag}</strong>;
 }
 
@@ -732,7 +736,7 @@ function KafkaGroupTopics({
 }) {
   if (detail.topicOffsets.length === 0) {
     return (
-      <div className="KafkaPageState empty">
+      <div className={`${styles.kafkaPageState} empty`}>
         <Renderer.Component.Icon material="topic" />
         <div>
           <strong>No consumed topics</strong>
@@ -743,16 +747,16 @@ function KafkaGroupTopics({
   }
 
   return (
-    <div className="KafkaGroupTopicsSection" data-testid="kafka-group-topics">
+    <div className={styles.kafkaGroupTopicsSection} data-testid="kafka-group-topics">
       <KafkaMetricStrip
         ariaLabel="Group topic summary"
-        className="KafkaResourceMetricStrip"
+        className={styles.kafkaResourceMetricStrip}
         metrics={[{ label: "Topics", value: detail.topicOffsets.length }]}
       />
       <Renderer.Component.Table<(typeof detail.topicOffsets)[number]>
         autoSize={false}
         scrollable
-        className="KafkaGroupTopicsTable"
+        className={styles.kafkaGroupTopicsTable}
         tableId="kafka-group-topics"
         sortSyncWithUrl={false}
         sortByDefault={{ sortBy: "topic", orderBy: "asc" }}
@@ -790,7 +794,7 @@ function KafkaGroupTopics({
           return (
             <Renderer.Component.TableRow
               {...interaction}
-              className="KafkaInteractiveRow"
+              className={styles.kafkaInteractiveRow}
               key={topic.topic}
               sortItem={topic}
               data-topic={topic.topic}
@@ -798,7 +802,7 @@ function KafkaGroupTopics({
             >
               <Renderer.Component.TableCell className="groupTopicNameCell" style={GROUP_TOPIC_NAME_STYLE}>
                 <Renderer.Component.Icon material="topic" />
-                <span className="KafkaEllipsis" title={topic.topic}>
+                <span className={styles.kafkaEllipsis} title={topic.topic}>
                   {topic.topic}
                 </span>
               </Renderer.Component.TableCell>
@@ -826,7 +830,7 @@ const MEMBER_HOST_STYLE: CSSProperties = { flex: "0 0 180px", minWidth: 180, wid
 function KafkaGroupMembers({ detail }: { detail: ConsumerGroupDetailDto }) {
   if (detail.members.length === 0) {
     return (
-      <div className="KafkaPageState empty">
+      <div className={`${styles.kafkaPageState} empty`}>
         <Renderer.Component.Icon material="person_off" />
         <div>
           <strong>No active members</strong>
@@ -837,10 +841,10 @@ function KafkaGroupMembers({ detail }: { detail: ConsumerGroupDetailDto }) {
   }
 
   return (
-    <div className="KafkaGroupMemberSection" data-testid="kafka-group-members">
+    <div className={styles.kafkaGroupMemberSection} data-testid="kafka-group-members">
       <KafkaMetricStrip
         ariaLabel="Group member summary"
-        className="KafkaResourceMetricStrip"
+        className={styles.kafkaResourceMetricStrip}
         metrics={[{ label: "Members", value: detail.members.length }]}
       />
       <Renderer.Component.Table autoSize={false} scrollable className="KafkaMemberTable">
@@ -858,17 +862,17 @@ function KafkaGroupMembers({ detail }: { detail: ConsumerGroupDetailDto }) {
         {detail.members.map((m) => (
           <Renderer.Component.TableRow key={m.memberId} nowrap>
             <Renderer.Component.TableCell className="memberIdCell" style={MEMBER_ID_STYLE}>
-              <code className="KafkaEllipsis" title={m.memberId}>
+              <code className={styles.kafkaEllipsis} title={m.memberId}>
                 {m.memberId}
               </code>
             </Renderer.Component.TableCell>
             <Renderer.Component.TableCell className="clientIdCell" style={MEMBER_CLIENT_STYLE}>
-              <span className="KafkaEllipsis" title={m.clientId}>
+              <span className={styles.kafkaEllipsis} title={m.clientId}>
                 {m.clientId}
               </span>
             </Renderer.Component.TableCell>
             <Renderer.Component.TableCell className="clientHostCell" style={MEMBER_HOST_STYLE}>
-              <code className="KafkaEllipsis" title={m.clientHost}>
+              <code className={styles.kafkaEllipsis} title={m.clientHost}>
                 {m.clientHost}
               </code>
             </Renderer.Component.TableCell>

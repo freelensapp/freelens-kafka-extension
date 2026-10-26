@@ -1,5 +1,6 @@
 import { Renderer } from "@freelensapp/extensions";
 import { useEffect, useMemo, useState } from "react";
+import styles from "./kafka.module.scss";
 import { KafkaPageShell } from "./kafka-page-shell";
 import { type KafkaResourcePageDependencies, useKafkaPageParam, useKafkaResourcePage } from "./kafka-resource-pages";
 import { canSubmitWriteAction } from "./kafka-write-policy";
@@ -138,7 +139,7 @@ export function KafkaSchemaRegistryPage({
   if (!registry) {
     return (
       <KafkaPageShell title="Schema Registry" subtitle="No Schema Registry configured">
-        <div className="KafkaPageState empty" data-testid="kafka-schema-registry-unconfigured">
+        <div className={`${styles.kafkaPageState} empty`} data-testid="kafka-schema-registry-unconfigured">
           Configure a Registry endpoint in Kafka connection settings to browse subjects.
         </div>
       </KafkaPageShell>
@@ -147,9 +148,9 @@ export function KafkaSchemaRegistryPage({
 
   return (
     <KafkaPageShell title="Schema Registry" subtitle={registry.registryUrl}>
-      <main className="KafkaWorkspace" data-testid="kafka-schema-registry-page">
-        <section className="KafkaListPane">
-          <div className="KafkaToolbar">
+      <main className={styles.kafkaWorkspace} data-testid="kafka-schema-registry-page">
+        <section className={styles.kafkaListPane}>
+          <div className={styles.kafkaToolbar}>
             <Renderer.Component.Input
               value={query}
               onChange={(value) => setQuery(value, true)}
@@ -157,14 +158,14 @@ export function KafkaSchemaRegistryPage({
               aria-label="Filter schema subjects"
             />
           </div>
-          {loading && <div className="KafkaPageState loading">Loading schema subjects…</div>}
+          {loading && <div className={`${styles.kafkaPageState} loading`}>Loading schema subjects…</div>}
           {error && (
-            <div className="KafkaPageState error" role="alert">
+            <div className={`${styles.kafkaPageState} error`} role="alert">
               {error}
             </div>
           )}
           {!loading && !error && filtered.length === 0 && (
-            <div className="KafkaPageState empty">No schema subjects match.</div>
+            <div className={`${styles.kafkaPageState} empty`}>No schema subjects match.</div>
           )}
           <Renderer.Component.Table className="KafkaSchemaSubjectTable">
             <Renderer.Component.TableHead>

@@ -1,5 +1,6 @@
 import { Renderer } from "@freelensapp/extensions";
 import { useCallback, useEffect, useMemo, useState } from "react";
+import styles from "./kafka.module.scss";
 import { KafkaPageShell } from "./kafka-page-shell";
 import { KafkaResourceActions, type KafkaResourcePageDependencies, useKafkaResourcePage } from "./kafka-resource-pages";
 import { canSubmitWriteAction } from "./kafka-write-policy";
@@ -143,8 +144,8 @@ export function KafkaAclPage({ params, acls, aclCreate, aclDelete, ...dependenci
       subtitle={cluster?.name ?? "Kafka security rules"}
       actions={<KafkaResourceActions state={state} />}
     >
-      <main className="KafkaResourcePage" data-testid="kafka-acl-page">
-        <div className="KafkaToolbar">
+      <main className={styles.kafkaResourcePage} data-testid="kafka-acl-page">
+        <div className={styles.kafkaToolbar}>
           <Renderer.Component.Input
             value={principalFilter}
             onChange={setPrincipalFilter}
@@ -172,12 +173,14 @@ export function KafkaAclPage({ params, acls, aclCreate, aclDelete, ...dependenci
         </div>
 
         {result && !result.available ? (
-          <div className="KafkaPageState empty" data-testid="kafka-acl-unavailable">
+          <div className={`${styles.kafkaPageState} empty`} data-testid="kafka-acl-unavailable">
             {result.message}
           </div>
         ) : (
           <>
-            {result && filtered.length === 0 && <div className="KafkaPageState empty">No ACL rules match.</div>}
+            {result && filtered.length === 0 && (
+              <div className={`${styles.kafkaPageState} empty`}>No ACL rules match.</div>
+            )}
             <Renderer.Component.Table className="KafkaAclTable">
               <Renderer.Component.TableHead>
                 <Renderer.Component.TableCell>Resource</Renderer.Component.TableCell>

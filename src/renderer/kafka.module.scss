@@ -40,8 +40,8 @@
   }
 
   .KafkaRefreshButton,
-  .KafkaHeaderActions .Button,
-  .KafkaManualEndpoint .Button,
+  .KafkaHeaderActions :global(.Button),
+  .KafkaManualEndpoint :global(.Button),
   .KafkaRemoveEndpoint,
   .KafkaIconButton {
     display: inline-flex;
@@ -64,12 +64,12 @@
     color: var(--kafka-muted);
     font-size: 11px;
 
-    &.refreshing,
-    &.loading {
+    &:global(.refreshing),
+    &:global(.loading) {
       color: var(--primary);
     }
 
-    .Icon {
+    :global(.Icon) {
       font-size: 15px;
     }
   }
@@ -124,11 +124,11 @@
       border-left: 1px solid var(--kafka-border);
     }
 
-    &.warning .KafkaMetricValue {
+    &:global(.warning) .KafkaMetricValue {
       color: var(--colorWarning, #f9a825);
     }
 
-    &.error .KafkaMetricValue {
+    &:global(.error) .KafkaMetricValue {
       color: var(--colorError, #ef5350);
     }
   }
@@ -219,28 +219,28 @@
     border-top: 1px solid var(--kafka-border);
     border-bottom: 1px solid var(--kafka-border);
 
-    .TableHead,
-    .TableRow {
+    :global(.TableHead),
+    :global(.TableRow) {
       width: 100%;
       min-width: 0;
       min-height: 42px;
     }
 
-    .brokerIdCell {
+    :global(.brokerIdCell) {
       flex: 0 0 90px;
     }
 
-    .brokerRoleCell {
+    :global(.brokerRoleCell) {
       flex: 0 0 130px;
     }
 
-    .brokerHostCell {
+    :global(.brokerHostCell) {
       flex: 1 1 0;
       width: 0;
       min-width: 0;
     }
 
-    .brokerPortCell {
+    :global(.brokerPortCell) {
       flex: 0 0 90px;
     }
 
@@ -282,10 +282,10 @@
   .KafkaBrokerConfigTable {
     height: 360px;
 
-    .configNameCell,
-    .configValueCell,
-    .configSourceCell,
-    .configFlagsCell {
+    :global(.configNameCell),
+    :global(.configValueCell),
+    :global(.configSourceCell),
+    :global(.configFlagsCell) {
       box-sizing: border-box;
     }
   }
@@ -329,7 +329,7 @@
       white-space: nowrap;
     }
 
-    .KafkaTopicPageTable .TableCell.checkbox {
+    .KafkaTopicPageTable :global(.TableCell):global(.checkbox) {
       align-items: center;
       justify-content: center;
     }
@@ -368,7 +368,7 @@
         align-items: center;
         gap: 6px;
 
-        > .Icon {
+        > :global(.Icon) {
           color: var(--kafka-muted);
         }
       }
@@ -420,7 +420,7 @@
     gap: 4px;
     border-bottom: 1px solid var(--kafka-border);
 
-    .Button {
+    :global(.Button) {
       min-width: 112px;
       padding: 10px 14px;
       border-bottom: 2px solid transparent;
@@ -444,7 +444,7 @@
     background: color-mix(in srgb, var(--colorWarning, #f9a825) 8%, transparent);
     color: var(--textColorPrimary);
 
-    > .Icon {
+    > :global(.Icon) {
       margin-top: 1px;
       color: var(--colorWarning, #f9a825);
     }
@@ -472,16 +472,16 @@
     background: color-mix(in srgb, var(--colorOk, #4caf50) 8%, transparent);
     color: var(--textColorPrimary);
 
-    > .Icon {
+    > :global(.Icon) {
       color: var(--colorOk, #4caf50);
     }
 
     // A batch that deleted only part of the selection
-    &.warning {
+    &:global(.warning) {
       border-color: color-mix(in srgb, var(--colorWarning, #f9a825) 45%, transparent);
       background: color-mix(in srgb, var(--colorWarning, #f9a825) 8%, transparent);
 
-      > .Icon {
+      > :global(.Icon) {
         color: var(--colorWarning, #f9a825);
       }
     }
@@ -498,7 +498,7 @@
     background: color-mix(in srgb, var(--colorError, #ef5350) 8%, transparent);
     color: var(--textColorPrimary);
 
-    > .Icon {
+    > :global(.Icon) {
       color: var(--colorError, #ef5350);
     }
 
@@ -533,7 +533,7 @@
     padding: 12px 8px 12px 14px;
     border-bottom: 1px solid var(--kafka-border);
 
-    > .Icon {
+    > :global(.Icon) {
       margin-top: 2px;
       color: var(--colorWarning, #f9a825);
     }
@@ -640,7 +640,7 @@
 
   // Destructive action buttons (delete topic)
   .KafkaDangerButton {
-    &.outlined {
+    &:global(.outlined) {
       color: var(--colorError);
       border-color: color-mix(in srgb, var(--colorError) 55%, transparent);
 
@@ -649,7 +649,7 @@
       }
     }
 
-    &.primary:not([disabled]) {
+    &:global(.primary):not([disabled]) {
       background: var(--colorError);
     }
   }
@@ -660,7 +660,7 @@
     font-size: 12px;
     white-space: nowrap;
 
-    &.muted {
+    &:global(.muted) {
       color: var(--kafka-muted);
     }
   }
@@ -737,7 +737,7 @@
     border: 1px solid var(--kafka-border);
     border-radius: 6px;
 
-    .Button {
+    :global(.Button) {
       min-height: 28px;
       padding: 4px 10px;
       font-size: 12px;
@@ -786,24 +786,24 @@
         flex: 0 0 150px;
         width: 150px;
 
-        .Select {
+        :global(.Select) {
           width: 100%;
           min-width: 0;
           max-width: 100%;
         }
 
-        .Select__control,
-        .Select__value-container {
+        :global(.Select__control),
+        :global(.Select__value-container) {
           min-width: 0;
         }
 
         // Keep the partition picker visually aligned with the 34px start-mode filter group.
-        .Select__control {
+        :global(.Select__control) {
           min-height: 34px;
           height: 34px;
         }
 
-        .Select__value-container {
+        :global(.Select__value-container) {
           height: 34px;
           margin-top: 0;
           margin-bottom: 0;
@@ -811,17 +811,17 @@
           padding-bottom: 0;
         }
 
-        .Select__indicators {
+        :global(.Select__indicators) {
           height: 34px;
         }
       }
 
-      .Input {
+      :global(.Input) {
         width: 150px;
       }
     }
 
-    > .Button {
+    > :global(.Button) {
       display: inline-flex;
       min-width: 96px;
       min-height: 34px;
@@ -892,7 +892,7 @@
     border: 1px solid var(--kafka-border);
     overflow: visible;
 
-    .Button {
+    :global(.Button) {
       position: relative;
       display: inline-flex;
       min-width: max-content;
@@ -947,7 +947,7 @@
     border: 1px solid color-mix(in srgb, var(--primary) 35%, transparent);
     background: color-mix(in srgb, var(--primary) 8%, transparent);
 
-    > .Icon {
+    > :global(.Icon) {
       color: var(--primary);
     }
 
@@ -1014,7 +1014,7 @@
       }
     }
 
-    > .Button {
+    > :global(.Button) {
       display: inline-flex;
       flex: 0 0 auto;
       align-items: center;
@@ -1049,38 +1049,38 @@
     // loaded record stays reachable in the desktop layout (#25).
     overflow: auto;
 
-    .TableHead,
-    .TableRow {
+    :global(.TableHead),
+    :global(.TableRow) {
       width: 100%;
       min-width: 0;
       min-height: 38px;
     }
 
-    .TableHead {
+    :global(.TableHead) {
       border-bottom: 1px solid var(--kafka-border);
       // Opaque: rows scroll underneath the sticky header.
       background: color-mix(in srgb, var(--contentColor, transparent) 80%, var(--mainBackground, transparent));
     }
 
-    .TableCell {
+    :global(.TableCell) {
       min-width: 0;
     }
 
-    .messageOffsetCell {
+    :global(.messageOffsetCell) {
       // Room for the label plus the sort indicator
       flex: 0 0 96px;
       min-width: 96px;
       font-family: monospace;
     }
 
-    .messageTimeCell {
+    :global(.messageTimeCell) {
       flex: 0 0 156px;
       min-width: 156px;
       color: var(--textColorSecondary);
     }
 
-    .messageKeyCell,
-    .messageValueCell {
+    :global(.messageKeyCell),
+    :global(.messageValueCell) {
       flex: 1 1 130px;
       width: 0;
       min-width: 92px;
@@ -1091,12 +1091,12 @@
       }
     }
 
-    .messageActionCell {
+    :global(.messageActionCell) {
       flex: 0 0 44px;
       min-width: 44px;
       text-align: right;
 
-      .Button {
+      :global(.Button) {
         width: 28px;
         height: 28px;
         padding: 0;
@@ -1125,15 +1125,15 @@
     height: 100%;
     border-bottom: 1px solid var(--kafka-border);
 
-    .TableHead {
+    :global(.TableHead) {
       min-height: 38px;
     }
 
-    .TableRow {
+    :global(.TableRow) {
       min-height: 46px;
       border-bottom: 1px solid var(--kafka-border);
 
-      &:not(.disabled) {
+      &:not(:global(.disabled)) {
         cursor: pointer;
       }
 
@@ -1144,41 +1144,41 @@
       }
     }
 
-    .TableCell {
+    :global(.TableCell) {
       min-width: 0;
     }
 
-    .nameCell {
+    :global(.nameCell) {
       flex: 1 1 190px;
       min-width: 155px;
     }
 
-    .usageCell {
+    :global(.usageCell) {
       flex: 0 1 165px;
       min-width: 125px;
     }
 
-    .sourceCell {
+    :global(.sourceCell) {
       flex: 0 1 145px;
       min-width: 110px;
     }
 
-    .bootstrapCell {
+    :global(.bootstrapCell) {
       flex: 1.6 1 270px;
       min-width: 180px;
     }
 
-    .securityCell {
+    :global(.securityCell) {
       flex: 0 0 128px;
       gap: 5px;
     }
 
-    .reachCell,
-    .podsCell {
+    :global(.reachCell),
+    :global(.podsCell) {
       flex: 0 0 108px;
     }
 
-    .actionCell {
+    :global(.actionCell) {
       flex: 0 0 46px;
       justify-content: center;
     }
@@ -1191,7 +1191,7 @@
     gap: 8px;
     font-weight: 500;
 
-    .Icon {
+    :global(.Icon) {
       flex: 0 0 auto;
       color: var(--primary);
     }
@@ -1244,33 +1244,33 @@
     gap: 4px;
     border: 1px solid transparent;
 
-    .Icon {
+    :global(.Icon) {
       font-size: 14px;
     }
 
     > span,
-    > .Icon,
+    > :global(.Icon),
     > div {
       flex: 0 0 auto;
     }
   }
 
   .KafkaStatusBadge {
-    &.reachable {
+    &:global(.reachable) {
       color: var(--colorOk, #4caf50);
       border-color: color-mix(in srgb, currentColor 35%, transparent);
     }
 
-    &.unreachable {
+    &:global(.unreachable) {
       color: var(--colorError, #ef5350);
       border-color: color-mix(in srgb, currentColor 35%, transparent);
     }
 
-    &.checking {
+    &:global(.checking) {
       color: var(--kafka-muted);
     }
 
-    &.unknown {
+    &:global(.unknown) {
       color: var(--kafka-muted);
       border-color: var(--kafka-border);
     }
@@ -1279,13 +1279,13 @@
   .KafkaSourceBadge {
     color: var(--textColorPrimary);
 
-    &.source-workload {
+    &:global(.source-workload) {
       border-color: var(--primary);
     }
   }
 
-  .KafkaTlsBadge.enabled,
-  .KafkaStrategyBadge.strategy-direct {
+  .KafkaTlsBadge:global(.enabled),
+  .KafkaStrategyBadge:global(.strategy-direct) {
     color: var(--primary);
     border-color: var(--primary);
   }
@@ -1299,7 +1299,7 @@
     gap: 12px;
     color: var(--kafka-muted);
 
-    &.error {
+    &:global(.error) {
       color: var(--colorError);
     }
 
@@ -1318,7 +1318,7 @@
   border-radius: 6px;
   background: var(--contentColor, rgba(127, 127, 127, 0.06));
 
-  &.error {
+  &:global(.error) {
     border-color: color-mix(in srgb, var(--colorError) 55%, transparent);
   }
 
@@ -1352,10 +1352,10 @@
     height: 6px;
     color: var(--primary);
 
-    &.indeterminate {
+    &:global(.indeterminate) {
       overflow: hidden;
 
-      .line {
+      :global(.line) {
         position: absolute;
         left: -40%;
         width: 40% !important;
@@ -1387,7 +1387,7 @@
       color: var(--textColorSecondary);
       font-size: 10px;
 
-      .Icon {
+      :global(.Icon) {
         flex: 0 0 auto;
         font-size: 13px;
       }
@@ -1398,12 +1398,12 @@
         white-space: nowrap;
       }
 
-      &.complete,
-      &.current {
+      &:global(.complete),
+      &:global(.current) {
         color: var(--primary);
       }
 
-      &.current {
+      &:global(.current) {
         font-weight: 600;
       }
     }
@@ -1476,7 +1476,7 @@
     }
   }
 
-  &[open] > summary > .Icon:last-child {
+  &[open] > summary > :global(.Icon):last-child {
     transform: rotate(180deg);
   }
 
@@ -1505,7 +1505,7 @@
   background: color-mix(in srgb, var(--colorWarning, #f9a825) 8%, transparent);
   color: var(--textColorPrimary);
 
-  > .Icon {
+  > :global(.Icon) {
     margin-top: 1px;
     color: var(--colorWarning, #f9a825);
   }
@@ -1535,7 +1535,7 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .KafkaOperationProgress .KafkaProgressLine.indeterminate .line {
+  .KafkaOperationProgress .KafkaProgressLine:global(.indeterminate) :global(.line) {
     left: 30%;
     animation: none;
   }
@@ -1551,7 +1551,7 @@
   }
 }
 
-.Drawer.KafkaConnectionSettingsDrawer {
+:global(.Drawer).KafkaConnectionSettingsDrawer {
   --kafka-border: var(--borderColor, rgba(127, 127, 127, 0.22));
   --kafka-muted: var(--textColorSecondary, rgba(127, 127, 127, 0.92));
 
@@ -1564,7 +1564,7 @@
     overflow-x: hidden;
   }
 
-  .DrawerItem {
+  :global(.DrawerItem) {
     padding: 9px 0;
   }
 
@@ -1591,32 +1591,32 @@
     gap: 4px;
     border: 1px solid transparent;
 
-    .Icon {
+    :global(.Icon) {
       font-size: 14px;
     }
   }
 
-  .KafkaStatusBadge.reachable {
+  .KafkaStatusBadge:global(.reachable) {
     color: var(--colorOk, #4caf50);
     border-color: color-mix(in srgb, currentColor 35%, transparent);
   }
 
-  .KafkaStatusBadge.unreachable {
+  .KafkaStatusBadge:global(.unreachable) {
     color: var(--colorError, #ef5350);
     border-color: color-mix(in srgb, currentColor 35%, transparent);
   }
 
-  .KafkaStatusBadge.checking,
-  .KafkaStatusBadge.unknown {
+  .KafkaStatusBadge:global(.checking),
+  .KafkaStatusBadge:global(.unknown) {
     color: var(--kafka-muted);
   }
 
-  .KafkaStatusBadge.unknown {
+  .KafkaStatusBadge:global(.unknown) {
     border-color: var(--kafka-border);
   }
 
-  .KafkaTlsBadge.enabled,
-  .KafkaStrategyBadge.strategy-direct {
+  .KafkaTlsBadge:global(.enabled),
+  .KafkaStrategyBadge:global(.strategy-direct) {
     color: var(--primary);
     border-color: var(--primary);
   }
@@ -1667,7 +1667,7 @@
       line-height: 1.45;
     }
 
-    > .Button {
+    > :global(.Button) {
       display: inline-flex;
       align-items: center;
       justify-content: center;
@@ -1690,7 +1690,7 @@
     border: 1px solid color-mix(in srgb, var(--colorOk, #4caf50) 45%, transparent);
     color: var(--colorOk, #4caf50);
 
-    > .Icon {
+    > :global(.Icon) {
       flex: 0 0 auto;
     }
 
@@ -1737,7 +1737,7 @@
   }
 }
 
-.Drawer.KafkaMessageDetailDrawer {
+:global(.Drawer).KafkaMessageDetailDrawer {
   --kafka-border: var(--borderColor, rgba(127, 127, 127, 0.22));
   --kafka-muted: var(--textColorSecondary, rgba(127, 127, 127, 0.92));
   --kafka-panel: var(--contentColor, rgba(127, 127, 127, 0.06));
@@ -1752,7 +1752,7 @@
     overflow-y: auto;
   }
 
-  .DrawerItem {
+  :global(.DrawerItem) {
     padding: 9px 0;
   }
 
@@ -1838,22 +1838,22 @@
     font-family: monospace;
     line-height: 1.6;
 
-    &.format-json {
+    &:global(.format-json) {
       color: var(--colorOk, #4caf50);
       border-color: color-mix(in srgb, currentColor 35%, transparent);
     }
 
-    &.format-text {
+    &:global(.format-text) {
       color: var(--textColorSecondary);
       border-color: var(--kafka-border);
     }
 
-    &.format-binary {
+    &:global(.format-binary) {
       color: var(--colorWarning, #f9a825);
       border-color: color-mix(in srgb, currentColor 35%, transparent);
     }
 
-    &.format-null {
+    &:global(.format-null) {
       color: var(--kafka-muted);
       border-color: var(--kafka-border);
     }
@@ -1913,7 +1913,7 @@
     margin-top: 4px;
     border-top: 1px solid var(--kafka-border);
 
-    .DrawerItem {
+    :global(.DrawerItem) {
       border-bottom: 1px solid var(--kafka-border);
       padding: 8px 0;
     }
@@ -1946,7 +1946,7 @@
     color: var(--kafka-muted);
     font-size: 12px;
 
-    .Icon {
+    :global(.Icon) {
       font-size: 16px;
     }
   }
@@ -1974,14 +1974,14 @@
     border-top: 1px solid var(--kafka-border);
     border-bottom: 1px solid var(--kafka-border);
 
-    .TableHead,
-    .TableRow {
+    :global(.TableHead),
+    :global(.TableRow) {
       width: 100%;
       min-width: 0;
       min-height: 38px;
     }
 
-    .TableRow[role="button"] {
+    :global(.TableRow)[role="button"] {
       cursor: pointer;
     }
   }
@@ -1989,12 +1989,12 @@
   .KafkaTopicTable {
     height: 240px;
 
-    .topicNameCell {
+    :global(.topicNameCell) {
       display: flex;
       align-items: center;
       gap: 7px;
 
-      > .content {
+      > :global(.content) {
         min-width: 0;
         padding-right: 24px;
         overflow: hidden;
@@ -2007,13 +2007,13 @@
         flex: 1 1 auto;
       }
 
-      .Icon {
+      :global(.Icon) {
         flex: 0 0 auto;
         color: var(--primary);
       }
     }
 
-    .topicActionCell {
+    :global(.topicActionCell) {
       justify-content: center;
     }
   }
@@ -2063,7 +2063,7 @@
       gap: 8px;
     }
 
-    .DrawerTitle {
+    :global(.DrawerTitle) {
       min-width: 0;
       margin: 0;
       padding: 0;
@@ -2073,7 +2073,7 @@
       white-space: nowrap;
     }
 
-    .Button {
+    :global(.Button) {
       display: inline-flex;
       flex: 0 0 auto;
       align-items: center;
@@ -2084,22 +2084,22 @@
   .KafkaPartitionTable {
     height: 320px;
 
-    .TableHead .TableCell > .content {
+    :global(.TableHead) :global(.TableCell) > :global(.content) {
       min-width: 0;
       overflow: hidden;
       text-overflow: ellipsis;
       white-space: nowrap;
     }
 
-    .TableHead .partitionIdCell > .content {
+    :global(.TableHead) :global(.partitionIdCell) > :global(.content) {
       padding-right: 24px;
     }
 
-    .partitionIdCell,
-    .partitionLeaderCell,
-    .partitionReplicasCell,
-    .partitionIsrCell,
-    .partitionHealthCell {
+    :global(.partitionIdCell),
+    :global(.partitionLeaderCell),
+    :global(.partitionReplicasCell),
+    :global(.partitionIsrCell),
+    :global(.partitionHealthCell) {
       box-sizing: border-box;
     }
   }
@@ -2107,10 +2107,10 @@
   .KafkaTopicConfigTable {
     height: 320px;
 
-    .configNameCell,
-    .configValueCell,
-    .configSourceCell,
-    .configFlagsCell {
+    :global(.configNameCell),
+    :global(.configValueCell),
+    :global(.configSourceCell),
+    :global(.configFlagsCell) {
       box-sizing: border-box;
     }
   }
@@ -2118,30 +2118,30 @@
   .KafkaTopicConsumersTable {
     height: 320px;
 
-    .consumerGroupCell,
-    .consumerStateCell,
-    .consumerMembersCell,
-    .consumerLagCell,
-    .consumerActionCell {
+    :global(.consumerGroupCell),
+    :global(.consumerStateCell),
+    :global(.consumerMembersCell),
+    :global(.consumerLagCell),
+    :global(.consumerActionCell) {
       box-sizing: border-box;
     }
 
-    .consumerGroupCell {
+    :global(.consumerGroupCell) {
       gap: 8px;
 
-      .Icon {
+      :global(.Icon) {
         flex: 0 0 auto;
         color: var(--primary);
       }
     }
 
-    .consumerMembersCell,
-    .consumerLagCell {
+    :global(.consumerMembersCell),
+    :global(.consumerLagCell) {
       justify-content: flex-end;
       text-align: right;
     }
 
-    .consumerActionCell {
+    :global(.consumerActionCell) {
       justify-content: center;
     }
   }
@@ -2202,19 +2202,19 @@
     gap: 4px;
     border: 1px solid currentColor;
 
-    .Icon {
+    :global(.Icon) {
       font-size: 13px;
     }
 
-    &.healthy {
+    &:global(.healthy) {
       color: var(--colorOk, #4caf50);
     }
 
-    &.underreplicated {
+    &:global(.underreplicated) {
       color: var(--colorWarning, #f9a825);
     }
 
-    &.unavailable {
+    &:global(.unavailable) {
       color: var(--colorError, #ef5350);
     }
   }
@@ -2222,8 +2222,8 @@
 
 @media (max-width: 1180px) {
   .KafkaOverviewPage {
-    .KafkaClusterTable .usageCell,
-    .KafkaClusterTable .podsCell {
+    .KafkaClusterTable :global(.usageCell),
+    .KafkaClusterTable :global(.podsCell) {
       display: none;
     }
   }
@@ -2233,7 +2233,7 @@
 // share of the height and the column below keeps scrolling on its own.
 @media (max-width: 1100px) {
   .KafkaOverviewPage {
-    .KafkaTopicWorkspace.withCompose {
+    .KafkaTopicWorkspace:global(.withCompose) {
       flex-direction: column;
     }
 
@@ -2312,8 +2312,8 @@
     }
 
     // Sizes are a desktop-layout column: hidden in the compact layout to keep the tables readable.
-    .KafkaTopicPageTable .topicSizeCell,
-    .KafkaPartitionTable .partitionSizeCell {
+    .KafkaTopicPageTable :global(.topicSizeCell),
+    .KafkaPartitionTable :global(.partitionSizeCell) {
       display: none;
     }
 
@@ -2331,7 +2331,7 @@
       }
     }
 
-    .KafkaTopicWorkspace.withCompose {
+    .KafkaTopicWorkspace:global(.withCompose) {
       flex-direction: column;
     }
 
@@ -2352,7 +2352,7 @@
       > label.KafkaMessagePartitionField {
         width: calc(50% - 5px);
 
-        .Input {
+        :global(.Input) {
           width: 100%;
         }
       }
@@ -2376,7 +2376,7 @@
         grid-template-columns: repeat(4, minmax(max-content, 1fr));
       }
 
-      > .Button {
+      > :global(.Button) {
         margin-left: auto;
       }
     }
@@ -2399,42 +2399,42 @@
       border-right: 0;
       border-bottom: 1px solid var(--kafka-border);
 
-      .messageOffsetCell {
+      :global(.messageOffsetCell) {
         flex-basis: 80px;
         min-width: 80px;
       }
 
-      .messageTimeCell {
+      :global(.messageTimeCell) {
         flex-basis: 128px;
         min-width: 128px;
       }
 
-      .messageActionCell {
+      :global(.messageActionCell) {
         flex-basis: 38px;
         min-width: 38px;
       }
 
-      .messageKeyCell,
-      .messageValueCell {
+      :global(.messageKeyCell),
+      :global(.messageValueCell) {
         min-width: 78px;
       }
     }
 
     .KafkaTopicPageTable,
     .KafkaPartitionTable {
-      .TableCell {
+      :global(.TableCell) {
         padding-right: 8px;
         padding-left: 8px;
       }
     }
 
     .KafkaBrokerPageTable {
-      .brokerRoleCell {
+      :global(.brokerRoleCell) {
         flex-basis: 106px;
       }
 
-      .brokerIdCell,
-      .brokerPortCell {
+      :global(.brokerIdCell),
+      :global(.brokerPortCell) {
         flex-basis: 70px;
       }
     }
@@ -2459,29 +2459,29 @@
       overflow-x: auto;
     }
 
-    .KafkaClusterTable .sourceCell,
-    .KafkaClusterTable .securityCell,
-    .KafkaClusterTable .actionCell {
+    .KafkaClusterTable :global(.sourceCell),
+    .KafkaClusterTable :global(.securityCell),
+    .KafkaClusterTable :global(.actionCell) {
       display: none;
     }
 
     .KafkaClusterTable {
-      .TableCell {
+      :global(.TableCell) {
         padding-right: 8px;
         padding-left: 8px;
       }
 
-      .nameCell {
+      :global(.nameCell) {
         flex: 1 1 120px;
         min-width: 105px;
       }
 
-      .bootstrapCell {
+      :global(.bootstrapCell) {
         flex: 1.2 1 150px;
         min-width: 125px;
       }
 
-      .reachCell {
+      :global(.reachCell) {
         flex: 0 0 90px;
       }
     }
@@ -2494,26 +2494,26 @@
 
   .KafkaOverviewPage {
     .KafkaPartitionTable {
-      .partitionIdCell {
+      :global(.partitionIdCell) {
         flex: 0 0 96px !important;
         width: 96px !important;
         min-width: 96px !important;
       }
 
-      .partitionLeaderCell {
+      :global(.partitionLeaderCell) {
         flex: 0 0 64px !important;
         width: 64px !important;
         min-width: 64px !important;
       }
 
-      .partitionReplicasCell,
-      .partitionIsrCell {
+      :global(.partitionReplicasCell),
+      :global(.partitionIsrCell) {
         flex: 1 1 82px !important;
         width: 0 !important;
         min-width: 72px !important;
       }
 
-      .partitionHealthCell {
+      :global(.partitionHealthCell) {
         flex: 0 0 112px !important;
         width: 112px !important;
         min-width: 112px !important;
@@ -2521,7 +2521,7 @@
     }
   }
 
-  .Drawer.KafkaConnectionSettingsDrawer {
+  :global(.Drawer).KafkaConnectionSettingsDrawer {
     .KafkaSecurityForm > label {
       grid-template-columns: minmax(0, 1fr);
       gap: 4px;
@@ -2592,31 +2592,31 @@
   .KafkaGroupTopicsTable {
     height: 320px;
 
-    .groupTopicNameCell,
-    .groupTopicPartitionsCell,
-    .groupTopicLagCell,
-    .groupTopicActionCell {
+    :global(.groupTopicNameCell),
+    :global(.groupTopicPartitionsCell),
+    :global(.groupTopicLagCell),
+    :global(.groupTopicActionCell) {
       box-sizing: border-box;
     }
 
-    .groupTopicNameCell {
+    :global(.groupTopicNameCell) {
       gap: 8px;
       overflow: hidden;
 
-      .Icon {
+      :global(.Icon) {
         flex: 0 0 auto;
         color: var(--primary);
       }
     }
 
-    .groupTopicPartitionsCell,
-    .groupTopicLagCell {
+    :global(.groupTopicPartitionsCell),
+    :global(.groupTopicLagCell) {
       justify-content: flex-end;
       font-variant-numeric: tabular-nums;
       text-align: right;
     }
 
-    .groupTopicActionCell {
+    :global(.groupTopicActionCell) {
       justify-content: center;
     }
   }
@@ -2641,10 +2641,10 @@
 
   .KafkaGroupsPage,
   .KafkaGroupWorkspace {
-    .groupNameCell {
+    :global(.groupNameCell) {
       overflow: hidden;
     }
-    .groupMembersCell {
+    :global(.groupMembersCell) {
       font-variant-numeric: tabular-nums;
     }
   }
