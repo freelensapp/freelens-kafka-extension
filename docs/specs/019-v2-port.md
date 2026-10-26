@@ -120,16 +120,29 @@ of one cluster's Kafka reaches the frames of the other clusters.
 - **2026-10-26** — Kafka's own TCP stays on kafkajs over `node:net` and `node:tls`.
 - **2026-10-26** — SPEC-019 accepted by the maintainer, with the store-based write guard of
   REQ-233 proposed during the analysis: the renderer's mirror of the write mode over IPC goes.
+- **2026-10-26** — The port-forward runs the host's kubectl (`Main.Shell.getKubectlPath` and
+  `Main.Shell.getEnvironment` of the request's cluster), one `kubectl port-forward` per broker pod
+  and port, as freelensapp/freelens-velero-extension does for its tunnels. Spike B0 on the lab: it
+  works through the Freelens proxy, kubectl exits by itself when the cluster disconnects, and the
+  version-matched kubectl that the host downloads on first use is the only slow step (15 s, then
+  about 0.3 s per tunnel). The other route, client-node on the kubeconfig that
+  `Main.Shell.getEnvironment` names, fails: that kubeconfig authenticates with a credential plugin
+  that reads `FREELENS_PROXY_TOKEN`, which Freelens sets only in the environment of the tools it runs,
+  so main's own environment would have to carry the token.
+- **2026-10-26** — Progress follows the pattern of freelensapp/freelens-velero-extension: data
+  travels only over `invoke`, bound to the frame that asked, and `broadcast` carries only a signal
+  without content. Main keeps the latest event of each operation and broadcasts its operation id, a
+  random value; the frame that started the operation, the only one that knows the id, fetches the
+  event over `invoke`. Spike C0: the events name topics, groups and the authentication mode, which a
+  broadcast of the events themselves would hand to the frames of every cluster.
+- **2026-10-26** — The seven hidden menus of SPEC-004 stay: without them Freelens 2 still shows a
+  tab bar of the sibling pages above every Kafka page (spike D0).
 - **2026-10-26** — The tests and scripts get labs of their own (REQ-232): until 1.4.3 they wrote to
   the context `kind-kind`, which is the developer's own kind cluster.
 
 ## Open Questions
 
-- How the port-forward reaches the cluster through Freelens: the host's kubectl from `Main.Shell`,
-  or client-node on the kubeconfig of `Main.Shell.getEnvironment` (spike B0, then
-  ARCHITECTURE.md 6.2).
-- How progress reaches its frame: polling over `invoke` (proposed), `broadcast` kept as a
-  deviation, or a local HTTP server (spike C0, then ARCHITECTURE.md 6.1).
+None.
 
 ## Manual Verification
 

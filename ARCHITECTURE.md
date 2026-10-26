@@ -209,11 +209,12 @@ running kafkajs in the renderer (couples backend lifetime to the UI, fragile acr
 **Constraints to honor:** keep IPC payloads small — paginate message fetches, throttle the live tail, send message
 metadata with lazy body fetch; main owns consumer lifecycle and applies backpressure.
 
-**Freelens v2 (SPEC-019, open).** In v2 `Ipc.broadcast` reaches every frame of every window, so the progress
-events broadcast on `kafka:progress` reach the frames of other clusters, and the skill that guides the port keeps
-IPC for short request/response exchanges. Request/response stays on `invoke`/`handle`; how progress reaches only
-the frame that started the operation (REQ-227: polling over `invoke`, proposed; `broadcast` kept as a deviation;
-or the local server rejected above) is decided by the spike of feature C and recorded here.
+**Freelens v2 (SPEC-019, decided).** In v2 `Ipc.broadcast` reaches every frame of every window, so data must not
+travel on it (REQ-227): the progress events name topics, groups and the authentication mode. Request/response stays
+on `invoke`/`handle`, bound to the frame that asked. For progress, main keeps the latest event of each operation and
+broadcasts only its operation id, a random value; the frame that started the operation fetches the event over
+`invoke`. `broadcast` carries no data: the pattern of freelensapp/freelens-velero-extension. The local server stays
+rejected: there is no long stream to carry.
 
 ### 6.2 Port-forward — DECIDED: client-side via `@kubernetes/client-node` from the Catalog kubeconfig
 
@@ -239,13 +240,15 @@ ephemeral). Optional advanced mode: opt-in in-cluster proxy for very large broke
 **Honest caveat:** via client-node _we_ handle auth from the raw kubeconfig (tokens, client-certs, exec
 plugins) instead of Lens's proxy; rare proxy-only auth setups degrade gracefully with a clear error + the kubectl fallback.
 
-**Freelens v2 (SPEC-019, open).** v2 asks extensions to reach a catalog cluster through Freelens, not through a
-client built from its `kubeConfigPath` (REQ-224), and gives main the kubectl and the environment its terminals use
-(`Main.Shell.getKubectlPath`, `Main.Shell.getEnvironment`, contract C15), whose `KUBECONFIG` goes through the
-Freelens proxy. The forward therefore moves to one of two routes, chosen by the spike of feature B and recorded
-here: the host's kubectl (`kubectl port-forward`, the way Freelens core port-forwards), or client-node's
-`PortForward` on the kubeconfig of that environment. Either way the forwards follow the cluster's connection
-(REQ-225).
+**Freelens v2 (SPEC-019, decided).** v2 asks extensions to reach a catalog cluster through Freelens, not through a
+client built from its `kubeConfigPath` (REQ-224). The forward runs the host's kubectl: `Main.Shell.getKubectlPath`
+and `Main.Shell.getEnvironment` of the request's cluster (contract C15), one `kubectl port-forward pod/<broker>
+:<port>` per broker pod and port, opened on the first socket and shared by the session's sockets; the per-broker
+local listener and the redirect `socketFactory` are unchanged. kubectl is killed when its session closes, when the
+extension is deactivated, when the process exits and when the cluster leaves the connected state (REQ-225), as the
+tunnels of freelensapp/freelens-velero-extension are. client-node on the environment's kubeconfig is not an
+option: its credential plugin needs a token that Freelens gives only to the tools it runs. client-node stays for
+the itests' reader and forwarder, which take an explicit lab kubeconfig.
 
 ### 6.3 Message deserialization & Schema Registry
 
