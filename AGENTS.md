@@ -24,6 +24,31 @@ exactly to the nightly the port is checked against.
 The libraries of the main process (kafkajs, the AWS SDK, client-node, avsc, protobufjs, lz4-asm) are bundled into
 the main entry, so every dependency is a `devDependency` and the published package has no runtime `dependencies`.
 
+## Build
+
+`vite.config.mjs` builds the two entry points in two runs: `vite build` for the renderer, `vite build --mode main`
+for main. They cannot share settings: the renderer runs in a browser page, main in Node.
+
+- **Host modules.** `build/vite-plugin-host-modules.mjs` resolves the libraries Freelens provides to its own
+  instances on `globalThis.FreelensExtensionApi`: React, `react-dom`, `react/jsx-runtime`, mobx and mobx-react in
+  the renderer, mobx alone in main. A bundled second copy of React throws "invalid hook call"; a second mobx throws
+  nothing and its reactions never fire.
+- **Renderer.** Browser platform, nothing external; an import of a Node builtin or of Electron fails the build.
+  Library mode extracts the CSS of the whole bundle into `dist/renderer.css`, the one stylesheet the host links.
+- **Main.** Rolldown's `node` platform, so that a bundled CommonJS package can `require()` the builtins (through a
+  `__require` made with `createRequire(import.meta.url)`); the builtins and Electron stay external, everything else
+  is bundled into **one file**, `dist/main.js`: the AWS SDK's credential chain loads its SSO, STS and process
+  providers with `import()`, which would otherwise become chunks. `__dirname` and `__filename`, which a bundled
+  CommonJS package may use to locate itself (lz4-asm's Emscripten loader does), are defined as `import.meta.dirname`
+  and `import.meta.filename`: an ES module has neither, and the bundle would throw while loading.
+- **Version.** Both runs define `__KAFKA_EXTENSION_VERSION__` from `package.json`, so the renderer can tell when the
+  host still runs the main entry of another version (SPEC-016).
+- **Decorators.** `build/vite-plugin-standard-decorators.mjs` lowers standard decorators, which neither Node nor
+  Chromium runs yet.
+
+What the build does not check, because it does not evaluate the bundle: that `dist/main.js` loads in Node. Load it
+with a stand-in `globalThis.FreelensExtensionApi` after a change to the main build or to a library it bundles.
+
 ## Slice Boundaries
 
 - Before starting the next implementation slice, update the phase, test evidence and roadmap in `ARCHITECTURE.md` and the task/evidence state in the owning spec for every slice that was completed, reopened or rescheduled.
