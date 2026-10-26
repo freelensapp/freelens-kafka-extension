@@ -51,6 +51,7 @@ import {
   type TopicSizesRequest,
 } from "../common/ipc";
 import { createIpcRequestDeduper, type IpcRequest } from "./kafka-ipc-deduper";
+import { withoutIpcPrefix } from "./kafka-ipc-error";
 import { KafkaProgressPull } from "./kafka-progress-pull";
 
 import type { MainVersionProbe } from "./kafka-version-skew";
@@ -62,6 +63,15 @@ export class KafkaIpcRenderer extends Renderer.Ipc {
     listen: (listener) => this.listen(KAFKA_IPC.progress, (_event, signal: unknown) => listener(signal)),
     pull: (operationId) => this.invoke(KAFKA_IPC.progressEvent, { operationId }) as Promise<KafkaProgressEvent | null>,
   });
+
+  /** Every call to main: an error comes back with the message main gave, without Electron's wording. */
+  override async invoke(channel: string, ...args: unknown[]): Promise<unknown> {
+    try {
+      return await super.invoke(channel, ...args);
+    } catch (error) {
+      throw withoutIpcPrefix(error);
+    }
+  }
 
   // The operation id of a request this frame sends is this frame's while it runs: its progress is fetched.
   private read<T>(channel: string, request: IpcRequest): Promise<T> {
