@@ -370,9 +370,22 @@ export class KafkaConnection {
 
   /** Read one bounded partition window directly through Kafka Fetch, without a consumer group. */
   browseMessages(
-    request: Pick<MessageBrowseRequest, "topic" | "partition" | "startMode" | "offset" | "timestamp" | "limit">,
+    request: Pick<
+      MessageBrowseRequest,
+      | "topic"
+      | "partition"
+      | "startMode"
+      | "offset"
+      | "timestamp"
+      | "limit"
+      | "registryUrl"
+      | "registryUsername"
+      | "registryPassword"
+    >,
+    /** The host's HTTP client for the Schema Registry, `Main.Util.fetch` (SPEC-019, REQ-226). */
+    registryFetch: typeof fetch,
   ): Promise<MessageBrowseDto> {
-    return this.getMessageCluster().then((cluster) => browseMessagesWithCluster(cluster, request));
+    return this.getMessageCluster().then((cluster) => browseMessagesWithCluster(cluster, request, registryFetch));
   }
 
   /** Sizes on disk per topic and partition through DescribeLogDirs on every broker (read-only). */

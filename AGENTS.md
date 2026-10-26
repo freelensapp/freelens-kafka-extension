@@ -95,6 +95,11 @@ that starts letting one through fails the type check with an unused directive.
   imported by path with their `.js` extension (neither package has an `exports` map), declared in
   `src/main/custom.d.ts`. No `require()`: the bundle is an ES module, and a `require()` of a package would be resolved
   at runtime, where the installed extension has no `node_modules`.
+- **Through the host.** Every request for a catalog cluster names it (`clusterId`): reads go through `Main.K8s`, the
+  broker port-forwards run the host's kubectl with its environment (`Main.Shell`, `src/main/kafka/kubectl-tunnels.ts`).
+  HTTP outside the cluster (Schema Registry, Kafka Connect, the STS and SSO calls of the AWS credential chain) takes
+  `Main.Util.fetch`, so that the user's proxy and CA settings apply; no `node:http(s)` client, no client-node in
+  `src/main` outside the itests (SPEC-019).
 
 ## Tests
 

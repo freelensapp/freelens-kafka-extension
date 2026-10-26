@@ -194,6 +194,7 @@ async function connectForRequest(
           )
         : { detected: false as const, hint: { tls: false, auth: "none" as const } };
     const applied = applySecurityOverride({
+      awsFetch: Main.Util.fetch,
       automatic,
       automaticHint: automatic.detected ? automatic.hint : { tls: Boolean(request.tls), auth: "none" },
       fallbackTls: Boolean(request.tls),
@@ -261,6 +262,7 @@ async function connectForRequest(
           : "none",
   };
   const applied = applySecurityOverride({
+    awsFetch: Main.Util.fetch,
     automatic: credentials,
     automaticHint,
     fallbackTls: discovered.tls,
@@ -654,7 +656,7 @@ export class KafkaIpcMain extends Main.Ipc {
           label: "Resolving message window",
           detail: `Reading partition ${request.partition} offsets without a consumer group.`,
         });
-        const result = await connection.browseMessages(request);
+        const result = await connection.browseMessages(request, Main.Util.fetch);
         if (cancelled) throw new Error("Message Browse was cancelled");
         report({
           value: 100,
@@ -788,6 +790,7 @@ export class KafkaIpcMain extends Main.Ipc {
 
     this.handle(KAFKA_IPC.schemaSubjects, async (_event, request: SchemaSubjectsRequest) => {
       const client = new SchemaRegistryClient({
+        fetchImpl: Main.Util.fetch,
         baseUrl: request.registryUrl,
         username: request.registryUsername,
         password: request.registryPassword,
@@ -798,6 +801,7 @@ export class KafkaIpcMain extends Main.Ipc {
 
     this.handle(KAFKA_IPC.schemaSubjectNames, async (_event, request: SchemaSubjectNamesRequest) => {
       return new SchemaRegistryClient({
+        fetchImpl: Main.Util.fetch,
         baseUrl: request.registryUrl,
         username: request.registryUsername,
         password: request.registryPassword,
@@ -806,6 +810,7 @@ export class KafkaIpcMain extends Main.Ipc {
 
     this.handle(KAFKA_IPC.schemaSubjectDetail, async (_event, request: SchemaSubjectDetailRequest) => {
       const client = new SchemaRegistryClient({
+        fetchImpl: Main.Util.fetch,
         baseUrl: request.registryUrl,
         username: request.registryUsername,
         password: request.registryPassword,
@@ -816,6 +821,7 @@ export class KafkaIpcMain extends Main.Ipc {
     this.handle(KAFKA_IPC.schemaRegister, async (_event, request: SchemaRegisterRequest) => {
       this.writeMode.assertEnabled(request.targetId, "Register schema");
       const client = new SchemaRegistryClient({
+        fetchImpl: Main.Util.fetch,
         baseUrl: request.registryUrl,
         username: request.registryUsername,
         password: request.registryPassword,
@@ -826,6 +832,7 @@ export class KafkaIpcMain extends Main.Ipc {
     this.handle(KAFKA_IPC.schemaDeleteSubject, async (_event, request: SchemaDeleteSubjectRequest) => {
       this.writeMode.assertEnabled(request.targetId, "Delete subject");
       const client = new SchemaRegistryClient({
+        fetchImpl: Main.Util.fetch,
         baseUrl: request.registryUrl,
         username: request.registryUsername,
         password: request.registryPassword,
@@ -835,6 +842,7 @@ export class KafkaIpcMain extends Main.Ipc {
 
     this.handle(KAFKA_IPC.connectList, async (_event, request: KafkaConnectRequest) => {
       return new KafkaConnectClient({
+        fetchImpl: Main.Util.fetch,
         baseUrl: request.connectUrl,
         username: request.connectUsername,
         password: request.connectPassword,
@@ -843,6 +851,7 @@ export class KafkaIpcMain extends Main.Ipc {
 
     this.handle(KAFKA_IPC.connectNames, async (_event, request: KafkaConnectRequest) => {
       return new KafkaConnectClient({
+        fetchImpl: Main.Util.fetch,
         baseUrl: request.connectUrl,
         username: request.connectUsername,
         password: request.connectPassword,
@@ -851,6 +860,7 @@ export class KafkaIpcMain extends Main.Ipc {
 
     this.handle(KAFKA_IPC.connectDetail, async (_event, request: KafkaConnectDetailRequest) => {
       return new KafkaConnectClient({
+        fetchImpl: Main.Util.fetch,
         baseUrl: request.connectUrl,
         username: request.connectUsername,
         password: request.connectPassword,
@@ -894,6 +904,7 @@ export class KafkaIpcMain extends Main.Ipc {
     this.handle(KAFKA_IPC.connectPause, async (_event, request: KafkaConnectDetailRequest) => {
       this.writeMode.assertEnabled(request.targetId, "Pause connector");
       return new KafkaConnectClient({
+        fetchImpl: Main.Util.fetch,
         baseUrl: request.connectUrl,
         username: request.connectUsername,
         password: request.connectPassword,
@@ -902,6 +913,7 @@ export class KafkaIpcMain extends Main.Ipc {
     this.handle(KAFKA_IPC.connectResume, async (_event, request: KafkaConnectDetailRequest) => {
       this.writeMode.assertEnabled(request.targetId, "Resume connector");
       return new KafkaConnectClient({
+        fetchImpl: Main.Util.fetch,
         baseUrl: request.connectUrl,
         username: request.connectUsername,
         password: request.connectPassword,
@@ -910,6 +922,7 @@ export class KafkaIpcMain extends Main.Ipc {
     this.handle(KAFKA_IPC.connectDelete, async (_event, request: KafkaConnectDetailRequest) => {
       this.writeMode.assertEnabled(request.targetId, "Delete connector");
       return new KafkaConnectClient({
+        fetchImpl: Main.Util.fetch,
         baseUrl: request.connectUrl,
         username: request.connectUsername,
         password: request.connectPassword,
@@ -918,6 +931,7 @@ export class KafkaIpcMain extends Main.Ipc {
     this.handle(KAFKA_IPC.connectRestart, async (_event, request: KafkaConnectDetailRequest) => {
       this.writeMode.assertEnabled(request.targetId, "Restart connector");
       return new KafkaConnectClient({
+        fetchImpl: Main.Util.fetch,
         baseUrl: request.connectUrl,
         username: request.connectUsername,
         password: request.connectPassword,
@@ -926,6 +940,7 @@ export class KafkaIpcMain extends Main.Ipc {
     this.handle(KAFKA_IPC.connectUpdate, async (_event, request: KafkaConnectCreateRequest) => {
       this.writeMode.assertEnabled(request.targetId, "Update connector");
       return new KafkaConnectClient({
+        fetchImpl: Main.Util.fetch,
         baseUrl: request.connectUrl,
         username: request.connectUsername,
         password: request.connectPassword,
@@ -934,6 +949,7 @@ export class KafkaIpcMain extends Main.Ipc {
     this.handle(KAFKA_IPC.connectCreate, async (_event, request: KafkaConnectCreateRequest) => {
       this.writeMode.assertEnabled(request.targetId, "Create connector");
       return new KafkaConnectClient({
+        fetchImpl: Main.Util.fetch,
         baseUrl: request.connectUrl,
         username: request.connectUsername,
         password: request.connectPassword,

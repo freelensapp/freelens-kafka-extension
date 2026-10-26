@@ -1,6 +1,7 @@
 import { createServer } from "node:http";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { KafkaConnectClient } from "./client";
+import type { AddressInfo } from "node:net";
 
 let server: ReturnType<typeof createServer> | undefined;
 
@@ -43,15 +44,15 @@ async function startServer(): Promise<string> {
     response.statusCode = 404;
     response.end(JSON.stringify({ message: "not found" }));
   });
-  await new Promise<void>((resolve) => server?.listen(18083, "127.0.0.1", resolve));
-  return "http://127.0.0.1:18083";
+  await new Promise<void>((resolve) => server?.listen(0, "127.0.0.1", resolve));
+  return `http://127.0.0.1:${(server.address() as AddressInfo).port}`;
 }
 
 afterEach(async () => new Promise<void>((resolve) => server?.close(() => resolve())));
 
 describe("KafkaConnectClient", () => {
   it("lists connector state and tasks", async () => {
-    const client = new KafkaConnectClient({ baseUrl: await startServer() });
+    const client = new KafkaConnectClient({ baseUrl: await startServer(), fetchImpl: fetch });
     await expect(client.listConnectors()).resolves.toEqual([
       { name: "orders-source", type: "source", status: "RUNNING", taskCount: 1 },
       { name: "payments-sink", type: "sink", status: "FAILED", taskCount: 1 },

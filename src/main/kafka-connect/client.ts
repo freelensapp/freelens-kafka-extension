@@ -1,11 +1,11 @@
-import { request as httpRequest } from "node:http";
-import { request as httpsRequest } from "node:https";
+import { describeFetchError, isTransientConnectionError } from "../http-errors";
 
 export interface KafkaConnectClientOptions {
   baseUrl: string;
   username?: string;
   password?: string;
-  fetchImpl?: typeof fetch;
+  /** The host's HTTP client, `Main.Util.fetch`, so that the user's proxy and CA settings apply (SPEC-019, REQ-226). */
+  fetchImpl: typeof fetch;
   timeoutMs?: number;
 }
 
@@ -40,7 +40,7 @@ export class KafkaConnectClient {
   private readonly baseUrl: string;
   private readonly timeoutMs: number;
   private readonly authorization?: string;
-  private readonly fetchImpl?: typeof fetch;
+  private readonly fetchImpl: typeof fetch;
 
   constructor(options: KafkaConnectClientOptions) {
     this.baseUrl = normalized(options.baseUrl);
@@ -120,10 +120,14 @@ export class KafkaConnectClient {
   private async request<T>(path: string, options: { method?: string; body?: string } = {}): Promise<T> {
     const retry = (options.method ?? "GET") === "GET";
     try {
-      return await this.requestOnce<T>(path, options);
+      try {
+        return await this.requestOnce<T>(path, options);
+      } catch (error) {
+        if (!retry || !isTransientConnectionError(error)) throw error;
+        return await this.requestOnce<T>(path, options);
+      }
     } catch (error) {
-      if (!retry || !isTransientConnectionError(error)) throw error;
-      return this.requestOnce<T>(path, options);
+      throw describeFetchError(error);
     }
   }
 
@@ -134,43 +138,15 @@ export class KafkaConnectClient {
       const headers: Record<string, string> = { Accept: "application/json" };
       if (options.body) headers["Content-Type"] = "application/json";
       if (this.authorization) headers.Authorization = this.authorization;
-      if (this.fetchImpl) {
-        const response = await this.fetchImpl(`${this.baseUrl}${path}`, {
-          method: options.method,
-          body: options.body,
-          headers,
-          signal: controller.signal,
-        });
-        if (!response.ok) throw new Error(`Kafka Connect request failed (${response.status}) for ${path}`);
-        const body = await response.text();
-        return body ? (JSON.parse(body) as T) : (undefined as T);
-      }
-      const parsed = new URL(`${this.baseUrl}${path}`);
-      const request = (parsed.protocol === "https:" ? httpsRequest : httpRequest)({
-        protocol: parsed.protocol,
-        hostname: parsed.hostname,
-        port: parsed.port,
-        path: `${parsed.pathname}${parsed.search}`,
-        method: options.method ?? "GET",
+      const response = await this.fetchImpl(`${this.baseUrl}${path}`, {
+        method: options.method,
+        body: options.body,
         headers,
+        signal: controller.signal,
       });
-      const result = await new Promise<{ statusCode?: number; body: string }>((resolve, reject) => {
-        const chunks: Buffer[] = [];
-        request.on("response", (response) => {
-          response.on("data", (chunk: Buffer) => chunks.push(chunk));
-          response.on("end", () =>
-            resolve({ statusCode: response.statusCode, body: Buffer.concat(chunks).toString("utf8") }),
-          );
-        });
-        request.on("error", reject);
-        controller.signal.addEventListener("abort", () => request.destroy(new Error("aborted")), { once: true });
-        if (options.body) request.write(options.body);
-        request.end();
-      });
-      if (!result.statusCode || result.statusCode < 200 || result.statusCode >= 300) {
-        throw new Error(`Kafka Connect request failed (${result.statusCode ?? "unknown"}) for ${path}`);
-      }
-      return (result.body ? JSON.parse(result.body) : undefined) as T;
+      if (!response.ok) throw new Error(`Kafka Connect request failed (${response.status}) for ${path}`);
+      const body = await response.text();
+      return body ? (JSON.parse(body) as T) : (undefined as T);
     } catch (error) {
       if (controller.signal.aborted)
         throw new Error(`Kafka Connect request timed out after ${this.timeoutMs}ms: ${path}`);
@@ -179,9 +155,4 @@ export class KafkaConnectClient {
       clearTimeout(timeout);
     }
   }
-}
-
-function isTransientConnectionError(error: unknown): boolean {
-  if (!(error instanceof Error)) return false;
-  return error.message.toLowerCase().includes("socket hang up") || ("code" in error && error.code === "ECONNRESET");
 }

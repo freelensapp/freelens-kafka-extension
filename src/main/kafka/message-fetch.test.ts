@@ -80,6 +80,11 @@ const record = (offset: string, value = `value-${offset}`) => ({
   headers: { source: Buffer.from("fixture") },
 });
 
+// No test of the browser reaches a Schema Registry: one that tried would fail here.
+const noRegistryFetch: typeof fetch = async () => {
+  throw new Error("unexpected Schema Registry request");
+};
+
 describe("message Browse validation", () => {
   it("accepts bounded controls and rejects malformed values before a fetch", () => {
     expect(
@@ -150,12 +155,16 @@ describe("group-free message Browse", () => {
   it("reads a latest offset window directly from the leader with READ_COMMITTED", async () => {
     const { cluster, fetch } = fakeCluster({ messages: [record("7"), record("8"), record("9")] });
 
-    const result = await browseMessagesWithCluster(cluster, {
-      topic: "orders",
-      partition: 0,
-      startMode: "latest",
-      limit: 3,
-    });
+    const result = await browseMessagesWithCluster(
+      cluster,
+      {
+        topic: "orders",
+        partition: 0,
+        startMode: "latest",
+        limit: 3,
+      },
+      noRegistryFetch,
+    );
 
     expect(result).toMatchObject({
       topic: "orders",
@@ -189,12 +198,16 @@ describe("group-free message Browse", () => {
     const largeMessages = Array.from({ length: 10 }, (_, index) => record(String(index + 2), "x".repeat(100_000)));
     const { cluster } = fakeCluster({ latest: "20", messages: largeMessages });
 
-    const result = await browseMessagesWithCluster(cluster, {
-      topic: "orders",
-      partition: 0,
-      startMode: "earliest",
-      limit: 4,
-    });
+    const result = await browseMessagesWithCluster(
+      cluster,
+      {
+        topic: "orders",
+        partition: 0,
+        startMode: "earliest",
+        limit: 4,
+      },
+      noRegistryFetch,
+    );
 
     expect(result.messages).toHaveLength(4);
     expect(result.nextOffset).toBe("6");
@@ -209,12 +222,16 @@ describe("group-free message Browse", () => {
   it("caps aggregate previews after the response budget is exhausted", async () => {
     const largeMessages = Array.from({ length: 10 }, (_, index) => record(String(index + 2), "x".repeat(100_000)));
     const { cluster } = fakeCluster({ latest: "20", messages: largeMessages });
-    const result = await browseMessagesWithCluster(cluster, {
-      topic: "orders",
-      partition: 0,
-      startMode: "earliest",
-      limit: 10,
-    });
+    const result = await browseMessagesWithCluster(
+      cluster,
+      {
+        topic: "orders",
+        partition: 0,
+        startMode: "earliest",
+        limit: 10,
+      },
+      noRegistryFetch,
+    );
     const payloads = result.messages.flatMap((message) => [
       message.key,
       message.value,
@@ -244,36 +261,48 @@ describe("group-free message Browse", () => {
         { ...record("4"), batchContext: { producerId: "8", inTransaction: false } },
       ],
     });
-    const result = await browseMessagesWithCluster(cluster, {
-      topic: "orders",
-      partition: 0,
-      startMode: "earliest",
-      limit: 10,
-    });
+    const result = await browseMessagesWithCluster(
+      cluster,
+      {
+        topic: "orders",
+        partition: 0,
+        startMode: "earliest",
+        limit: 10,
+      },
+      noRegistryFetch,
+    );
     expect(result.messages.map(({ offset }) => offset)).toEqual(["4"]);
   });
 
   it("advances past a compacted offset without repeating the same window", async () => {
     const { cluster } = fakeCluster({ earliest: "0", latest: "10", messages: [record("4")] });
-    const result = await browseMessagesWithCluster(cluster, {
-      topic: "orders",
-      partition: 0,
-      startMode: "offset",
-      offset: "5",
-      limit: 10,
-    });
+    const result = await browseMessagesWithCluster(
+      cluster,
+      {
+        topic: "orders",
+        partition: 0,
+        startMode: "offset",
+        offset: "5",
+        limit: 10,
+      },
+      noRegistryFetch,
+    );
     expect(result).toMatchObject({ startOffset: "5", nextOffset: "6", returnedCount: 0, hasMore: true });
   });
 
   it("returns an empty timestamp window without issuing Fetch", async () => {
     const { cluster, fetch } = fakeCluster({ timestamp: "-1" });
-    const result = await browseMessagesWithCluster(cluster, {
-      topic: "orders",
-      partition: 0,
-      startMode: "timestamp",
-      timestamp: 1_700_000_000_000,
-      limit: 10,
-    });
+    const result = await browseMessagesWithCluster(
+      cluster,
+      {
+        topic: "orders",
+        partition: 0,
+        startMode: "timestamp",
+        timestamp: 1_700_000_000_000,
+        limit: 10,
+      },
+      noRegistryFetch,
+    );
     expect(result).toMatchObject({ startOffset: "10", nextOffset: "10", returnedCount: 0, hasMore: false });
     expect(fetch).not.toHaveBeenCalled();
   });
@@ -282,12 +311,16 @@ describe("group-free message Browse", () => {
     const { cluster, fetch } = fakeCluster();
     vi.mocked(cluster.findTopicPartitionMetadata).mockReturnValue([]);
     await expect(
-      browseMessagesWithCluster(cluster, {
-        topic: "orders",
-        partition: 4,
-        startMode: "earliest",
-        limit: 10,
-      }),
+      browseMessagesWithCluster(
+        cluster,
+        {
+          topic: "orders",
+          partition: 4,
+          startMode: "earliest",
+          limit: 10,
+        },
+        noRegistryFetch,
+      ),
     ).rejects.toThrow("Partition 4 does not exist");
     expect(cluster.fetchTopicsOffset).not.toHaveBeenCalled();
     expect(fetch).not.toHaveBeenCalled();
@@ -297,12 +330,16 @@ describe("group-free message Browse", () => {
     const success = fakeCluster({ latest: "2" }).cluster;
     const successSymbol = Symbol("private:Kafka:createCluster");
     const successKafka = { [successSymbol]: () => success } as unknown as Kafka;
-    await browseMessages(successKafka, {
-      topic: "orders",
-      partition: 0,
-      startMode: "earliest",
-      limit: 10,
-    });
+    await browseMessages(
+      successKafka,
+      {
+        topic: "orders",
+        partition: 0,
+        startMode: "earliest",
+        limit: 10,
+      },
+      noRegistryFetch,
+    );
     expect(success.connect).toHaveBeenCalledOnce();
     expect(success.disconnect).toHaveBeenCalledOnce();
 
@@ -311,12 +348,16 @@ describe("group-free message Browse", () => {
     const failedSymbol = Symbol("private:Kafka:createCluster");
     const failedKafka = { [failedSymbol]: () => failed } as unknown as Kafka;
     await expect(
-      browseMessages(failedKafka, {
-        topic: "orders",
-        partition: 0,
-        startMode: "earliest",
-        limit: 10,
-      }),
+      browseMessages(
+        failedKafka,
+        {
+          topic: "orders",
+          partition: 0,
+          startMode: "earliest",
+          limit: 10,
+        },
+        noRegistryFetch,
+      ),
     ).rejects.toThrow("metadata failed");
     expect(failed.disconnect).toHaveBeenCalledOnce();
   });

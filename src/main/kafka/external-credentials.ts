@@ -257,6 +257,8 @@ export function applySecurityOverride(options: {
   fallbackTls: boolean;
   override?: KafkaSecurityOverride;
   source: KafkaSecuritySummary["source"];
+  /** The host's HTTP client for the AWS credential chain of `AWS IAM (MSK)`, `Main.Util.fetch`. */
+  awsFetch?: typeof fetch;
 }): AppliedSecurity {
   const automatic = options.automatic ?? {};
   const detectedHint = (automatic as ParsedWorkloadSecurity).hint;
@@ -294,7 +296,7 @@ export function applySecurityOverride(options: {
       throw new Error("TLS is required for AWS IAM (MSK) authentication");
     }
     ssl = typeof automatic.ssl === "object" ? automatic.ssl : true;
-    sasl = createMskIamSasl({ region, profile: override.awsProfile?.trim() || undefined });
+    sasl = createMskIamSasl({ region, profile: override.awsProfile?.trim() || undefined, fetchImpl: options.awsFetch });
     auth = "aws-msk-iam";
   } else if (override && override.authMode !== "auto") {
     const username = override.username?.trim();
@@ -312,7 +314,7 @@ export function applySecurityOverride(options: {
       throw new Error("TLS is required for AWS IAM (MSK) authentication");
     }
     ssl = typeof automatic.ssl === "object" ? automatic.ssl : true;
-    sasl = createMskIamSasl({ region });
+    sasl = createMskIamSasl({ region, fetchImpl: options.awsFetch });
   }
   if (!ssl && auth === "mtls") auth = "none";
 

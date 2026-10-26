@@ -354,6 +354,7 @@ async function normalizeRecord(
 export async function browseMessagesWithCluster(
   cluster: KafkaReadCluster,
   rawInput: MessageBrowseInput,
+  registryFetch: typeof fetch,
 ): Promise<MessageBrowseDto> {
   const input = validateMessageBrowseInput(rawInput);
   await cluster.addTargetTopic(input.topic);
@@ -412,6 +413,7 @@ export async function browseMessagesWithCluster(
           baseUrl: input.registryUrl,
           username: input.registryUsername,
           password: input.registryPassword,
+          fetchImpl: registryFetch,
         })
       : undefined;
     messages = await Promise.all(
@@ -440,12 +442,16 @@ export async function browseMessagesWithCluster(
   };
 }
 
-export async function browseMessages(kafka: Kafka, input: MessageBrowseInput): Promise<MessageBrowseDto> {
+export async function browseMessages(
+  kafka: Kafka,
+  input: MessageBrowseInput,
+  registryFetch: typeof fetch,
+): Promise<MessageBrowseDto> {
   const validated = validateMessageBrowseInput(input);
   const cluster = createKafkaJsReadCluster(kafka);
   await cluster.connect();
   try {
-    return await browseMessagesWithCluster(cluster, validated);
+    return await browseMessagesWithCluster(cluster, validated, registryFetch);
   } finally {
     await cluster.disconnect();
   }
