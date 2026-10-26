@@ -88,6 +88,8 @@ export default class KafkaExtensionRenderer extends Renderer.LensExtension {
   private readonly resourceCache = new KafkaResourceCache();
 
   async onActivate(): Promise<void> {
+    KafkaIpcRenderer.resetInstance();
+    this.ipc = KafkaIpcRenderer.createInstance(this);
     const stateStore = this.stateStore;
     stateStore.loadExtension(this);
     stateStore.migrateLegacy(window.localStorage, [
@@ -111,6 +113,12 @@ export default class KafkaExtensionRenderer extends Renderer.LensExtension {
     void kafkaVersionSkewStore.check(EXTENSION_VERSION, () => this.client.mainVersion());
   }
 
+  protected async onDeactivate(): Promise<void> {
+    this.ipc?.dispose();
+    this.ipc = undefined;
+    KafkaIpcRenderer.resetInstance();
+  }
+
   /** Tell the main process which targets have write mode on, so it can refuse other writes. */
   private mirrorWriteMode(): void {
     const enabled = new Set(this.writeSettings.enabledTargets());
@@ -126,8 +134,13 @@ export default class KafkaExtensionRenderer extends Renderer.LensExtension {
     }
   }
 
+  // The way to the main process of this activation: made in onActivate, let go in onDeactivate, so that an enable
+  // after a disable, or a reload of the development loop, never reaches main through a previous activation's.
+  private ipc?: KafkaIpcRenderer;
+
   private get client(): KafkaIpcRenderer {
-    return KafkaIpcRenderer.createInstance(this);
+    if (!this.ipc) throw new Error("The Kafka extension is not active");
+    return this.ipc;
   }
 
   /** Id of the cluster this frame is showing, so Main queries the right connected cluster. */

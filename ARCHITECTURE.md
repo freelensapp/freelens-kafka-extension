@@ -215,7 +215,12 @@ travel on it (REQ-227): the progress events name topics, groups and the authenti
 on `invoke`/`handle`, bound to the frame that asked. For progress, main keeps the latest event of each operation and
 broadcasts only its operation id, a random value; the frame that started the operation fetches the event over
 `invoke`. `broadcast` carries no data: the pattern of freelensapp/freelens-velero-extension. The local server stays
-rejected: there is no long stream to carry.
+rejected: there is no long stream to carry. Built: main keeps the events in
+[`progress-store.ts`](./src/main/progress-store.ts), bound to the sending frame (`processId:frameId` of the invoke
+event, as Velero's `senderOf`), and answers `kafka:progress-event` for that frame only; the renderer
+([`kafka-progress-pull.ts`](./src/renderer/kafka-progress-pull.ts)) listens once, owns the ids of the requests it
+sends (random UUIDs) and fetches one event at a time per operation, folding the signals that arrive meanwhile. One
+`KafkaIpcRenderer` per activation, made in `onActivate` and reset in `onDeactivate`.
 
 ### 6.2 Port-forward — DECIDED: client-side, kubectl through the host on Freelens 2 (client-node on 1.x)
 

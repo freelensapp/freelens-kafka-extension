@@ -70,8 +70,12 @@ export function kafkaUsageContext(kafka: DiscoveredKafkaInfo): string {
   return `${usage.secondary}: ${usage.primary}`;
 }
 
-export function createOperationId(operation: KafkaProgressOperation): string {
-  return `${operation}-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
+/**
+ * A random id for an operation, which every frame receives when the operation has new progress: it tells nothing of
+ * the operation, and no other frame can guess it (SPEC-019, REQ-227). The kind of operation is in the events only.
+ */
+export function createOperationId(_operation: KafkaProgressOperation): string {
+  return globalThis.crypto.randomUUID();
 }
 
 export function clusterHealthMetricValue<T extends number | string>(

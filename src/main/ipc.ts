@@ -65,11 +65,19 @@ import { KafkaTargetSessionRegistry } from "./kafka/target-session-registry";
 import { createTunnelForwarder } from "./kafka/tunnel-forwarder";
 import { KafkaConnectClient } from "./kafka-connect/client";
 import { withFinalizer, withTimeout } from "./operation-timeout";
+import { type IpcSenderEvent, KafkaProgressStore, senderKey } from "./progress-store";
 import { SchemaRegistryClient } from "./schema-registry/client";
 import { createTunnelHost } from "./tunnel-host";
 import { WriteModeRegistry } from "./write-mode";
 
-import type { ExtensionVersionDto, KafkaSecurityHint, KafkaSecuritySummary } from "../common/ipc";
+import type {
+  ExtensionVersionDto,
+  KafkaProgressEvent,
+  KafkaProgressEventRequest,
+  KafkaProgressSignal,
+  KafkaSecurityHint,
+  KafkaSecuritySummary,
+} from "../common/ipc";
 import type { KubeReader } from "./kafka/kube-reader";
 
 /** The Freelens cluster of a request: every request names one (SPEC-019, REQ-224). */
@@ -328,6 +336,7 @@ export class KafkaIpcMain extends Main.Ipc {
   private readonly credentialProfiles = new KafkaCredentialProfileCache();
   private readonly healthWorkersByTarget = new Map<string, Map<string, string>>();
   private readonly pendingConnectionsByTarget = new Map<string, Set<Promise<unknown>>>();
+  private readonly progress = new KafkaProgressStore();
   private readonly sessions = new KafkaSessionManager();
   private readonly targetSessions = new KafkaTargetSessionRegistry();
   private readonly tunnels: KubectlTunnels;
@@ -340,12 +349,19 @@ export class KafkaIpcMain extends Main.Ipc {
     // The version of the code that is actually running here, not the one of the manifest (SPEC-016).
     this.handle(KAFKA_IPC.version, async (): Promise<ExtensionVersionDto> => ({ version: EXTENSION_VERSION }));
 
-    this.handle(KAFKA_IPC.discover, async (_event, request: DiscoverRequest) => {
+    // The progress event of an operation, for the frame that started it only (REQ-227).
+    this.handle(
+      KAFKA_IPC.progressEvent,
+      async (event, request: KafkaProgressEventRequest): Promise<KafkaProgressEvent | null> =>
+        this.progress.get(senderKey(event), request?.operationId) ?? null,
+    );
+
+    this.handle(KAFKA_IPC.discover, async (event, request: DiscoverRequest) => {
       const reader = createReader(request);
       const report = createProgressReporter({
         operationId: request.operationId,
         operation: "discovery",
-        emit: (progress) => this.broadcast(KAFKA_IPC.progress, progress),
+        emit: (progress) => this.publishProgress(event, progress),
       });
       const discovered = await discoverAllKafkas(reader, request.namespace, report);
       return discovered.map(toDiscoveredKafkaInfo);
@@ -364,12 +380,12 @@ export class KafkaIpcMain extends Main.Ipc {
       if (request.removePersisted) kafkaPersistentStateStore().removeItem(targetKey);
     });
 
-    this.handle(KAFKA_IPC.overview, async (_event, request: OverviewRequest) => {
+    this.handle(KAFKA_IPC.overview, async (event, request: OverviewRequest) => {
       const reader = createReader(request);
       const report = createProgressReporter({
         operationId: request.operationId,
         operation: "overview",
-        emit: (progress) => this.broadcast(KAFKA_IPC.progress, progress),
+        emit: (progress) => this.publishProgress(event, progress),
       });
       const { connection, security } = await this.resolveConnection(request, reader, report);
       try {
@@ -386,12 +402,12 @@ export class KafkaIpcMain extends Main.Ipc {
       }
     });
 
-    this.handle(KAFKA_IPC.health, async (_event, request: ClusterHealthRequest) => {
+    this.handle(KAFKA_IPC.health, async (event, request: ClusterHealthRequest) => {
       const reader = createReader(request);
       const report = createProgressReporter({
         operationId: request.operationId,
         operation: "health",
-        emit: (progress) => this.broadcast(KAFKA_IPC.progress, progress),
+        emit: (progress) => this.publishProgress(event, progress),
       });
       const identity = aggregateHealthIdentity(request);
       const persistentKey = aggregateHealthSnapshotKey(identity.contextId, identity.targetId);
@@ -473,12 +489,12 @@ export class KafkaIpcMain extends Main.Ipc {
       }
     });
 
-    this.handle(KAFKA_IPC.topic, async (_event, request: TopicRequest) => {
+    this.handle(KAFKA_IPC.topic, async (event, request: TopicRequest) => {
       const reader = createReader(request);
       const report = createProgressReporter({
         operationId: request.operationId,
         operation: "topic",
-        emit: (progress) => this.broadcast(KAFKA_IPC.progress, progress),
+        emit: (progress) => this.publishProgress(event, progress),
       });
       const { connection } = await this.resolveConnection(request, reader, report);
       try {
@@ -508,12 +524,12 @@ export class KafkaIpcMain extends Main.Ipc {
       return withTimeout(finalized, KAFKA_ADMIN_TIMEOUT_MS, "Topic sizes");
     });
 
-    this.handle(KAFKA_IPC.topicConfig, async (_event, request: TopicConfigRequest) => {
+    this.handle(KAFKA_IPC.topicConfig, async (event, request: TopicConfigRequest) => {
       const reader = createReader(request);
       const report = createProgressReporter({
         operationId: request.operationId,
         operation: "topicConfig",
-        emit: (progress) => this.broadcast(KAFKA_IPC.progress, progress),
+        emit: (progress) => this.publishProgress(event, progress),
       });
       const connectionPromise = this.resolveConnection(request, reader, report);
       const operation = connectionPromise.then(async ({ connection }) => {
@@ -539,7 +555,7 @@ export class KafkaIpcMain extends Main.Ipc {
       return withTimeout(finalized, KAFKA_ADMIN_TIMEOUT_MS, "Topic configuration");
     });
 
-    this.handle(KAFKA_IPC.topicConsumers, async (_event, request: TopicConsumersRequest) => {
+    this.handle(KAFKA_IPC.topicConsumers, async (event, request: TopicConsumersRequest) => {
       const reader = createReader(request);
       let cancelled = false;
       let connection: KafkaConnection | undefined;
@@ -548,7 +564,7 @@ export class KafkaIpcMain extends Main.Ipc {
         operationId: request.operationId,
         operation: "topicConsumers",
         emit: (progress) => {
-          if (!cancelled) this.broadcast(KAFKA_IPC.progress, progress);
+          if (!cancelled) this.publishProgress(event, progress);
         },
       });
       const connectionPromise = this.resolveConnection(request, reader, report);
@@ -592,7 +608,7 @@ export class KafkaIpcMain extends Main.Ipc {
       }
     });
 
-    this.handle(KAFKA_IPC.brokerConfig, async (_event, request: BrokerConfigRequest) => {
+    this.handle(KAFKA_IPC.brokerConfig, async (event, request: BrokerConfigRequest) => {
       const reader = createReader(request);
       let cancelled = false;
       let connection: KafkaConnection | undefined;
@@ -600,7 +616,7 @@ export class KafkaIpcMain extends Main.Ipc {
         operationId: request.operationId,
         operation: "brokerConfig",
         emit: (progress) => {
-          if (!cancelled) this.broadcast(KAFKA_IPC.progress, progress);
+          if (!cancelled) this.publishProgress(event, progress);
         },
       });
       const connectionPromise = this.resolveConnection(request, reader, report);
@@ -635,7 +651,7 @@ export class KafkaIpcMain extends Main.Ipc {
       }
     });
 
-    this.handle(KAFKA_IPC.messagesBrowse, async (_event, request: MessageBrowseRequest) => {
+    this.handle(KAFKA_IPC.messagesBrowse, async (event, request: MessageBrowseRequest) => {
       const reader = createReader(request);
       let cancelled = false;
       let connection: KafkaConnection | undefined;
@@ -643,7 +659,7 @@ export class KafkaIpcMain extends Main.Ipc {
         operationId: request.operationId,
         operation: "messagesBrowse",
         emit: (progress) => {
-          if (!cancelled) this.broadcast(KAFKA_IPC.progress, progress);
+          if (!cancelled) this.publishProgress(event, progress);
         },
       });
       const connectionPromise = this.resolveConnection(request, reader, report);
@@ -678,12 +694,12 @@ export class KafkaIpcMain extends Main.Ipc {
       }
     });
 
-    this.handle(KAFKA_IPC.groups, async (_event, request: GroupsRequest) => {
+    this.handle(KAFKA_IPC.groups, async (event, request: GroupsRequest) => {
       const reader = createReader(request);
       const report = createProgressReporter({
         operationId: request.operationId,
         operation: "groups",
-        emit: (progress) => this.broadcast(KAFKA_IPC.progress, progress),
+        emit: (progress) => this.publishProgress(event, progress),
       });
       const connectionPromise = this.resolveConnection(request, reader, report);
       const operation = connectionPromise.then(async ({ connection }) => {
@@ -709,12 +725,12 @@ export class KafkaIpcMain extends Main.Ipc {
       return withTimeout(finalized, KAFKA_ADMIN_TIMEOUT_MS, "Consumer Groups list");
     });
 
-    this.handle(KAFKA_IPC.groupDetail, async (_event, request: GroupDetailRequest) => {
+    this.handle(KAFKA_IPC.groupDetail, async (event, request: GroupDetailRequest) => {
       const reader = createReader(request);
       const report = createProgressReporter({
         operationId: request.operationId,
         operation: "groupDetail",
-        emit: (progress) => this.broadcast(KAFKA_IPC.progress, progress),
+        emit: (progress) => this.publishProgress(event, progress),
       });
       const connectionPromise = this.resolveConnection(request, reader, report);
       const operation = connectionPromise.then(async ({ connection }) => {
@@ -1017,8 +1033,19 @@ export class KafkaIpcMain extends Main.Ipc {
     }
   }
 
+  /** Keeps the event for the frame of `event` and tells every frame only the id of its operation. */
+  private publishProgress(event: IpcSenderEvent, progress: KafkaProgressEvent): void {
+    const owner = senderKey(event);
+
+    if (this.closed || owner === undefined || !this.progress.put(owner, progress)) return;
+    const signal: KafkaProgressSignal = { operationId: progress.operationId };
+
+    this.broadcast(KAFKA_IPC.progress, signal);
+  }
+
   async shutdown(): Promise<void> {
     this.closed = true;
+    this.progress.clear();
     this.aggregateHealth.clear();
     this.healthWorkersByTarget.clear();
     this.targetSessions.clear();

@@ -38,7 +38,10 @@ export const KAFKA_IPC = {
   aclCreate: "kafka:acl:create",
   aclDelete: "kafka:acl:delete",
   reachability: "kafka:reachability",
+  /** Broadcast: a {@link KafkaProgressSignal}, the id of an operation with a new progress event and nothing else. */
   progress: "kafka:progress",
+  /** Invoke: the latest {@link KafkaProgressEvent} of an operation, for the frame that started it only. */
+  progressEvent: "kafka:progress-event",
 } as const;
 
 export interface DiscoverRequest {
@@ -146,6 +149,18 @@ export type KafkaProgressOperation =
   | "messagesBrowse"
   | "groups"
   | "groupDetail";
+
+/**
+ * What every frame receives of the progress of an operation: its id. The events name topics, groups and the
+ * authentication mode, so the frame that started the operation fetches them over `progressEvent` (SPEC-019, REQ-227).
+ */
+export interface KafkaProgressSignal {
+  operationId: string;
+}
+
+export interface KafkaProgressEventRequest {
+  operationId: string;
+}
 
 export interface KafkaProgressEvent {
   operationId: string;
