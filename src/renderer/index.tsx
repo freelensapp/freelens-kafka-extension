@@ -78,7 +78,6 @@ export default class KafkaExtensionRenderer extends Renderer.LensExtension {
   private readonly connectSettings = new KafkaConnectSettingsStore(this.stateStore);
   private readonly endpointSecrets = new KafkaEndpointSecretsStore();
   /** Targets whose write mode the main process has been told about (SPEC-009 REQ-197). */
-  private readonly mirroredWriteTargets = new Set<string>();
   private readonly overviewSettings = new KafkaOverviewSettingsStore(this.stateStore);
   private readonly aclAvailability = new KafkaAclAvailabilityStore();
   private readonly hiddenMenu = computed(() => false);
@@ -108,8 +107,6 @@ export default class KafkaExtensionRenderer extends Renderer.LensExtension {
     this.schemaRegistrySettings.reload();
     this.connectSettings.reload();
     this.writeSettings.reload();
-    this.mirrorWriteMode();
-    this.writeSettings.subscribe(() => this.mirrorWriteMode());
     // After an in-place update Freelens keeps the previous main side until it restarts (SPEC-016).
     void kafkaVersionSkewStore.check(EXTENSION_VERSION, () => this.client.mainVersion());
   }
@@ -118,21 +115,6 @@ export default class KafkaExtensionRenderer extends Renderer.LensExtension {
     this.ipc?.dispose();
     this.ipc = undefined;
     KafkaIpcRenderer.resetInstance();
-  }
-
-  /** Tell the main process which targets have write mode on, so it can refuse other writes. */
-  private mirrorWriteMode(): void {
-    const enabled = new Set(this.writeSettings.enabledTargets());
-    for (const targetId of enabled) {
-      if (this.mirroredWriteTargets.has(targetId)) continue;
-      this.mirroredWriteTargets.add(targetId);
-      void this.client.writeMode({ targetId, enabled: true }).catch(() => this.mirroredWriteTargets.delete(targetId));
-    }
-    for (const targetId of [...this.mirroredWriteTargets]) {
-      if (enabled.has(targetId)) continue;
-      this.mirroredWriteTargets.delete(targetId);
-      void this.client.writeMode({ targetId, enabled: false }).catch(() => undefined);
-    }
   }
 
   // The way to the main process of this activation: made in onActivate, let go in onDeactivate, so that an enable

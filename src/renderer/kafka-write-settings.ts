@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
 
-export const KAFKA_WRITE_MODE_KEY = "freelens-kafka.write-mode.v1";
+export { KAFKA_WRITE_MODE_KEY } from "../common/write-mode-key";
+
+import { KAFKA_WRITE_MODE_KEY } from "../common/write-mode-key";
 
 export interface KafkaWriteSettingsStorage {
   getItem(key: string): string | null;

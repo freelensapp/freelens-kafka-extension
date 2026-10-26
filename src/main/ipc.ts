@@ -40,7 +40,6 @@ import {
   type TopicConsumersRequest,
   type TopicRequest,
   type TopicSizesRequest,
-  type WriteModeRequest,
 } from "../common/ipc";
 import { kafkaPersistentStateStore } from "../common/kafka-persistent-state-store";
 import { createKafkaTargetId } from "../common/kafka-target";
@@ -68,7 +67,7 @@ import { withFinalizer, withTimeout } from "./operation-timeout";
 import { type IpcSenderEvent, KafkaProgressStore, senderKey } from "./progress-store";
 import { SchemaRegistryClient } from "./schema-registry/client";
 import { createTunnelHost } from "./tunnel-host";
-import { WriteModeRegistry } from "./write-mode";
+import { WriteModeGuard } from "./write-mode";
 
 import type {
   ExtensionVersionDto,
@@ -340,7 +339,8 @@ export class KafkaIpcMain extends Main.Ipc {
   private readonly sessions = new KafkaSessionManager();
   private readonly targetSessions = new KafkaTargetSessionRegistry();
   private readonly tunnels: KubectlTunnels;
-  private readonly writeMode = new WriteModeRegistry();
+  // The write mode as persisted, read from main's own copy of the extension store (REQ-233).
+  private readonly writeMode = new WriteModeGuard(() => kafkaPersistentStateStore());
 
   constructor(extension: Main.LensExtension, tunnelHost: TunnelHost = createTunnelHost(() => extension.manifestPath)) {
     super(extension);
@@ -754,10 +754,6 @@ export class KafkaIpcMain extends Main.Ipc {
         if (resolved) await this.sessions.release(resolved.connection);
       });
       return withTimeout(finalized, KAFKA_ADMIN_TIMEOUT_MS, "Consumer Group detail");
-    });
-
-    this.handle(KAFKA_IPC.writeMode, async (_event, request: WriteModeRequest) => {
-      this.writeMode.set(String(request.targetId ?? ""), Boolean(request.enabled));
     });
 
     this.handle(KAFKA_IPC.produce, async (_event, request: ProduceRequest) => {

@@ -18,7 +18,6 @@ export const KAFKA_IPC = {
   produce: "kafka:produce",
   deleteTopic: "kafka:topic:delete",
   deleteTopics: "kafka:topics:delete",
-  writeMode: "kafka:write-mode",
   resetOffsets: "kafka:group:reset-offsets",
   schemaSubjects: "kafka:schema-registry:subjects",
   schemaSubjectNames: "kafka:schema-registry:subject-names",
@@ -419,12 +418,6 @@ export interface ProduceResultDto {
 /** Version the running main bundle was built from (SPEC-016). */
 export interface ExtensionVersionDto {
   version: string;
-}
-
-/** Renderer -> Main mirror of the per-target write mode switch (SPEC-009 REQ-197). */
-export interface WriteModeRequest {
-  targetId: string;
-  enabled: boolean;
 }
 
 /** Destructive: deletes one topic with all its partitions and records (SPEC-009 REQ-194). */

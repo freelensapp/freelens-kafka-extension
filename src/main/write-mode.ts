@@ -1,33 +1,32 @@
-/**
- * Main-process mirror of the renderer's per-target write mode (SPEC-009 REQ-197).
- *
- * The renderer persists the switch and hides every write control while it is off; this
- * registry makes the main process refuse write IPC calls for targets whose write mode was
- * never enabled in this session, so a renderer bug cannot reach a broker with a write.
- * The renderer syncs the state on activation and on every change.
- */
-export class WriteModeRegistry {
-  private readonly enabled = new Set<string>();
+import { KAFKA_WRITE_MODE_KEY, parseWriteModeTargets } from "../common/write-mode-key";
 
-  set(targetId: string, enabled: boolean): void {
-    if (!targetId) return;
-    if (enabled) this.enabled.add(targetId);
-    else this.enabled.delete(targetId);
-  }
+/** What the guard reads of the extension store: main's own copy, which the host keeps in sync with the renderer. */
+export interface WriteModeStorage {
+  getItem(key: string): string | null;
+}
+
+/**
+ * The write guard of the main process (SPEC-009 REQ-197): a write IPC call is refused for a target whose write mode is
+ * not on in the extension store. It reads the persisted state at every call, so it holds before any cluster frame has
+ * started and whatever the frames did, and a renderer bug cannot reach a broker with a write (SPEC-019, REQ-233).
+ */
+export class WriteModeGuard {
+  constructor(private readonly storage: () => WriteModeStorage) {}
 
   isEnabled(targetId: string | undefined): boolean {
-    return Boolean(targetId && this.enabled.has(targetId));
+    if (!targetId) return false;
+    try {
+      return parseWriteModeTargets(this.storage().getItem(KAFKA_WRITE_MODE_KEY)).has(targetId);
+    } catch {
+      return false;
+    }
   }
 
-  /** Throws when the operation targets a Kafka target whose write mode is not enabled. */
+  /** Throws when the operation targets a Kafka target whose write mode is not on. */
   assertEnabled(targetId: string | undefined, operation: string): void {
     if (this.isEnabled(targetId)) return;
     throw new Error(
       `${operation} refused: write mode is not enabled for this Kafka target. Enable it in the connection settings first.`,
     );
-  }
-
-  clear(): void {
-    this.enabled.clear();
   }
 }
