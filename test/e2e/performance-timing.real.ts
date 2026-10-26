@@ -213,7 +213,7 @@ async function measureAggregateHealth(connection: KafkaConnection): Promise<Aggr
           groupIds?: string[];
           request?: { apiName?: string };
         }) => Promise<unknown>;
-        broker[sendRequestSymbol] = async (protocol) => {
+        broker[sendRequestSymbol] = async (protocol: Parameters<typeof originalSendRequest>[0]) => {
           if (protocol.request?.apiName === "FindCoordinator") findCoordinatorBatchCalls++;
           if (protocol.request?.apiName === "OffsetFetch") {
             offsetFetchBatchCalls++;

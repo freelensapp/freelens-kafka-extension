@@ -1,7 +1,7 @@
-import { ConfigResourceTypes, type DescribeConfigResponse } from "kafkajs";
 import { toConfigEntries } from "./config-entry";
+import { ConfigResourceTypes } from "./kafkajs";
 
-import type { Admin } from "kafkajs";
+import type { Admin, DescribeConfigResponse } from "kafkajs";
 
 import type { BrokerConfigDto } from "../../common/ipc";
 

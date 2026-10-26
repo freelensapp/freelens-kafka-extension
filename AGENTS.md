@@ -82,6 +82,31 @@ that starts letting one through fails the type check with an unused directive.
 - **Styles** come from one stylesheet, imported by `kafka-page-shell.tsx`; the build extracts it into
   `dist/renderer.css`, which the host links next to the renderer entry. No style is injected at runtime.
 
+## Main process
+
+- **CommonJS libraries.** kafkajs, lz4-asm, avsc and protobufjs are CommonJS. The main code imports them as ES
+  modules and the bundle interoperates; so does Vitest. The itests run the same code under Node itself (`tsx`), which
+  finds the named exports of a CommonJS module by reading its source and misses part of kafkajs's: those members
+  (`AclOperationTypes`, `CompressionCodecs`, `ConfigResourceTypes` and the other `*Types`) are imported from
+  `src/main/kafka/kafkajs.ts`, which takes them from `module.exports`.
+- **Deep imports.** kafkajs's protocol encoder and decoder, its record batch reader and lz4-asm's asm.js build are
+  imported by path with their `.js` extension (neither package has an `exports` map), declared in
+  `src/main/custom.d.ts`. No `require()`: the bundle is an ES module, and a `require()` of a package would be resolved
+  at runtime, where the installed extension has no `node_modules`.
+
+## Tests
+
+- **Unit tests** (`pnpm test:unit`): Vitest, `*.test.ts(x)` next to the sources and under `test/` (the evidence
+  tooling), in a Node environment. They import `describe`, `it`, `expect` and `vi` from `vitest`. `vitest.config.ts`
+  aliases `@freelensapp/extensions` to `test/freelens-extensions.ts`, a stub of the little of the host API the tests
+  reach at runtime (the real package reads `globalThis.FreelensExtensionApi`, which only the host sets); a test that
+  needs a behaviour of the host mocks it with `vi.mock`. The tests are type-checked against the real declaration.
+- **Source checks.** Two renderer tests scan the sources rather than run them (no `title` on a `TableCell`; every
+  request that selects a Kafka target carries its Security override and source): they parse with Vite's `parseAst`
+  (`test/source-ast.ts`). The `typescript` package of TypeScript 7 has no compiler API to parse with.
+- **Itests** (`pnpm itest:*`, `test/e2e/`): scripts run with `tsx` against real Kafka brokers and a kind cluster; see
+  `TESTING-SAFETY.md`.
+
 ## Slice Boundaries
 
 - Before starting the next implementation slice, update the phase, test evidence and roadmap in `ARCHITECTURE.md` and the task/evidence state in the owning spec for every slice that was completed, reopened or rescheduled.

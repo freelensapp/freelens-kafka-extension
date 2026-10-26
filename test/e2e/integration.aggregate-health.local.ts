@@ -59,7 +59,7 @@ async function main(): Promise<void> {
         const originalSendRequest = broker[sendRequestSymbol] as (protocol: {
           request?: { apiName?: string };
         }) => Promise<unknown>;
-        broker[sendRequestSymbol] = async (protocol) => {
+        broker[sendRequestSymbol] = async (protocol: Parameters<typeof originalSendRequest>[0]) => {
           if (protocol.request?.apiName === "FindCoordinator") findCoordinatorRequests++;
           if (protocol.request?.apiName === "OffsetFetch") offsetFetchRequests++;
           return originalSendRequest.call(broker, protocol);
