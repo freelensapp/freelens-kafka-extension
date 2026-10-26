@@ -1,6 +1,7 @@
 import { Renderer } from "@freelensapp/extensions";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import styles from "./kafka.module.scss";
+import { ANY_ACL_FILTER, filterKafkaAcls } from "./kafka-acl-filter";
 import { KafkaPageShell } from "./kafka-page-shell";
 import { KafkaResourceActions, type KafkaResourcePageDependencies, useKafkaResourcePage } from "./kafka-resource-pages";
 import { canSubmitWriteAction } from "./kafka-write-policy";
@@ -67,8 +68,8 @@ export function KafkaAclPage({ params, acls, aclCreate, aclDelete, ...dependenci
 
   const [result, setResult] = useState<KafkaAclResultDto>();
   const [principalFilter, setPrincipalFilter] = useState("");
-  const [resourceTypeFilter, setResourceTypeFilter] = useState("ALL");
-  const [operationFilter, setOperationFilter] = useState("ALL");
+  const [resourceTypeFilter, setResourceTypeFilter] = useState(ANY_ACL_FILTER);
+  const [operationFilter, setOperationFilter] = useState(ANY_ACL_FILTER);
 
   const [resourceType, setResourceType] = useState("TOPIC");
   const [resourceName, setResourceName] = useState("");
@@ -109,12 +110,11 @@ export function KafkaAclPage({ params, acls, aclCreate, aclDelete, ...dependenci
 
   const filtered = useMemo(
     () =>
-      (result?.acls ?? []).filter(
-        (acl) =>
-          (resourceTypeFilter === "ALL" || acl.resourceType === resourceTypeFilter) &&
-          (operationFilter === "ALL" || acl.operation === operationFilter) &&
-          acl.principal.toLowerCase().includes(principalFilter.toLowerCase()),
-      ),
+      filterKafkaAcls(result?.acls ?? [], {
+        principal: principalFilter,
+        resourceType: resourceTypeFilter,
+        operation: operationFilter,
+      }),
     [operationFilter, principalFilter, resourceTypeFilter, result],
   );
 
@@ -157,7 +157,8 @@ export function KafkaAclPage({ params, acls, aclCreate, aclDelete, ...dependenci
             onChange={(event) => setResourceTypeFilter(event.target.value)}
             aria-label="Filter ACL resource type"
           >
-            {["ALL", ...RESOURCE_TYPES].map((value) => (
+            <option value={ANY_ACL_FILTER}>Any</option>
+            {RESOURCE_TYPES.map((value) => (
               <option key={value}>{value}</option>
             ))}
           </select>
@@ -166,7 +167,8 @@ export function KafkaAclPage({ params, acls, aclCreate, aclDelete, ...dependenci
             onChange={(event) => setOperationFilter(event.target.value)}
             aria-label="Filter ACL operation"
           >
-            {["ALL", ...OPERATIONS].map((value) => (
+            <option value={ANY_ACL_FILTER}>Any</option>
+            {OPERATIONS.map((value) => (
               <option key={value}>{value}</option>
             ))}
           </select>

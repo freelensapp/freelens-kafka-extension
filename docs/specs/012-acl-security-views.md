@@ -103,6 +103,9 @@ resource name to confirm, **then** the rule is removed from the list.
   connection: no extra round-trip, and the menu is gated on the probe result per Kafka target.
 - **2026-08-19** — ACL IPC calls now carry the active Kubernetes cluster id, so ACL inspection works
   for cluster-discovered brokers and not only for manual endpoints.
+- **2026-10-26** — The resource type and operation filters keep every rule with "Any" instead of
+  "ALL": Kafka has an operation named `ALL`, so the operation filter listed `ALL` twice and could not
+  show the rules whose operation is `ALL` alone (found in the Freelens 2 port, SPEC-019).
 
 ## Traceability
 
