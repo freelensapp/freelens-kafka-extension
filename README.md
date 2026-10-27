@@ -291,7 +291,7 @@ The repository is developed spec-first, with the specs in the repository:
 
 ### Local gates
 
-Node 24.15.0 (`.nvmrc` / `mise.toml`) + `corepack pnpm`. Run the local gates
+Node 24.22.0 (`.nvmrc` / `mise.toml`) + `corepack pnpm`. Run the local gates
 after every change:
 
 ```sh
@@ -461,8 +461,8 @@ nvm install
 mise install
 # or
 winget install CoreyButler.NVMforWindows
-nvm install 24.15.0
-nvm use 24.15.0
+nvm install 24.22.0
+nvm use 24.22.0
 ```
 
 Install pnpm:
