@@ -27,7 +27,8 @@
     // allowArbitraryExtensions, while knip resolves `import styles from
     // "./x.module.scss"` to the stylesheet, so it would report them as unused
     "!src/**/*.d.scss.ts",
-    "test/**/*.ts"
+    "test/**/*.ts",
+    "integration/**/*.ts"
   ],
 
   // The Vite plugin adds the renderer entry of vite.config.mjs as an entry of
@@ -44,11 +45,7 @@
   // entry once it exists, and the `knip` script runs with --no-gitignore, so
   // after `pnpm build` knip would report what the bundle inlines from its
   // libraries, such as a binary a bundled library spawns.
-  //
-  // The integration suite of integration/ still runs inside a Freelens
-  // checkout, whose helpers it imports; it moves to the template's pattern with
-  // the test suites feature issue, and comes back into the project then.
-  "ignore": ["dist/**", "integration/**"],
+  "ignore": ["dist/**"],
 
   // Binaries that no dependency provides: yq, which the workflows call, comes
   // from mise (see mise.toml); kubectl, kind and docker, which the lab and itest
@@ -90,6 +87,7 @@
       "src/renderer/tsconfig.json",
       "src/common/tsconfig.json",
       "src/tsconfig.json",
+      "integration/tsconfig.json",
       "tsconfig.json"
     ]
   },

@@ -131,10 +131,20 @@ of one cluster's Kafka reaches the frames of the other clusters.
   so main's own environment would have to carry the token.
 - **2026-10-26** — Progress follows the pattern of freelensapp/freelens-velero-extension: data
   travels only over `invoke`, bound to the frame that asked, and `broadcast` carries only a signal
-  without content. Main keeps the latest event of each operation and broadcasts its operation id, a
+  without content. Main keeps the recent events of each operation and broadcasts its operation id, a
   random value; the frame that started the operation, the only one that knows the id, fetches the
   event over `invoke`. Spike C0: the events name topics, groups and the authentication mode, which a
   broadcast of the events themselves would hand to the frames of every cluster.
+- **2026-10-27** — Progress refined after the integration suite on Freelens 2: a fetch of the latest
+  event only, delivered with the others in one go, folded the counted steps of a fast discovery into
+  its last event, and the answer of the request could reach the page before its last events. Main now
+  keeps the events of an operation in order (64 at most) and answers from the frame's cursor; the
+  renderer hands them to the page one task apart and delivers the remaining ones before the answer,
+  the order 1.x gave. The frame binding of REQ-227 is unchanged.
+- **2026-10-27** — The T022 check of the 1.x suite (a persisted partial health painted after a restart
+  of the main process) is not ported: it closed and relaunched the packaged app, which the template's
+  harness, attached over CDP to Freelens dev, cannot do. The snapshot's sanitization and coverage stay
+  unit-tested.
 - **2026-10-26** — The seven hidden menus of SPEC-004 stay: without them Freelens 2 still shows a
   tab bar of the sibling pages above every Kafka page (spike D0).
 - **2026-10-26** — The tests and scripts get labs of their own (REQ-232): until 1.4.3 they wrote to

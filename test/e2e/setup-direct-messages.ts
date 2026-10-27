@@ -1,7 +1,8 @@
 /** Seed deterministic local-only records for protocol and packaged message Browse tests. */
 
-import { CompressionTypes, ConfigResourceTypes } from "kafkajs";
+import { CompressionTypes } from "kafkajs";
 import { connectDirect } from "../../src/main/kafka/kafka-connection";
+import { ConfigResourceTypes } from "../../src/main/kafka/kafkajs";
 
 const BROKER = process.env.KAFKA_LOCAL ?? "127.0.0.1:19092";
 const TOPIC = "freelens-orders";

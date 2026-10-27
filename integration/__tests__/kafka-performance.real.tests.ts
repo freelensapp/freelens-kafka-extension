@@ -17,8 +17,8 @@ import {
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { setImmediate } from "node:timers";
-import { describe, expect, it } from "@jest/globals";
 import { _electron as electron } from "playwright";
+import { describe, expect, it } from "vitest";
 import type { ChildProcessWithoutNullStreams } from "node:child_process";
 
 import type { ElectronApplication, Frame, Page } from "playwright";
@@ -525,7 +525,7 @@ function installAuthorizedTargetMarker(): void {
   };
 }
 
-async function assertAuthorizedTargetMarkerRaceGuard(page: Page): Promise<void> {
+async function assertAuthorizedTargetMarkerRaceGuard(page: Frame | Page): Promise<void> {
   await page.evaluate(async () => {
     const targetWindow = window as AuthorizedTargetMarkerWindow;
     const mark = targetWindow.slice16MarkAuthorizedTarget;
@@ -676,7 +676,8 @@ async function clickUniqueHashedTarget(
       ).asElement();
       if (!markedRow) continue;
       const stillAuthorized = await markedRow.evaluate(
-        (row, nonce) => row instanceof HTMLElement && row.isConnected && row.dataset.slice16AuthorizedTarget === nonce,
+        (row: Node, nonce: string) =>
+          row instanceof HTMLElement && row.isConnected && row.dataset.slice16AuthorizedTarget === nonce,
         marker,
       );
       if (!stillAuthorized) continue;
@@ -724,7 +725,7 @@ async function launchAuthorizedCluster(app: ElectronApplication, window: Page, c
   let entityId: string;
   try {
     const routeEntityId = await window.waitForFunction(
-      () => /^\/cluster\/([0-9a-f]{32})$/.exec(window.location.pathname)?.[1] ?? false,
+      () => /^\/cluster\/([0-9a-f]{32})$/.exec(globalThis.location.pathname)?.[1] ?? false,
       undefined,
       { timeout: 120_000 },
     );
@@ -1072,7 +1073,11 @@ async function measureOverviewPaint(frame: Frame, targetHostSha256: string): Pro
           .map((byte) => byte.toString(16).padStart(2, "0"))
           .join("");
       };
-      const rows = [...document.querySelectorAll<HTMLElement>(".KafkaClusterTable .TableRow[data-bootstrap]")];
+      const rows = [
+        ...document.querySelectorAll<HTMLElement>(
+          `:is(.KafkaClusterTable, [class*="_KafkaClusterTable_"]) .TableRow[data-bootstrap]`,
+        ),
+      ];
       const matches = [];
       for (const row of rows) {
         const hosts = (row.dataset.bootstrap ?? "").split(",").map((entry) => entry.trim().replace(/:\d+$/, ""));
@@ -1109,16 +1114,16 @@ async function measureOverviewPaint(frame: Frame, targetHostSha256: string): Pro
           framePending = false;
           const page = document.querySelector<HTMLElement>('[data-testid="kafka-overview-page"]');
           if (!page || page.getBoundingClientRect().height <= 0) return;
-          const elapsed = Math.round(performance.now() - evidence.startedAt);
+          const elapsed = Math.round(performance.now() - (evidence.startedAt ?? performance.now()));
           const summary = page.querySelector<HTMLElement>('[aria-label="Kafka connection summary"]');
           if (evidence.metadataPaintMs === undefined && summary && summary.getBoundingClientRect().height > 0) {
             evidence.metadataPaintMs = elapsed;
           }
           const topology = page.querySelector<HTMLElement>('[data-testid="kafka-topology-freshness"]');
           const metricValue = (label: string) =>
-            [...page.querySelectorAll<HTMLElement>(".KafkaMetric")]
+            [...page.querySelectorAll<HTMLElement>(`:is(.KafkaMetric, [class*="_KafkaMetric_"])`)]
               .find((metric) => metric.textContent?.includes(label))
-              ?.querySelector<HTMLElement>(".KafkaMetricValue");
+              ?.querySelector<HTMLElement>(`:is(.KafkaMetricValue, [class*="_KafkaMetricValue_"])`);
           const onlineBroker = metricValue("Online brokers");
           const unavailablePartitions = metricValue("Unavailable partitions");
           const underReplicated = metricValue("Under-replicated");
@@ -1156,12 +1161,19 @@ async function measureOverviewPaint(frame: Frame, targetHostSha256: string): Pro
     performanceWindow.kafkaPackagedPaintObserver = observer;
     mark();
   });
-  await clickUniqueHashedTarget(frame, ".KafkaClusterTable", targetHostSha256, "bootstrap", 180_000, async (marker) => {
-    await frame.evaluate((expectedMarker) => {
-      const performanceWindow = window as typeof window & { kafkaPackagedPaintExpectedMarker?: string };
-      performanceWindow.kafkaPackagedPaintExpectedMarker = expectedMarker;
-    }, marker);
-  });
+  await clickUniqueHashedTarget(
+    frame,
+    `:is(.KafkaClusterTable, [class*="_KafkaClusterTable_"])`,
+    targetHostSha256,
+    "bootstrap",
+    180_000,
+    async (marker) => {
+      await frame.evaluate((expectedMarker) => {
+        const performanceWindow = window as typeof window & { kafkaPackagedPaintExpectedMarker?: string };
+        performanceWindow.kafkaPackagedPaintExpectedMarker = expectedMarker;
+      }, marker);
+    },
+  );
   await frame.waitForFunction(
     () => {
       const evidence = (window as typeof window & { kafkaPackagedPaintEvidence?: Partial<PaintEvidence> })
@@ -1179,7 +1191,9 @@ async function measureOverviewPaint(frame: Frame, targetHostSha256: string): Pro
     .evaluate((element) => (element as HTMLDetailsElement).open);
   const postInteraction = await frame.evaluate(() => {
     const page = document.querySelector<HTMLElement>('[data-testid="kafka-overview-page"]');
-    const progressElement = document.querySelector<HTMLElement>('.KafkaOperationProgress[data-operation="health"]');
+    const progressElement = document.querySelector<HTMLElement>(
+      ':is(.KafkaOperationProgress, [class*="_KafkaOperationProgress_"])[data-operation="health"]',
+    );
     return {
       completed: progressElement?.dataset.completed ?? null,
       healthState: page?.dataset.healthState ?? null,
@@ -1193,7 +1207,9 @@ async function measureOverviewPaint(frame: Frame, targetHostSha256: string): Pro
   await frame.waitForFunction(
     (initial) => {
       const page = document.querySelector<HTMLElement>('[data-testid="kafka-overview-page"]');
-      const progressElement = document.querySelector<HTMLElement>('.KafkaOperationProgress[data-operation="health"]');
+      const progressElement = document.querySelector<HTMLElement>(
+        ':is(.KafkaOperationProgress, [class*="_KafkaOperationProgress_"])[data-operation="health"]',
+      );
       if (initial.healthState === "updating" && page?.dataset.healthState === "ready") return true;
       if (!progressElement) return false;
       const phase = progressElement.dataset.phase ?? null;
