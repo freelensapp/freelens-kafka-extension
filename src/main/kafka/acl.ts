@@ -1,4 +1,4 @@
-import { AclOperationTypes, AclPermissionTypes, AclResourceTypes, ResourcePatternTypes } from "kafkajs";
+import { AclOperationTypes, AclPermissionTypes, AclResourceTypes, ResourcePatternTypes } from "./kafkajs";
 
 import type { Admin } from "kafkajs";
 

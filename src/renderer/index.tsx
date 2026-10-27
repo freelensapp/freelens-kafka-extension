@@ -1,5 +1,5 @@
-import { Renderer } from "@freelensapp/extensions";
-import { computed } from "mobx";
+import { Common, Renderer } from "@freelensapp/extensions";
+import { computed, reaction } from "mobx";
 import { EXTENSION_VERSION } from "../common/extension-version";
 import { kafkaPersistentStateStore } from "../common/kafka-persistent-state-store";
 import { KafkaIcon } from "./icon";
@@ -13,9 +13,10 @@ import { KafkaEndpointSecretsStore } from "./kafka-endpoint-secrets";
 import { KafkaGroupsPage, type KafkaGroupsPageProps } from "./kafka-group-pages";
 import { KafkaIpcRenderer } from "./kafka-ipc";
 import { MANUAL_ENDPOINTS_KEY } from "./kafka-manual-endpoints";
-import { KAFKA_PAGE_IDS, KAFKA_SELECTIONS_KEY, type KafkaReloadRoute } from "./kafka-navigation";
+import { clearKafkaReloadRoute, KAFKA_PAGE_IDS, KAFKA_SELECTIONS_KEY, type KafkaReloadRoute } from "./kafka-navigation";
 import { KAFKA_OVERVIEW_SETTINGS_KEY, KafkaOverviewSettingsStore } from "./kafka-overview-settings";
 import {
+  declaredKafkaPageParams,
   KAFKA_CLUSTER_MENU_MANIFEST,
   KAFKA_CLUSTER_PAGE_MANIFEST,
   KAFKA_ROUTE_OWNER_MENU_MANIFEST,
@@ -62,6 +63,12 @@ import type {
   TopicSizesRequest,
 } from "../common/ipc";
 
+/**
+ * The host renders a page with the general `PageComponentProps` (C9): one `PageParam` for each entry of the
+ * registration's `params`, which `KAFKA_CLUSTER_PAGE_MANIFEST` declares, so the names each page reads are there.
+ */
+type PageProps = Common.Types.PageComponentProps;
+
 export default class KafkaExtensionRenderer extends Renderer.LensExtension {
   /** Host-managed durable state: it survives a Freelens restart, unlike the window storage (SPEC-018). */
   private readonly stateStore = kafkaPersistentStateStore();
@@ -71,7 +78,6 @@ export default class KafkaExtensionRenderer extends Renderer.LensExtension {
   private readonly connectSettings = new KafkaConnectSettingsStore(this.stateStore);
   private readonly endpointSecrets = new KafkaEndpointSecretsStore();
   /** Targets whose write mode the main process has been told about (SPEC-009 REQ-197). */
-  private readonly mirroredWriteTargets = new Set<string>();
   private readonly overviewSettings = new KafkaOverviewSettingsStore(this.stateStore);
   private readonly aclAvailability = new KafkaAclAvailabilityStore();
   private readonly hiddenMenu = computed(() => false);
@@ -82,6 +88,8 @@ export default class KafkaExtensionRenderer extends Renderer.LensExtension {
   private readonly resourceCache = new KafkaResourceCache();
 
   async onActivate(): Promise<void> {
+    KafkaIpcRenderer.resetInstance();
+    this.ipc = KafkaIpcRenderer.createInstance(this);
     const stateStore = this.stateStore;
     stateStore.loadExtension(this);
     stateStore.migrateLegacy(window.localStorage, [
@@ -99,29 +107,32 @@ export default class KafkaExtensionRenderer extends Renderer.LensExtension {
     this.schemaRegistrySettings.reload();
     this.connectSettings.reload();
     this.writeSettings.reload();
-    this.mirrorWriteMode();
-    this.writeSettings.subscribe(() => this.mirrorWriteMode());
+    // A write mode switched in another frame reaches this frame's copy of the store: the pages follow it (REQ-231).
+    this.stopWriteModeWatch?.();
+    this.stopWriteModeWatch = reaction(
+      () => stateStore.getItem(KAFKA_WRITE_MODE_KEY),
+      () => this.writeSettings.refresh(),
+    );
     // After an in-place update Freelens keeps the previous main side until it restarts (SPEC-016).
     void kafkaVersionSkewStore.check(EXTENSION_VERSION, () => this.client.mainVersion());
   }
 
-  /** Tell the main process which targets have write mode on, so it can refuse other writes. */
-  private mirrorWriteMode(): void {
-    const enabled = new Set(this.writeSettings.enabledTargets());
-    for (const targetId of enabled) {
-      if (this.mirroredWriteTargets.has(targetId)) continue;
-      this.mirroredWriteTargets.add(targetId);
-      void this.client.writeMode({ targetId, enabled: true }).catch(() => this.mirroredWriteTargets.delete(targetId));
-    }
-    for (const targetId of [...this.mirroredWriteTargets]) {
-      if (enabled.has(targetId)) continue;
-      this.mirroredWriteTargets.delete(targetId);
-      void this.client.writeMode({ targetId, enabled: false }).catch(() => undefined);
-    }
+  protected async onDeactivate(): Promise<void> {
+    this.stopWriteModeWatch?.();
+    this.stopWriteModeWatch = undefined;
+    this.ipc?.dispose();
+    this.ipc = undefined;
+    KafkaIpcRenderer.resetInstance();
   }
 
+  // The way to the main process of this activation: made in onActivate, let go in onDeactivate, so that an enable
+  // after a disable, or a reload of the development loop, never reaches main through a previous activation's.
+  private ipc?: KafkaIpcRenderer;
+  private stopWriteModeWatch?: () => void;
+
   private get client(): KafkaIpcRenderer {
-    return KafkaIpcRenderer.createInstance(this);
+    if (!this.ipc) throw new Error("The Kafka extension is not active");
+    return this.ipc;
   }
 
   /** Id of the cluster this frame is showing, so Main queries the right connected cluster. */
@@ -202,7 +213,13 @@ export default class KafkaExtensionRenderer extends Renderer.LensExtension {
   private readonly subscribeProgress = (listener: (progress: KafkaProgressEvent) => void) =>
     this.client.onProgress(listener);
   private readonly restoreReloadRoute = (route: KafkaReloadRoute) => {
-    void this.navigate(route.pageId, route.params);
+    const params = declaredKafkaPageParams(route.pageId, route.params);
+
+    if (!params) {
+      clearKafkaReloadRoute();
+      return;
+    }
+    void this.navigate(route.pageId, params);
   };
 
   clusterFrameComponents = [
@@ -217,9 +234,9 @@ export default class KafkaExtensionRenderer extends Renderer.LensExtension {
     {
       ...KAFKA_CLUSTER_PAGE_MANIFEST[0],
       components: {
-        Page: ({ params }: Pick<KafkaClustersPageProps, "params">) => (
+        Page: ({ params }: PageProps) => (
           <KafkaClustersPage
-            params={params}
+            params={params as KafkaClustersPageProps["params"]}
             connectionSettings={this.connectionSettings}
             writeSettings={this.writeSettings}
             schemaRegistrySettings={this.schemaRegistrySettings}
@@ -242,9 +259,9 @@ export default class KafkaExtensionRenderer extends Renderer.LensExtension {
     {
       ...KAFKA_CLUSTER_PAGE_MANIFEST[1],
       components: {
-        Page: ({ params }: Pick<KafkaTargetPageProps, "params">) => (
+        Page: ({ params }: PageProps) => (
           <KafkaClusterOverviewPage
-            params={params}
+            params={params as KafkaTargetPageProps["params"]}
             connectionSettings={this.connectionSettings}
             writeSettings={this.writeSettings}
             overviewSettings={this.overviewSettings}
@@ -262,9 +279,9 @@ export default class KafkaExtensionRenderer extends Renderer.LensExtension {
     {
       ...KAFKA_CLUSTER_PAGE_MANIFEST[2],
       components: {
-        Page: ({ params }: Pick<KafkaTopicsPageProps, "params">) => (
+        Page: ({ params }: PageProps) => (
           <KafkaTopicsPage
-            params={params}
+            params={params as KafkaTopicsPageProps["params"]}
             connectionSettings={this.connectionSettings}
             writeSettings={this.writeSettings}
             kubernetesClusterId={this.clusterId}
@@ -293,9 +310,9 @@ export default class KafkaExtensionRenderer extends Renderer.LensExtension {
     {
       ...KAFKA_CLUSTER_PAGE_MANIFEST[3],
       components: {
-        Page: ({ params }: Pick<KafkaGroupsPageProps, "params">) => (
+        Page: ({ params }: PageProps) => (
           <KafkaGroupsPage
-            params={params}
+            params={params as KafkaGroupsPageProps["params"]}
             connectionSettings={this.connectionSettings}
             writeSettings={this.writeSettings}
             kubernetesClusterId={this.clusterId}
@@ -317,9 +334,9 @@ export default class KafkaExtensionRenderer extends Renderer.LensExtension {
     {
       ...KAFKA_CLUSTER_PAGE_MANIFEST[4],
       components: {
-        Page: ({ params }: Pick<KafkaBrokersPageProps, "params">) => (
+        Page: ({ params }: PageProps) => (
           <KafkaBrokersPage
-            params={params}
+            params={params as KafkaBrokersPageProps["params"]}
             connectionSettings={this.connectionSettings}
             writeSettings={this.writeSettings}
             kubernetesClusterId={this.clusterId}
@@ -336,9 +353,9 @@ export default class KafkaExtensionRenderer extends Renderer.LensExtension {
     {
       ...KAFKA_CLUSTER_PAGE_MANIFEST[5],
       components: {
-        Page: ({ params }: Pick<KafkaSchemaRegistryPageProps, "params">) => (
+        Page: ({ params }: PageProps) => (
           <KafkaSchemaRegistryPage
-            params={params}
+            params={params as KafkaSchemaRegistryPageProps["params"]}
             connectionSettings={this.connectionSettings}
             writeSettings={this.writeSettings}
             kubernetesClusterId={this.clusterId}
@@ -360,9 +377,9 @@ export default class KafkaExtensionRenderer extends Renderer.LensExtension {
     {
       ...KAFKA_CLUSTER_PAGE_MANIFEST[6],
       components: {
-        Page: ({ params }: Pick<KafkaConnectPageProps, "params">) => (
+        Page: ({ params }: PageProps) => (
           <KafkaConnectPage
-            params={params}
+            params={params as KafkaConnectPageProps["params"]}
             connectionSettings={this.connectionSettings}
             writeSettings={this.writeSettings}
             kubernetesClusterId={this.clusterId}
@@ -388,9 +405,9 @@ export default class KafkaExtensionRenderer extends Renderer.LensExtension {
     {
       ...KAFKA_CLUSTER_PAGE_MANIFEST[7],
       components: {
-        Page: ({ params }: Pick<KafkaAclPageProps, "params">) => (
+        Page: ({ params }: PageProps) => (
           <KafkaAclPage
-            params={params}
+            params={params as KafkaAclPageProps["params"]}
             connectionSettings={this.connectionSettings}
             writeSettings={this.writeSettings}
             kubernetesClusterId={this.clusterId}

@@ -1,9 +1,9 @@
 # SPEC-006 — Consumer Groups and Lag
 
-| Field | Value |
-| --- | --- |
-| Status | Implementing |
-| Date | 2026-08-06 |
+| Field  | Value                                                                               |
+| ------ | ----------------------------------------------------------------------------------- |
+| Status | Implementing                                                                        |
+| Date   | 2026-08-06                                                                          |
 | Source | User-approved next increment after verified SPEC-005; accepted UX v3 roadmap §UX3.5 |
 | Safety | Kafka reads only — no group join, no offset commit; governed by `TESTING-SAFETY.md` |
 

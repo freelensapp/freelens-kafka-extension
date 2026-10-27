@@ -1,5 +1,6 @@
 import { Renderer } from "@freelensapp/extensions";
 import { useCallback, useEffect, useRef, useState } from "react";
+import styles from "./kafka.module.scss";
 import { copyTextToClipboard, messageBytesText, messageHeadersJson } from "./kafka-message-clipboard";
 import { OperationProgress } from "./kafka-overview";
 import { createOperationId, matchesKafkaMessageFilters } from "./kafka-view-model";
@@ -88,12 +89,12 @@ const MESSAGE_SORT_CALLBACKS = {
 
 function FormatBadge({ bytes }: { bytes: KafkaMessageBytesDto }) {
   if (bytes.format === "null") {
-    return <span className="KafkaMsgFormatBadge format-null">null</span>;
+    return <span className={`${styles.kafkaMsgFormatBadge} format-null`}>null</span>;
   }
   const label = bytes.format === "json" ? "JSON" : bytes.format === "text" ? "Text" : "Binary";
   const suffix = bytes.truncated ? " · truncated" : "";
   return (
-    <span className={`KafkaMsgFormatBadge format-${bytes.format}`}>
+    <span className={`${styles.kafkaMsgFormatBadge} format-${bytes.format}`}>
       {label} · {bytes.byteLength}
       {"\u202f"}B{suffix}
     </span>
@@ -107,7 +108,7 @@ const COPY_STATUS_RESET_MS = 1800;
 /** Copy-to-clipboard affordance for the inspector (read-only: outside the SPEC-009 write policy). */
 function CopyButton({ label, text, testId, title }: { label: string; text: string; testId: string; title: string }) {
   const [status, setStatus] = useState<CopyStatus>("idle");
-  const resetTimer = useRef<ReturnType<typeof setTimeout>>();
+  const resetTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   useEffect(() => () => clearTimeout(resetTimer.current), []);
   const flash = (next: CopyStatus) => {
     setStatus(next);
@@ -117,7 +118,7 @@ function CopyButton({ label, text, testId, title }: { label: string; text: strin
   return (
     <Renderer.Component.Button
       plain
-      className="KafkaMsgCopyButton"
+      className={styles.kafkaMsgCopyButton}
       data-testid={testId}
       data-copy-status={status}
       title={title}
@@ -152,8 +153,8 @@ function BytesSection({
   return (
     <>
       <Renderer.Component.DrawerTitle size="sub-title">{label}</Renderer.Component.DrawerTitle>
-      <div className="KafkaMsgBytesBody">
-        <div className="KafkaMsgBytesToolbar">
+      <div className={styles.kafkaMsgBytesBody}>
+        <div className={styles.kafkaMsgBytesToolbar}>
           <FormatBadge bytes={bytes} />
           {bytes.format !== "null" && (
             <CopyButton
@@ -167,12 +168,12 @@ function BytesSection({
           )}
         </div>
         {bytes.format !== "null" && (
-          <pre className="KafkaMsgCodeBlock" data-format={bytes.format}>
+          <pre className={styles.kafkaMsgCodeBlock} data-format={bytes.format}>
             {messageBytesText(bytes)}
           </pre>
         )}
         {(bytes.format === "binary" || bytes.truncated) && bytes.base64 !== undefined && (
-          <details className="KafkaMsgBase64">
+          <details className={styles.kafkaMsgBase64}>
             <summary>Raw base64</summary>
             <code>{bytes.base64}</code>
           </details>
@@ -185,13 +186,13 @@ function BytesSection({
 function MessageInspector({ message }: { message: KafkaRecordDto }) {
   const hasHeaders = message.headers.length > 0;
   return (
-    <div className="KafkaMessageInspector" aria-label={`Message at offset ${message.offset}`}>
+    <div className={styles.kafkaMessageInspector} aria-label={`Message at offset ${message.offset}`}>
       <Renderer.Component.DrawerItem name="Partition">{message.partition}</Renderer.Component.DrawerItem>
       <Renderer.Component.DrawerItem name="Offset">
-        <code className="KafkaMsgMono">{message.offset}</code>
+        <code className={styles.kafkaMsgMono}>{message.offset}</code>
       </Renderer.Component.DrawerItem>
       <Renderer.Component.DrawerItem name="Timestamp">
-        <div className="KafkaMsgTimestamp">
+        <div className={styles.kafkaMsgTimestamp}>
           <span>{formatTimestamp(message.timestamp)}</span>
           <small>{message.timestamp}</small>
         </div>
@@ -202,13 +203,13 @@ function MessageInspector({ message }: { message: KafkaRecordDto }) {
       {message.decodedValue !== undefined && (
         <>
           <Renderer.Component.DrawerTitle size="sub-title">Decoded value</Renderer.Component.DrawerTitle>
-          <pre className="KafkaMsgCodeBlock" data-testid="kafka-decoded-value">
+          <pre className={styles.kafkaMsgCodeBlock} data-testid="kafka-decoded-value">
             {JSON.stringify(message.decodedValue, null, 2)}
           </pre>
         </>
       )}
       {message.decodeWarning && (
-        <div className="KafkaPageState warning" role="status" data-testid="kafka-decode-warning">
+        <div className={`${styles.kafkaPageState} warning`} role="status" data-testid="kafka-decode-warning">
           <Renderer.Component.Icon material="warning" />
           {message.decodeWarning}
         </div>
@@ -218,8 +219,8 @@ function MessageInspector({ message }: { message: KafkaRecordDto }) {
         Headers{hasHeaders ? ` (${message.headers.length})` : ""}
       </Renderer.Component.DrawerTitle>
       {hasHeaders ? (
-        <div className="KafkaMsgHeaderList">
-          <div className="KafkaMsgBytesToolbar">
+        <div className={styles.kafkaMsgHeaderList}>
+          <div className={styles.kafkaMsgBytesToolbar}>
             <CopyButton
               label="Copy headers"
               text={messageHeadersJson(message.headers)}
@@ -232,16 +233,16 @@ function MessageInspector({ message }: { message: KafkaRecordDto }) {
               {header.value.format === "null" ? (
                 <FormatBadge bytes={header.value} />
               ) : (
-                <div className="KafkaMsgHeaderValue">
+                <div className={styles.kafkaMsgHeaderValue}>
                   <FormatBadge bytes={header.value} />
-                  <code className="KafkaMsgMono">{messageBytesText(header.value)}</code>
+                  <code className={styles.kafkaMsgMono}>{messageBytesText(header.value)}</code>
                 </div>
               )}
             </Renderer.Component.DrawerItem>
           ))}
         </div>
       ) : (
-        <div className="KafkaMsgEmpty">
+        <div className={styles.kafkaMsgEmpty}>
           <Renderer.Component.Icon material="label_off" />
           No headers
         </div>
@@ -279,9 +280,9 @@ export function KafkaMessagesBrowser({
   const [selectedOffset, setSelectedOffset] = useState<string>();
   const [tailState, setTailState] = useState<TailState>({ active: false, bufferLimit: 0, droppedCount: 0 });
   const [browseRequests, setBrowseRequests] = useState(0);
-  const operationId = useRef<string>();
+  const operationId = useRef<string | undefined>(undefined);
   const tailSession = useRef(0);
-  const tailTimer = useRef<number>();
+  const tailTimer = useRef<number | undefined>(undefined);
 
   useEffect(
     () =>
@@ -576,7 +577,7 @@ export function KafkaMessagesBrowser({
   if (metadataLoading && metadataProgress) return <OperationProgress progress={metadataProgress} />;
   if (metadataError) {
     return (
-      <div className="KafkaPageState error" role="alert">
+      <div className={`${styles.kafkaPageState} error`} role="alert">
         <Renderer.Component.Icon material="error_outline" />
         <div>
           <strong>Topic metadata failed</strong>
@@ -596,20 +597,20 @@ export function KafkaMessagesBrowser({
 
   return (
     <section
-      className="KafkaMessagesBrowser"
+      className={styles.kafkaMessagesBrowser}
       data-testid="kafka-messages-browser"
       data-browse-state={state.loading ? "loading" : state.data ? "complete" : state.error ? "error" : "idle"}
       data-browse-requests={browseRequests}
     >
       <form
-        className="KafkaMessageControls"
+        className={styles.kafkaMessageControls}
         aria-label="Message Browse controls"
         onSubmit={(event) => {
           event.preventDefault();
           runBrowse();
         }}
       >
-        <label className="KafkaMessagePartitionField">
+        <label className={styles.kafkaMessagePartitionField}>
           <span>Partition</span>
           <Renderer.Component.Select
             id="kafka-message-partition"
@@ -627,9 +628,9 @@ export function KafkaMessagesBrowser({
             menuPosition="fixed"
           />
         </label>
-        <fieldset className="KafkaMessageStartField">
+        <fieldset className={styles.kafkaMessageStartField}>
           <legend>Start position</legend>
-          <div className="KafkaMessageStartModes" role="group" aria-label="Start position">
+          <div className={styles.kafkaMessageStartModes} role="group" aria-label="Start position">
             {START_MODES.map((mode) => (
               <Renderer.Component.Button
                 key={mode.value}
@@ -705,7 +706,7 @@ export function KafkaMessagesBrowser({
         </Renderer.Component.Button>
       </form>
 
-      <fieldset className="KafkaMessageFilters" aria-label="Message filters">
+      <fieldset className={styles.kafkaMessageFilters} aria-label="Message filters">
         <legend>Filter loaded records</legend>
         <label>
           <span>Key</span>
@@ -746,7 +747,7 @@ export function KafkaMessagesBrowser({
       </fieldset>
 
       {tailState.active && (
-        <div className="KafkaMessageTailStatus" role="status" aria-live="polite">
+        <div className={styles.kafkaMessageTailStatus} role="status" aria-live="polite">
           <Renderer.Component.Icon material="sync" />
           <div>
             <strong>Tailing partition {partition}</strong>
@@ -760,7 +761,7 @@ export function KafkaMessagesBrowser({
       )}
 
       {state.error && (
-        <div className="KafkaMessageError" role="alert">
+        <div className={styles.kafkaMessageError} role="alert">
           <Renderer.Component.Icon material="error_outline" />
           <span>{state.error}</span>
         </div>
@@ -768,7 +769,7 @@ export function KafkaMessagesBrowser({
       {state.loading && state.progress && <OperationProgress progress={state.progress} />}
 
       {!state.loading && !state.data && !state.error && (
-        <div className="KafkaMessageIdle">
+        <div className={styles.kafkaMessageIdle}>
           <Renderer.Component.Icon material="pause_circle_outline" />
           <div>
             <strong>No message window loaded</strong>
@@ -779,7 +780,7 @@ export function KafkaMessagesBrowser({
 
       {state.data && (
         <>
-          <header className="KafkaMessageRange">
+          <header className={styles.kafkaMessageRange}>
             <div>
               <strong>
                 {tailState.active
@@ -806,7 +807,7 @@ export function KafkaMessagesBrowser({
             )}
           </header>
           {filteredMessages.length === 0 ? (
-            <div className="KafkaMessageIdle">
+            <div className={styles.kafkaMessageIdle}>
               <Renderer.Component.Icon material="inbox" />
               <div>
                 <strong>
@@ -821,7 +822,7 @@ export function KafkaMessagesBrowser({
             </div>
           ) : (
             <Renderer.Component.Table<KafkaRecordDto>
-              className="KafkaMessageTable"
+              className={styles.kafkaMessageTable}
               tableId="kafka-message-browser"
               autoSize={false}
               scrollable
@@ -866,7 +867,7 @@ export function KafkaMessagesBrowser({
                 return (
                   <Renderer.Component.TableRow
                     {...interaction}
-                    className="KafkaInteractiveRow"
+                    className={styles.kafkaInteractiveRow}
                     key={`${message.partition}-${message.offset}`}
                     sortItem={message}
                     selected={selectedOffset === message.offset}
@@ -880,12 +881,12 @@ export function KafkaMessagesBrowser({
                       <span title={message.timestamp}>{formatTimestamp(message.timestamp)}</span>
                     </Renderer.Component.TableCell>
                     <Renderer.Component.TableCell className="messageKeyCell">
-                      <span className="KafkaEllipsis" title={message.key.text}>
+                      <span className={styles.kafkaEllipsis} title={message.key.text}>
                         {messageBytesText(message.key)}
                       </span>
                     </Renderer.Component.TableCell>
                     <Renderer.Component.TableCell className="messageValueCell">
-                      <span className="KafkaEllipsis" title={message.value.text}>
+                      <span className={styles.kafkaEllipsis} title={message.value.text}>
                         {messageBytesText(message.value)}
                       </span>
                     </Renderer.Component.TableCell>
@@ -893,7 +894,7 @@ export function KafkaMessagesBrowser({
                       <Renderer.Component.Button
                         plain
                         round
-                        className="KafkaIconButton"
+                        className={styles.kafkaIconButton}
                         title={`View details for offset ${message.offset}`}
                         aria-label={`View details for offset ${message.offset}`}
                         onClick={select}
@@ -911,8 +912,8 @@ export function KafkaMessagesBrowser({
 
       {selectedMessage && (
         <Renderer.Component.Drawer
-          className="KafkaMessageDetailDrawer"
-          contentClass="KafkaMessageDetailBody"
+          className={styles.kafkaMessageDetailDrawer}
+          contentClass={styles.kafkaMessageDetailBody}
           open
           usePortal
           size="min(760px, calc(100vw - 24px))"

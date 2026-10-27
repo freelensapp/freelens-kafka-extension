@@ -1,3 +1,5 @@
+import kafkaJsDecoder from "kafkajs/src/protocol/decoder.js";
+import kafkaJsEncoder from "kafkajs/src/protocol/encoder.js";
 import {
   DESCRIBE_LOG_DIRS_API_KEY,
   DESCRIBE_LOG_DIRS_VERSION,
@@ -14,10 +16,8 @@ interface LogDirsDecoder {
   readArray<T>(reader: (decoder: LogDirsDecoder) => T): T[];
 }
 
-// eslint-disable-next-line @typescript-eslint/no-require-imports
-const Encoder = require("kafkajs/src/protocol/encoder") as new () => KafkaEncoder;
-// eslint-disable-next-line @typescript-eslint/no-require-imports
-const Decoder = require("kafkajs/src/protocol/decoder") as new (buffer: Buffer) => LogDirsDecoder;
+const Encoder = kafkaJsEncoder as new () => KafkaEncoder;
+const Decoder = kafkaJsDecoder as new (buffer: Buffer) => LogDirsDecoder;
 
 export interface LogDirsRequestTopic {
   topic: string;

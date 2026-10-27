@@ -27,6 +27,7 @@ import {
   type KafkaConnectDetailRequest,
   type KafkaConnectRequest,
   type KafkaProgressEvent,
+  type KafkaProgressEvents,
   type MessageBrowseDto,
   type MessageBrowseRequest,
   type OverviewRequest,
@@ -49,18 +50,45 @@ import {
   type TopicRequest,
   type TopicSizesDto,
   type TopicSizesRequest,
-  type WriteModeRequest,
 } from "../common/ipc";
 import { createIpcRequestDeduper, type IpcRequest } from "./kafka-ipc-deduper";
+import { withoutIpcPrefix } from "./kafka-ipc-error";
+import { KafkaProgressPull } from "./kafka-progress-pull";
 
 import type { MainVersionProbe } from "./kafka-version-skew";
 
 /** Renderer-side client for the Kafka extension's Main IPC handlers. */
 export class KafkaIpcRenderer extends Renderer.Ipc {
   private readonly dedupe = createIpcRequestDeduper();
+  private readonly progress = new KafkaProgressPull({
+    listen: (listener) => this.listen(KAFKA_IPC.progress, (_event, signal: unknown) => listener(signal)),
+    pull: (operationId, after) =>
+      this.invoke(KAFKA_IPC.progressEvent, { operationId, after }) as Promise<KafkaProgressEvents | null>,
+  });
 
+  /** Every call to main: an error comes back with the message main gave, without Electron's wording. */
+  override async invoke(channel: string, ...args: unknown[]): Promise<unknown> {
+    try {
+      return await super.invoke(channel, ...args);
+    } catch (error) {
+      throw withoutIpcPrefix(error);
+    }
+  }
+
+  // The operation id of a request this frame sends is this frame's while it runs: its progress is fetched.
   private read<T>(channel: string, request: IpcRequest): Promise<T> {
-    return this.dedupe(channel, request, () => this.invoke(channel, request) as Promise<T>);
+    return this.dedupe(channel, request, async () => {
+      const operationId = (request as { operationId?: unknown } | undefined)?.operationId;
+      const release = this.progress.own(operationId);
+
+      try {
+        return (await this.invoke(channel, request)) as T;
+      } finally {
+        // The progress of the operation reaches the page before its answer or its error.
+        await this.progress.flush(operationId);
+        release();
+      }
+    });
   }
 
   /** Version of the main bundle Freelens is running, or the fact that it predates the probe (SPEC-016). */
@@ -145,10 +173,6 @@ export class KafkaIpcRenderer extends Renderer.Ipc {
     return this.invoke(KAFKA_IPC.resetOffsets, request) as Promise<ResetOffsetsResultDto>;
   }
 
-  writeMode(request: WriteModeRequest): Promise<void> {
-    return this.invoke(KAFKA_IPC.writeMode, request) as Promise<void>;
-  }
-
   schemaSubjects(request: SchemaSubjectsRequest): Promise<SchemaSubjectSummary[]> {
     return this.read(KAFKA_IPC.schemaSubjects, request);
   }
@@ -216,8 +240,14 @@ export class KafkaIpcRenderer extends Renderer.Ipc {
     return this.read(KAFKA_IPC.reachability, { bootstraps });
   }
 
+  /** The progress events of the operations this frame started, and of no other (SPEC-019, REQ-227). */
   onProgress(listener: (progress: KafkaProgressEvent) => void): () => void {
-    return this.listen(KAFKA_IPC.progress, (_event, progress: KafkaProgressEvent) => listener(progress));
+    return this.progress.subscribe(listener);
+  }
+
+  /** Stops listening and fetching: the extension is deactivated. */
+  dispose(): void {
+    this.progress.dispose();
   }
 
   private async deleteTopicsIndividually(request: DeleteTopicsRequest): Promise<DeleteTopicsResultDto> {

@@ -64,6 +64,26 @@ export const KAFKA_CLUSTER_PAGE_MANIFEST = [
   { id: KAFKA_PAGE_IDS.acls, params: { target: "" } },
 ] as const;
 
+/**
+ * The params of a saved route that its page declares, or nothing for a page the extension does not have. Freelens 2's
+ * `navigate` throws on a param the page did not declare, so a route saved by another version is cut to fit.
+ */
+export function declaredKafkaPageParams(
+  pageId: string,
+  params: Record<string, unknown>,
+): Record<string, string> | undefined {
+  const page = KAFKA_CLUSTER_PAGE_MANIFEST.find((candidate) => candidate.id === pageId);
+
+  if (!page) return undefined;
+  const declared = new Set(Object.keys(page.params));
+
+  return Object.fromEntries(
+    Object.entries(params).filter(
+      (entry): entry is [string, string] => declared.has(entry[0]) && typeof entry[1] === "string",
+    ),
+  );
+}
+
 export const KAFKA_CLUSTER_MENU_MANIFEST = [
   {
     id: KAFKA_MENU_IDS.root,

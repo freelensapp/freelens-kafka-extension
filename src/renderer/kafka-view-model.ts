@@ -3,6 +3,7 @@ import { kafkaPhasePercent } from "../common/kafka-phase-progress";
 
 import type {
   ClusterOverviewHealthDto,
+  ConsumerGroupDetailDto,
   DiscoveredKafkaInfo,
   KafkaMessageBytesDto,
   KafkaProgressEvent,
@@ -70,8 +71,12 @@ export function kafkaUsageContext(kafka: DiscoveredKafkaInfo): string {
   return `${usage.secondary}: ${usage.primary}`;
 }
 
-export function createOperationId(operation: KafkaProgressOperation): string {
-  return `${operation}-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
+/**
+ * A random id for an operation, which every frame receives when the operation has new progress: it tells nothing of
+ * the operation, and no other frame can guess it (SPEC-019, REQ-227). The kind of operation is in the events only.
+ */
+export function createOperationId(_operation: KafkaProgressOperation): string {
+  return globalThis.crypto.randomUUID();
 }
 
 export function clusterHealthMetricValue<T extends number | string>(
@@ -212,4 +217,24 @@ export function topicPartitionHealth(partition: TopicPartitionDto): "Healthy" | 
   if (partition.unavailable) return "Unavailable";
   if (partition.underReplicated) return "Under-replicated";
   return "Healthy";
+}
+
+type GroupTopicOffsets = ConsumerGroupDetailDto["topicOffsets"][number];
+
+export interface ResetOffsetsTarget {
+  topic: GroupTopicOffsets;
+  partition: GroupTopicOffsets["partitions"][number];
+}
+
+/**
+ * What an offset reset of a group applies to: the first partition of its first topic with committed offsets, once
+ * the group's detail is loaded; nothing before, and nothing for a group without offsets.
+ */
+export function resetOffsetsTarget(
+  detail: Pick<ConsumerGroupDetailDto, "topicOffsets"> | undefined,
+): ResetOffsetsTarget | undefined {
+  const topic = detail?.topicOffsets[0];
+  const partition = topic?.partitions[0];
+
+  return topic && partition ? { topic, partition } : undefined;
 }

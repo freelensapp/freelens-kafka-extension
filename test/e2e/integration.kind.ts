@@ -6,17 +6,19 @@
  * — the exact code path the extension will run in production.
  *
  * Requires:
- *   - kind cluster "kind" running (context kind-kind)
+ *   - the lab cluster (`pnpm lab:up`: kind cluster freelens-kafka-lab, kubeconfig .lab/kubeconfig)
  *   - pod kafka-0 (default ns) from test/fixtures/kafka-kind.yaml, Ready
  *
  * Run:
- *   pnpm kind:up        # load image + apply pod + wait Ready
+ *   pnpm lab:up         # once: the lab cluster, with the Kafka image loaded
+ *   pnpm kind:up        # apply the pod + wait Ready
  *   pnpm itest:kind
  *   pnpm kind:down
  */
 import fs from "node:fs";
 import { KafkaConnection } from "../../src/main/kafka/kafka-connection";
-import { createKubeForwarder } from "../../src/main/kafka/kube-forwarder";
+import { createKubeForwarder } from "./kube-forwarder";
+import { labKube } from "./lab";
 
 import type { BrokerRef } from "../../src/main/kafka/types";
 
@@ -26,7 +28,7 @@ setTimeout(() => {
   process.exit(2);
 }, 60_000);
 
-const CONTEXT = process.env.KUBE_CONTEXT ?? "kind-kind";
+const LAB = labKube();
 const NAMESPACE = process.env.KAFKA_NS ?? "default";
 const POD = process.env.KAFKA_POD ?? "kafka-0";
 
@@ -41,7 +43,7 @@ const brokers: BrokerRef[] = [
 ];
 
 async function main(): Promise<void> {
-  const forwarder = createKubeForwarder({ context: CONTEXT });
+  const forwarder = createKubeForwarder(LAB);
 
   const connection = await KafkaConnection.connect({
     clientId: "freelens-kafka-p1-kind",

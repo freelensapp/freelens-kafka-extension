@@ -1,10 +1,10 @@
 # SPEC-011 — Kafka Connect Integration
 
-| Field | Value |
-| --- | --- |
-| Status | Verified |
-| Date | 2026-08-06 |
-| Source | v1.0.0 parity gap analysis; accepted by user 2026-08-06 |
+| Field  | Value                                                                                                                                                               |
+| ------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Status | Verified                                                                                                                                                            |
+| Date   | 2026-08-06                                                                                                                                                          |
+| Source | v1.0.0 parity gap analysis; accepted by user 2026-08-06                                                                                                             |
 | Safety | Reads are non-mutating. Lifecycle operations (restart, pause, resume, create, delete) follow the write policy defined in SPEC-009. Governed by `TESTING-SAFETY.md`. |
 
 ## Problem
@@ -114,8 +114,8 @@ confirm, **then** the connector is removed from the list.
 
 ## Verification Evidence
 
-| Requirement range | Evidence |
-| --- | --- |
+| Requirement range                | Evidence                                                                                                                                                                        |
+| -------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | REQ-126–REQ-129, REQ-133–REQ-134 | Packaged Electron Playwright E2E against the local Connect REST fixture: endpoint settings, conditional menu, connector list/filter, detail, task status and full FAILED trace. |
-| REQ-130–REQ-132, REQ-135 | Packaged Electron Playwright E2E: write mode, pause, restart, JSON update, typed delete and JSON create; fixture state is refreshed through the UI without page reload. |
-| SC-071–SC-076 | Focused Connect E2E passed with the complete flow; full packaged run executed the Connect test successfully. Typecheck, build, Prettier and 137 unit tests passed. |
+| REQ-130–REQ-132, REQ-135         | Packaged Electron Playwright E2E: write mode, pause, restart, JSON update, typed delete and JSON create; fixture state is refreshed through the UI without page reload.         |
+| SC-071–SC-076                    | Focused Connect E2E passed with the complete flow; full packaged run executed the Connect test successfully. Typecheck, build, Prettier and 137 unit tests passed.              |

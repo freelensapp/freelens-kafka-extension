@@ -1,13 +1,13 @@
 # Kafka UX v3 — Sidebar-First Resource Navigation
 
-| Field | Value |
-| --- | --- |
-| Status | Accepted |
-| Date | 2026-07-24 |
-| Source | Manual-review feedback after UX v2; accepted by the user on 2026-07-24 |
-| Delivery contract | [`SPEC-004`](../specs/004-resource-navigation-cluster-context.md) |
-| Compare | [`kafka-ux-v2-proposal.md`](./kafka-ux-v2-proposal.md) |
-| Mockup | [`../mockups/kafka-navigation-v3.html`](../mockups/kafka-navigation-v3.html) |
+| Field             | Value                                                                        |
+| ----------------- | ---------------------------------------------------------------------------- |
+| Status            | Accepted                                                                     |
+| Date              | 2026-07-24                                                                   |
+| Source            | Manual-review feedback after UX v2; accepted by the user on 2026-07-24       |
+| Delivery contract | [`SPEC-004`](../specs/004-resource-navigation-cluster-context.md)            |
+| Compare           | [`kafka-ux-v2-proposal.md`](./kafka-ux-v2-proposal.md)                       |
+| Mockup            | [`../mockups/kafka-navigation-v3.html`](../mockups/kafka-navigation-v3.html) |
 
 ## Clarification About the v2 Mockup
 
@@ -22,7 +22,6 @@ The v3 proposal removes that duplication.
 ## Decision
 
 Use two distinct navigation levels, each with one responsibility:
-
 1. **Freelens sidebar children** select stable Kafka resource areas for the current Kafka cluster.
 2. **Page tabs** select views of the entity currently open.
 
@@ -63,7 +62,6 @@ effective connection target rather than a cryptographically verified cluster ide
 technical distinction does not need to leak into normal navigation.
 
 Rules for scaling:
-
 - Add only stable resource domains to the sidebar.
 - Do not add individual Kafka clusters, topics, groups or brokers to the sidebar.
 - Keep the primary set to roughly 5–7 entries; lower-frequency future capabilities can be grouped or
@@ -76,7 +74,6 @@ Overview is a real selected-cluster page, not a placeholder. It provides a conci
 summary while the resource pages retain their detailed tables.
 
 The first implementation includes:
-
 - Kafka cluster health derived from unavailable and under-replicated partitions;
 - broker count and active controller;
 - topic and partition totals;
@@ -93,7 +90,6 @@ continuous polling by default and MUST remain read-only.
 
 Brokers is a real cluster-scoped inventory page. Its first implementation uses the broker metadata
 already returned by `describeCluster()` and includes:
-
 - broker node ID;
 - controller role;
 - advertised host;
@@ -137,7 +133,6 @@ selected Topic or Consumer Group owns its internal tabs.
 ## Kafka Cluster Selector
 
 The v3 mockup adds a **Kafka cluster** selector to every cluster-scoped resource page:
-
 - Overview
 - Topics
 - Consumer Groups
@@ -176,7 +171,6 @@ Producing messages is technically feasible through KafkaJS and belongs in the To
 explicit header action, not as a sidebar entry or passive tab.
 
 Recommended flow:
-
 1. Click **Produce message** from one Topic.
 2. Open a dedicated page with the Kafka cluster and topic locked in its header.
 3. Edit key, value, headers and optional partition using native controls and Monaco editors.
@@ -208,30 +202,30 @@ trademark attribution are obtained later.
 
 ## Route and Menu Model
 
-| Page ID | Sidebar child | Parameters |
-| --- | --- | --- |
-| `kafka-clusters` | Clusters | filters/sort |
-| `kafka-overview` | Overview | `target` |
-| `kafka-topics` | Topics and Topic Workspace | `target`, `query`, `topic`, `view` |
-| `kafka-groups` | Consumer Groups | `target`, filters/sort |
-| `kafka-brokers` | Brokers | `target`, filters/sort |
-| `kafka-group` | No, Consumer Groups remains active | `target`, `group`, `view` |
-| `kafka-produce` | No, Topics remains active | `target`, `topic` |
+| Page ID          | Sidebar child                      | Parameters                         |
+| ---------------- | ---------------------------------- | ---------------------------------- |
+| `kafka-clusters` | Clusters                           | filters/sort                       |
+| `kafka-overview` | Overview                           | `target`                           |
+| `kafka-topics`   | Topics and Topic Workspace         | `target`, `query`, `topic`, `view` |
+| `kafka-groups`   | Consumer Groups                    | `target`, filters/sort             |
+| `kafka-brokers`  | Brokers                            | `target`, filters/sort             |
+| `kafka-group`    | No, Consumer Groups remains active | `target`, `group`, `view`          |
+| `kafka-produce`  | No, Topics remains active          | `target`, `topic`                  |
 
 All pages use the extension's `navigate(pageId, params)` API and registered `PageParam`s. This gives
 back/forward/reload semantics without introducing a second router.
 
 ## Comparison with v2
 
-| Concern | v2 | v3 |
-| --- | --- | --- |
-| Cluster-level sections | Tabs inside Cluster Workspace | Stable child entries in Freelens sidebar |
-| Topic subviews | Tabs | Tabs, unchanged |
-| Kafka cluster switching | Planned in workspace params | Visible selector on every cluster-scoped page |
-| Scaling to Schema/Connect | More cluster tabs | Additional resource sidebar children |
-| Consumer Groups duplication | Could look duplicated | Appears only as sidebar resource; detail tabs are subordinate |
-| Message production | Not visualized | Dedicated future write page |
-| Extension icon | Existing Material `hub` icon | Existing Material `hub` icon retained |
+| Concern                     | v2                            | v3                                                            |
+| --------------------------- | ----------------------------- | ------------------------------------------------------------- |
+| Cluster-level sections      | Tabs inside Cluster Workspace | Stable child entries in Freelens sidebar                      |
+| Topic subviews              | Tabs                          | Tabs, unchanged                                               |
+| Kafka cluster switching     | Planned in workspace params   | Visible selector on every cluster-scoped page                 |
+| Scaling to Schema/Connect   | More cluster tabs             | Additional resource sidebar children                          |
+| Consumer Groups duplication | Could look duplicated         | Appears only as sidebar resource; detail tabs are subordinate |
+| Message production          | Not visualized                | Dedicated future write page                                   |
+| Extension icon              | Existing Material `hub` icon  | Existing Material `hub` icon retained                         |
 
 ## Delivery Roadmap
 
@@ -296,7 +290,6 @@ secondary panel and other menu entries remain hidden until functional.
 ## Accepted Decisions
 
 The implementation basis is **v3**, specifically:
-
 1. nested Kafka resource entries in the Freelens sidebar;
 2. tabs only for views of a selected Topic, Group or Broker;
 3. Kafka cluster selector on resource pages, backed internally by `targetId`;

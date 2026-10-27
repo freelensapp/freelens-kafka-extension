@@ -1,12 +1,12 @@
 # SPEC-004 — Resource Navigation and Kafka Cluster Context
 
-| Field | Value |
-| --- | --- |
-| Status | Verified |
-| Date | 2026-07-27 |
-| Verified | 2026-07-31 |
-| Source | User-approved [`Kafka UX v3`](../design/kafka-ux-v3-proposal.md) |
-| Safety | Kafka/Kubernetes reads only; governed by [`TESTING-SAFETY.md`](../../TESTING-SAFETY.md) |
+| Field    | Value                                                                                   |
+| -------- | --------------------------------------------------------------------------------------- |
+| Status   | Verified                                                                                |
+| Date     | 2026-07-27                                                                              |
+| Verified | 2026-07-31                                                                              |
+| Source   | User-approved [`Kafka UX v3`](../design/kafka-ux-v3-proposal.md)                        |
+| Safety   | Kafka/Kubernetes reads only; governed by [`TESTING-SAFETY.md`](../../TESTING-SAFETY.md) |
 
 ## Problem
 
@@ -188,11 +188,13 @@ empty or error state and never renders stale data from the previous cluster.
 4. Truthful Overview and Brokers pages using existing metadata with correlated operation state. **Done.**
 5. Topics and Topic Workspace migration with preserved list state and `REQ-023`–`REQ-032` parity. **Done.**
 6. Stabilization from manual review:
-  - **6A:** remove duplicate Freelens sibling tabs. **Done.**
-  - **6B:** repair shared metric-strip layout, supported content and table-column alignment.
-    **Done; Linux packaged assertions and Windows visual confirmation pass.**
-  - **6C:** add shared discovery/metadata cache, in-flight deduplication and timing evidence.
-    **Done; local packaged and authorized read-only timing evidence pass.**
+
+- **6A:** remove duplicate Freelens sibling tabs. **Done.**
+- **6B:** repair shared metric-strip layout, supported content and table-column alignment.
+  **Done; Linux packaged assertions and Windows visual confirmation pass.**
+- **6C:** add shared discovery/metadata cache, in-flight deduplication and timing evidence.
+  **Done; local packaged and authorized read-only timing evidence pass.**
+
 7. Drawer retirement, responsive/accessibility polish and full regression evidence. **Done.**
 
 ## Implementation Progress
@@ -382,18 +384,18 @@ fixtures were removed after the run.
 
 ## Delivered Traceability
 
-| Requirement | Delivered code surface | Passing evidence |
-| --- | --- | --- |
-| REQ-033–REQ-036 | Renderer extension page/menu registrations, page IDs and typed params | Route/menu unit checks; packaged sidebar, reload and history E2E |
-| REQ-037–REQ-042 | Stable target identity, selected-cluster store and request guards | Pure state tests; multi-target packaged selector/switch regression |
-| REQ-043 | Clusters page and extracted discovery/manual endpoint components | Existing view-model tests plus discovery/manual packaged regressions |
-| REQ-044–REQ-046 | Overview/Brokers view models, DTO evolution and cluster metadata IPC | DTO/view-model units; disposable Kafka protocol and packaged page assertions |
-| REQ-047–REQ-048 | Topics/Topic Workspace pages and secondary Connection Settings panel | Existing SPEC-003 unit/protocol/E2E suite migrated to routes; Drawer absence assertion |
-| REQ-049 | Shared page states and responsive styles | Keyboard E2E, desktop/compact pixel and overflow assertions, safety/static review |
-| REQ-050 | Route-owner menu registrations and nested sidebar manifest | Manifest unit test; packaged no-sibling-tabs/sidebar-active assertions |
-| REQ-051 | Shared metric-strip component/styles | Windows/Linux computed-style, text-separation and compact-layout assertions |
-| REQ-052–REQ-053 | Renderer resource cache/store and invalidation policy | Cache unit tests, IPC call-count E2E, local + authorized read-only timing evidence |
-| REQ-054 | Shared Topic/Partition table-column contracts | Header/row geometry, anti-clipping and no-overflow packaged assertions on short/long topic names and three partitions |
+| Requirement     | Delivered code surface                                                | Passing evidence                                                                                                      |
+| --------------- | --------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------- |
+| REQ-033–REQ-036 | Renderer extension page/menu registrations, page IDs and typed params | Route/menu unit checks; packaged sidebar, reload and history E2E                                                      |
+| REQ-037–REQ-042 | Stable target identity, selected-cluster store and request guards     | Pure state tests; multi-target packaged selector/switch regression                                                    |
+| REQ-043         | Clusters page and extracted discovery/manual endpoint components      | Existing view-model tests plus discovery/manual packaged regressions                                                  |
+| REQ-044–REQ-046 | Overview/Brokers view models, DTO evolution and cluster metadata IPC  | DTO/view-model units; disposable Kafka protocol and packaged page assertions                                          |
+| REQ-047–REQ-048 | Topics/Topic Workspace pages and secondary Connection Settings panel  | Existing SPEC-003 unit/protocol/E2E suite migrated to routes; Drawer absence assertion                                |
+| REQ-049         | Shared page states and responsive styles                              | Keyboard E2E, desktop/compact pixel and overflow assertions, safety/static review                                     |
+| REQ-050         | Route-owner menu registrations and nested sidebar manifest            | Manifest unit test; packaged no-sibling-tabs/sidebar-active assertions                                                |
+| REQ-051         | Shared metric-strip component/styles                                  | Windows/Linux computed-style, text-separation and compact-layout assertions                                           |
+| REQ-052–REQ-053 | Renderer resource cache/store and invalidation policy                 | Cache unit tests, IPC call-count E2E, local + authorized read-only timing evidence                                    |
+| REQ-054         | Shared Topic/Partition table-column contracts                         | Header/row geometry, anti-clipping and no-overflow packaged assertions on short/long topic names and three partitions |
 
 ## Verification
 

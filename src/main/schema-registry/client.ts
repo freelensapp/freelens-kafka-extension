@@ -1,5 +1,4 @@
-import { request as httpRequest } from "node:http";
-import { request as httpsRequest } from "node:https";
+import { describeFetchError } from "../http-errors";
 
 export type SchemaType = "AVRO" | "PROTOBUF" | "JSON" | string;
 
@@ -7,7 +6,8 @@ export interface SchemaRegistryClientOptions {
   baseUrl: string;
   username?: string;
   password?: string;
-  fetchImpl?: typeof fetch;
+  /** The host's HTTP client, `Main.Util.fetch`, so that the user's proxy and CA settings apply (SPEC-019, REQ-226). */
+  fetchImpl: typeof fetch;
   timeoutMs?: number;
 }
 
@@ -54,7 +54,7 @@ function normalizeBaseUrl(baseUrl: string): string {
 
 export class SchemaRegistryClient {
   private readonly baseUrl: string;
-  private readonly fetchImpl?: typeof fetch;
+  private readonly fetchImpl: typeof fetch;
   private readonly timeoutMs: number;
   private readonly authorization?: string;
 
@@ -141,49 +141,20 @@ export class SchemaRegistryClient {
       const headers: Record<string, string> = { Accept: "application/json" };
       if (options.body) headers["Content-Type"] = "application/vnd.schemaregistry.v1+json";
       if (this.authorization) headers.Authorization = this.authorization;
-      if (this.fetchImpl) {
-        const response = await this.fetchImpl(`${this.baseUrl}${path}`, {
-          method: options.method,
-          body: options.body,
-          headers,
-          signal: controller.signal,
-        });
-        if (options.allowNotFound && response.status === 404) return undefined as T;
-        if (!response.ok) throw new Error(`Schema Registry request failed (${response.status}) for ${path}`);
-        return (await response.json()) as T;
-      }
-      const parsed = new URL(`${this.baseUrl}${path}`);
-      const request = (parsed.protocol === "https:" ? httpsRequest : httpRequest)({
-        protocol: parsed.protocol,
-        hostname: parsed.hostname,
-        port: parsed.port,
-        path: `${parsed.pathname}${parsed.search}`,
-        method: options.method ?? "GET",
+      const response = await this.fetchImpl(`${this.baseUrl}${path}`, {
+        method: options.method,
+        body: options.body,
         headers,
+        signal: controller.signal,
       });
-      const body = await new Promise<{ statusCode?: number; body: string }>((resolve, reject) => {
-        const chunks: Buffer[] = [];
-        request.on("response", (response) => {
-          response.on("data", (chunk: Buffer) => chunks.push(chunk));
-          response.on("end", () =>
-            resolve({ statusCode: response.statusCode, body: Buffer.concat(chunks).toString("utf8") }),
-          );
-        });
-        request.on("error", reject);
-        controller.signal.addEventListener("abort", () => request.destroy(new Error("aborted")), { once: true });
-        if (options.body) request.write(options.body);
-        request.end();
-      });
-      if (options.allowNotFound && body.statusCode === 404) return undefined as T;
-      if (!body.statusCode || body.statusCode < 200 || body.statusCode >= 300) {
-        throw new Error(`Schema Registry request failed (${body.statusCode ?? "unknown"}) for ${path}`);
-      }
-      return JSON.parse(body.body) as T;
+      if (options.allowNotFound && response.status === 404) return undefined as T;
+      if (!response.ok) throw new Error(`Schema Registry request failed (${response.status}) for ${path}`);
+      return (await response.json()) as T;
     } catch (error) {
       if (controller.signal.aborted || (error instanceof DOMException && error.name === "AbortError")) {
         throw new Error(`Schema Registry request timed out after ${this.timeoutMs}ms: ${path}`);
       }
-      throw error;
+      throw describeFetchError(error);
     } finally {
       clearTimeout(timeout);
     }

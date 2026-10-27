@@ -9,7 +9,6 @@
 
 Turns "a connected Kubernetes cluster" into the inputs the P1 engine needs —
 **automatically**, instead of hand-written `BrokerRef[]`/credentials:
-
 - **Discovery** finds Kafka clusters: Strimzi `Kafka` CRs (with their broker pods) and, best-effort, generic Services exposing Kafka ports.
 - **Workload-config discovery** finds **external/managed** Kafka (MSK, Confluent, Aiven, Redpanda, …) that the cluster's own workloads reference in their env / `ConfigMap`s / `Secret`s.
 - **Merge** (`discoverAllKafkas`) unions every source for the Overview and de-dups in-cluster overlaps.
@@ -39,13 +38,13 @@ interface KubeReader {
 ```
 
 Two implementations satisfy the seam (unit tests inject an in-memory fake):
-
 - **`createCatalogKubeReader(clusterId)`** ([`src/main/catalog-kube-reader.ts`](../src/main/catalog-kube-reader.ts))
   — the default inside Freelens. Reads through the **connected** cluster via `Main.K8s.queryCluster` /
   `Main.K8s.getResource`. This is required because the catalog's raw kubeconfig points at the Freelens
   proxy, which raw `@kubernetes/client-node` cannot reach (`ECONNREFUSED 127.0.0.1:<proxy>`).
-- **`createKubeReader({ kubeConfigPath?, context? })`** — direct `@kubernetes/client-node` against a real
-  kubeconfig. Used by the KinD e2e tests and when the request carries an explicit kubeconfig.
+- **`createKubeReader({ kubeConfigPath?, context? })`** ([`test/e2e/kube-reader.ts`](../test/e2e/kube-reader.ts))
+  — direct `@kubernetes/client-node` against a real kubeconfig. Used by the KinD and real-cluster itests only:
+  on Freelens v2 the requests carry no kubeconfig (SPEC-019, REQ-224).
 
 `CustomResourceRef` is `{ group, version, plural, kind }`: client-node needs the `plural`, `Main.K8s`
 needs the `kind`. All parsing is pure and separated from I/O for testability.
@@ -54,7 +53,6 @@ needs the `kind`. All parsing is pure and separated from I/O for testability.
 ## Strimzi discovery
 
 `discoverStrimziKafkas(reader, namespace?)` → `DiscoveredKafka[]`:
-
 - Lists `kafka.strimzi.io/v1beta2` `Kafka` CRs.
 - Chooses an **internal** listener (plaintext first, else TLS); `bootstrap` from `status.listeners[].bootstrapServers`.
 - Lists broker pods via `strimzi.io/cluster=<name>`, **excludes** `strimzi.io/broker-role=false` (controllers), and derives `brokerId` from the pod-name suffix — sorted.
@@ -72,7 +70,6 @@ Kafka signal**: a kafka/`tcp-clients`-named port, or 9092/9093 on a kafka-named 
 `discoverWorkloadKafkas(reader, namespace?)` → `WorkloadKafkaRef[]`: scans `Deployment`/`StatefulSet`/
 `DaemonSet` containers for Kafka **bootstrap** configuration and resolves it to endpoints — the way to
 surface **external/managed** Kafka (MSK, Confluent, …) that has no in-cluster object of its own:
-
 - **Keys** (`isBootstrapKey`): anything ending `bootstrap[._-]servers?` (`KAFKA_BOOTSTRAP_SERVERS`,
   `bootstrap.servers`, `spring.kafka.bootstrap-servers`, …) or `kafka[._-]brokers?`.
 - **Sources**: inline `env.value`, `env.valueFrom.configMapKeyRef`/`secretKeyRef`, and whole-object
@@ -95,7 +92,6 @@ column. `listWorkloads`/`listServices` list **cluster-wide** (namespace omitted)
 ## Credentials
 
 `resolveStrimziCredentials(reader, { namespace, clusterName, tls?, user?, mechanism? })` → `{ sasl?, ssl? }`:
-
 - **TLS** → cluster CA from `Secret <cluster>-cluster-ca-cert` (`ca.crt`) → `ssl.ca`.
 - **SCRAM user** → `KafkaUser` `Secret` `password` → `sasl { mechanism, username, password }`.
 - **mTLS user** → `Secret` `user.crt` + `user.key` (+ `ca.crt`) → `ssl { cert, key, ca }`.
@@ -119,9 +115,9 @@ Limitations: MSK IAM/OAUTHBEARER is deferred. Certificate **file paths inside po
 ```ts
 import { resolveStrimziCredentials } from "../src/main/kafka/credentials";
 import { discoverStrimziKafkas } from "../src/main/kafka/discovery";
-import { createKubeReader } from "../src/main/kafka/kube-reader";
+import { createKubeReader } from "../test/e2e/kube-reader";
 
-const reader = createKubeReader({ kubeConfigPath, context }); // from Main.Catalog
+const reader = createKubeReader({ context: "kind-kafka-lab" }); // an itest; the extension uses createCatalogKubeReader(clusterId)
 const [kafka] = await discoverStrimziKafkas(reader, "kafka");
 const creds = await resolveStrimziCredentials(reader, {
   namespace: kafka.namespace,
@@ -151,7 +147,6 @@ pnpm kind:disc:down       # remove everything immediately
 
 `connectDiscovered({ discovered, forwarder, sasl?, ssl? })` ([`src/main/kafka/connect-discovered.ts`](../src/main/kafka/connect-discovered.ts))
 turns a `DiscoveredKafka` into a live `KafkaConnection` in two phases, without guessing advertised DNS:
-
 1. **Metadata** — port-forward one seed broker pod and `describeCluster` to learn each broker's authoritative advertised `host:port`.
 2. **Connect** — `matchBrokersToPods` maps each broker to its pod (advertised-host prefix, else `nodeId == brokerId`), opens a per-broker forward, and connects via the exact redirect.
 

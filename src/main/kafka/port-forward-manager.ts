@@ -4,9 +4,11 @@ import type { Duplex } from "node:stream";
 import type { AddressMap, BrokerRef, PodPort } from "./types";
 
 /**
- * Wires an accepted local socket to a pod port. In production this is the
- * Kubernetes SPDY port-forward (see `createKubeForwarder`); in tests it can be
- * a plain TCP pipe, which keeps `PortForwardManager` independent of Kubernetes.
+ * Wires an accepted local socket to a pod port. In the extension this is a
+ * kubectl port-forward run through the host (see `createTunnelForwarder`); the
+ * KinD integration tests use the client-node SPDY port-forward
+ * (`test/e2e/kube-forwarder.ts`), and unit tests a plain TCP pipe, which keeps
+ * `PortForwardManager` independent of Kubernetes.
  */
 export type Forwarder = (target: PodPort, socket: Duplex) => void;
 

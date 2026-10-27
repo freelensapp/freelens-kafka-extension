@@ -15,9 +15,7 @@
  */
 
 import { randomUUID } from "node:crypto";
-import { assertSanitizedPerformanceEvidence } from "../../src/common/performance-evidence";
 import { firstBrokerAddress, splitBootstrap } from "../../src/common/reachability";
-import { authorizeReadOnlyTarget, selectSingleAuthorizedTarget } from "../../src/common/read-only-target-authorization";
 import { probeAclSupport } from "../../src/main/kafka/acl";
 import { aggregateHealthWorkerKey, KafkaAggregateHealthManager } from "../../src/main/kafka/aggregate-health-manager";
 import { type AnyDiscoveredKafka, discoverAllKafkas } from "../../src/main/kafka/discovery";
@@ -25,10 +23,14 @@ import { resolveExternalCredentials } from "../../src/main/kafka/external-creden
 import { fetchConsumerGroupDetail, fetchTopicConsumers } from "../../src/main/kafka/group-fetch";
 import { type KafkaApiVersions, supportsGroupOffsetBatch } from "../../src/main/kafka/group-offset-batch-protocol";
 import { connectDirect, type KafkaConnection } from "../../src/main/kafka/kafka-connection";
-import { createKubeReader, type KubeReader } from "../../src/main/kafka/kube-reader";
 import { probeBootstrapReachable } from "../../src/main/kafka/reachability";
+import { assertSanitizedPerformanceEvidence } from "../evidence/performance-evidence";
+import { authorizeReadOnlyTarget, selectSingleAuthorizedTarget } from "../evidence/read-only-target-authorization";
+import { createKubeReader } from "./kube-reader";
 
 import type { Admin } from "kafkajs";
+
+import type { KubeReader } from "../../src/main/kafka/kube-reader";
 
 const STAGE_TIMEOUT_MS = 180_000;
 const KAFKA_JS_CREATE_CLUSTER_SYMBOL = "private:Kafka:createCluster";
@@ -213,7 +215,7 @@ async function measureAggregateHealth(connection: KafkaConnection): Promise<Aggr
           groupIds?: string[];
           request?: { apiName?: string };
         }) => Promise<unknown>;
-        broker[sendRequestSymbol] = async (protocol) => {
+        broker[sendRequestSymbol] = async (protocol: Parameters<typeof originalSendRequest>[0]) => {
           if (protocol.request?.apiName === "FindCoordinator") findCoordinatorBatchCalls++;
           if (protocol.request?.apiName === "OffsetFetch") {
             offsetFetchBatchCalls++;

@@ -71,6 +71,7 @@ export class KafkaConnection {
   private kafka!: Kafka;
   private directClose?: () => void;
   private disconnected = false;
+  private readonly disconnectListeners: Array<() => Promise<void> | void> = [];
   private messageCluster?: KafkaReadCluster;
   private messageClusterConnect?: Promise<KafkaReadCluster>;
   private groupOffsetBatchReader?: KafkaGroupOffsetBatchReader;
@@ -369,9 +370,22 @@ export class KafkaConnection {
 
   /** Read one bounded partition window directly through Kafka Fetch, without a consumer group. */
   browseMessages(
-    request: Pick<MessageBrowseRequest, "topic" | "partition" | "startMode" | "offset" | "timestamp" | "limit">,
+    request: Pick<
+      MessageBrowseRequest,
+      | "topic"
+      | "partition"
+      | "startMode"
+      | "offset"
+      | "timestamp"
+      | "limit"
+      | "registryUrl"
+      | "registryUsername"
+      | "registryPassword"
+    >,
+    /** The host's HTTP client for the Schema Registry, `Main.Util.fetch` (SPEC-019, REQ-226). */
+    registryFetch: typeof fetch,
   ): Promise<MessageBrowseDto> {
-    return this.getMessageCluster().then((cluster) => browseMessagesWithCluster(cluster, request));
+    return this.getMessageCluster().then((cluster) => browseMessagesWithCluster(cluster, request, registryFetch));
   }
 
   /** Sizes on disk per topic and partition through DescribeLogDirs on every broker (read-only). */
@@ -496,6 +510,19 @@ export class KafkaConnection {
     await cluster?.disconnect().catch(() => undefined);
     this.portForwards?.closeAll();
     this.directClose?.();
+    const listeners = this.disconnectListeners.splice(0);
+    await Promise.allSettled(listeners.map(async (listener) => listener()));
+  }
+
+  /** Run `listener` when the connection is torn down, such as to end the tunnels its forwarder opened. */
+  onDisconnect(listener: () => Promise<void> | void): void {
+    if (this.disconnected) {
+      void Promise.resolve()
+        .then(listener)
+        .catch(() => undefined);
+      return;
+    }
+    this.disconnectListeners.push(listener);
   }
 
   private async getMessageCluster(): Promise<KafkaReadCluster> {

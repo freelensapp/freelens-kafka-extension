@@ -6,15 +6,19 @@ and [SPEC-002](./specs/002-playwright-mcp-assisted-verification.md).
 
 ## 1. Start a safe Freelens CDP session
 
-Default (`kind-kind` only):
+Default (the lab only: `.lab/kubeconfig`, context `kind-freelens-kafka-lab`):
 
 ```sh
+corepack pnpm lab:up
 corepack pnpm mcp:app
 ```
 
-The launcher creates a temporary `HOME`, writes a one-context kubeconfig, and pre-seeds Freelens's
-`syncKubeconfigEntries` preference to that exact file before starting the packaged app with CDP on
-`127.0.0.1:9223`. The preference override is required because Freelens 1.10.3 otherwise defaults to
+The demo cluster instead: `MCP_KUBECONFIG=.demo/kubeconfig corepack pnpm mcp:app kind-freelens-kafka-demo`.
+Any other kubeconfig file, or a context whose API server is not local, is refused (SPEC-019, REQ-232).
+
+The launcher creates a temporary `HOME`, writes a one-context copy of that kubeconfig, and pre-seeds
+Freelens's `syncKubeconfigEntries` preference to that exact file before starting the packaged app with
+CDP on `127.0.0.1:9223`. The preference override is required because Freelens otherwise defaults to
 `os.userInfo().homedir/.kube` even when `HOME`/`KUBECONFIG` are changed. The launcher prints the
 runtime/artifact directory. Temporary files are user-private (`umask 077`); a detached watchdog
 removes the kubeconfig and app data after normal exit or forced terminal termination.
@@ -38,11 +42,12 @@ This does not relax [`TESTING-SAFETY.md`](../TESTING-SAFETY.md). Never use a gen
 select the exact approved context.
 
 Environment overrides:
-
-- `FREELENS_APP_BINARY` — packaged Freelens executable.
+- `FREELENS_APP_BINARY` — packaged Freelens 2 executable (the extension needs Freelens >= 2.0.0).
+- `MCP_KUBECONFIG` — the kubeconfig to copy the context from: the lab's (default) or the demo's; any other
+  only with `ALLOW_REAL_READ_ONLY=1`.
 - `PLAYWRIGHT_MCP_CDP_PORT` — CDP port (default `9223`).
 - `FREELENS_MCP_RUNTIME_DIR` — intentionally retain a chosen runtime/artifact directory instead of
-   deleting a temporary one.
+  deleting a temporary one.
 
 ## 2. Configure MCP locally
 
@@ -53,7 +58,6 @@ code --add-mcp '{"name":"playwright-freelens-kafka","command":"npx","args":["-y"
 ```
 
 Equivalent client-local configuration is acceptable. Do not add:
-
 - `--allow-unrestricted-file-access`;
 - persistent storage export;
 - network/storage/devtools/vision capabilities unless a spec explicitly requires and reviews them;
@@ -65,7 +69,6 @@ actual guardrails.
 ## 3. Frame-aware workflow
 
 Freelens has two surfaces:
-
 - **Top page:** catalog, welcome, preferences and extensions (`https://renderer.freelens.app:*`).
 - **Cluster frame:** sidebar, Kafka resource pages and secondary Connection Settings Drawer
   (`#cluster-frame-<entityId>` → `https://<entityId>.renderer.freelens.app:*`).
@@ -76,12 +79,12 @@ row, then operate in the iframe containing `[data-testid=cluster-sidebar]`.
 ## 4. Kafka exploratory scenario
 
 Record pass/fail/blocked and evidence for the relevant steps:
-
 1. **Extension install/reload (top page)**
-   - Install the newest `freelensapp-kafka-extension-*.tgz`.
+   - Install the newest `freelensapp-kafka-extension-*.tgz`, or the checkout folder (Extensions page, in place).
    - Confirm Enabled; collect extension-scoped console errors.
 2. **Open exact local cluster (top → cluster frame)**
-   - Select exactly `kind-kind` unless the user approved another read-only context.
+   - Select exactly `kind-freelens-kafka-lab` (or the demo's context) unless the user approved another
+     read-only context.
    - Confirm cluster frame and sidebar.
 3. **Discovery progress**
    - Open Kafka.
@@ -106,7 +109,6 @@ MCP can replace ad hoc manual clicking, repeated selector reconnaissance and tem
 It can provide evidence while a scenario is still evolving.
 
 MCP cannot replace:
-
 - type/lint/unit gates;
 - protocol/kind integration tests;
 - clean-state packaged-app Playwright assertions;
@@ -117,6 +119,7 @@ MCP cannot replace:
 
 ```md
 ### MCP run — <date> / <spec requirement>
+
 - App/build: <version/tarball>
 - Kube context: <exact allowlisted context>
 - Result: PASS | FAIL | BLOCKED

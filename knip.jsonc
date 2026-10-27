@@ -1,24 +1,83 @@
 {
-  "$schema": "https://unpkg.com/knip@6/schema-jsonc.json",
+  "$schema": "https://unpkg.com/knip@5/schema-jsonc.json",
 
-  "entry": ["src/main/index.ts", "src/renderer/index.tsx"],
-  "project": ["*.{js,mjs,ts}", "src/**/*.{ts,tsx}"],
+  // The extension is not a library: its entry points are the `main` and
+  // `renderer` manifest fields, which point at build output, and knip does not
+  // read `renderer` at all, so the sources are listed instead. The Vitest
+  // plugin adds vitest.config.ts, vitest.integration.config.ts and the test
+  // files.
+  "entry": [
+    "vite.config.mjs",
+    "src/main/index.ts!",
+    "src/renderer/index.tsx!",
+    // the Vitest alias for @freelensapp/extensions, which knip does not follow
+    "test/freelens-extensions.ts",
+    // compiled by `type:check:environments` only, with no importer
+    "environment-tests/*.ts",
+    // the itests and their fixture scripts, run with tsx by the package scripts,
+    // by the setup shell scripts and by one another
+    "test/e2e/*.ts"
+  ],
+  "project": [
+    "*.{js,mjs,ts}",
+    "build/*.mjs",
+    "environment-tests/*.ts",
+    "src/**/*.{scss,ts,tsx}!",
+    // the CSS module declarations. TypeScript reaches them through
+    // allowArbitraryExtensions, while knip resolves `import styles from
+    // "./x.module.scss"` to the stylesheet, so it would report them as unused
+    "!src/**/*.d.scss.ts",
+    "test/**/*.ts",
+    "integration/**/*.ts"
+  ],
 
-  // openssl: the security E2E fixture generates its certificates with the system binary
-  "ignoreBinaries": ["electron-rebuild", "yq", "kind", "kubectl", "openssl"],
+  // The Vite plugin adds the renderer entry of vite.config.mjs as an entry of
+  // its own, which is not a production one, and it replaces the
+  // `src/renderer/index.tsx!` above: the --production pass would then skip the
+  // whole renderer. vite.config.mjs is listed as an entry instead.
+  "vite": false,
+
+  // Trunk runs SVGO, so no dependency turns on the plugin that finds
+  // svgo.config.mjs.
+  "svgo": true,
+
+  // The build output. The `main` field of package.json makes dist/main.js an
+  // entry once it exists, and the `knip` script runs with --no-gitignore, so
+  // after `pnpm build` knip would report what the bundle inlines from its
+  // libraries, such as a binary a bundled library spawns.
+  "ignore": ["dist/**"],
+
+  // Binaries that no dependency provides: yq, which the workflows call, comes
+  // from mise (see mise.toml); kubectl, kind and docker, which the lab and itest
+  // scripts call, and openssl, which the security itest's fixture generates its
+  // certificates with, from the system.
+  "ignoreBinaries": ["docker", "kind", "kubectl", "openssl", "yq"],
+
   "ignoreDependencies": [
-    // Build-only plugins; Knip does not execute the Electron Vite config.
-    "@vitejs/plugin-react",
-    "vite-plugin-sass-dts",
-    // optional peer of node-fetch (via @kubernetes/client-node), resolved & bundled at build time
-    "encoding"
+    // host-provided modules. The bundle maps them onto
+    // globalThis.FreelensExtensionApi (see build/vite-plugin-host-modules.mjs),
+    // and Freelens installs no dependencies of an extension, so they are
+    // declared as devDependencies for their types alone, which the
+    // --production --strict pass reports as unlisted
+    "@freelensapp/extensions",
+    "@types/react",
+    "mobx",
+    "mobx-react",
+    "react"
   ],
 
   "typescript": {
-    "config": ["tsconfig.json"]
+    // one program per runtime environment, one for the tests, one for the
+    // integration tests and one for the tooling files
+    "config": [
+      "src/main/tsconfig.json",
+      "src/renderer/tsconfig.json",
+      "src/common/tsconfig.json",
+      "src/tsconfig.json",
+      "integration/tsconfig.json",
+      "tsconfig.json"
+    ]
   },
-  // The electron-vite plugin (Knip 6.35+) executes electron.vite.config.ts and trips on the
-  // ESM-only @vitejs/plugin-react; the build-only plugins stay in ignoreDependencies instead.
-  "electron-vite": false,
+
   "exclude": ["exports"]
 }

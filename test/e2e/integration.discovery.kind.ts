@@ -7,6 +7,7 @@
  * the fixture pods need not run, discovery only reads their objects.
  *
  * Run:
+ *   pnpm lab:up              # once: the lab cluster (.lab/kubeconfig)
  *   pnpm kind:disc:up        # apply CRD + fixtures
  *   pnpm itest:disc:kind
  *   pnpm kind:disc:down
@@ -15,7 +16,8 @@ import assert from "node:assert/strict";
 import fs from "node:fs";
 import { resolveStrimziCredentials } from "../../src/main/kafka/credentials";
 import { discoverKafkaServices, discoverStrimziKafkas } from "../../src/main/kafka/discovery";
-import { createKubeReader } from "../../src/main/kafka/kube-reader";
+import { createKubeReader } from "./kube-reader";
+import { labKube } from "./lab";
 
 const log = (m = ""): void => void fs.writeSync(1, `${m}\n`);
 setTimeout(() => {
@@ -23,11 +25,11 @@ setTimeout(() => {
   process.exit(2);
 }, 30_000);
 
-const CONTEXT = process.env.KUBE_CONTEXT ?? "kind-kind";
+const LAB = labKube();
 const NAMESPACE = "default";
 
 async function main(): Promise<void> {
-  const reader = createKubeReader({ context: CONTEXT });
+  const reader = createKubeReader(LAB);
 
   const kafkas = await discoverStrimziKafkas(reader, NAMESPACE);
   log(`discovered strimzi kafkas: ${kafkas.length}`);

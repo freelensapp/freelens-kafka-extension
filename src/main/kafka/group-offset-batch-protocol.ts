@@ -1,3 +1,6 @@
+import kafkaJsDecoder from "kafkajs/src/protocol/decoder.js";
+import kafkaJsEncoder from "kafkajs/src/protocol/encoder.js";
+
 const FIND_COORDINATOR_API_KEY = 10;
 const OFFSET_FETCH_API_KEY = 9;
 export const DESCRIBE_LOG_DIRS_API_KEY = 35;
@@ -31,10 +34,8 @@ interface KafkaDecoder {
 type KafkaEncoderConstructor = new () => KafkaEncoder;
 type KafkaDecoderConstructor = new (buffer: Buffer) => KafkaDecoder;
 
-// eslint-disable-next-line @typescript-eslint/no-require-imports
-const Encoder = require("kafkajs/src/protocol/encoder") as KafkaEncoderConstructor;
-// eslint-disable-next-line @typescript-eslint/no-require-imports
-const Decoder = require("kafkajs/src/protocol/decoder") as KafkaDecoderConstructor;
+const Encoder = kafkaJsEncoder as KafkaEncoderConstructor;
+const Decoder = kafkaJsDecoder as KafkaDecoderConstructor;
 
 interface KafkaProtocolRequest {
   apiKey: number;

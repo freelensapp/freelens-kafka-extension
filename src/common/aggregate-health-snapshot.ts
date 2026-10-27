@@ -101,6 +101,11 @@ function exactHealthDto(value: unknown): ClusterOverviewHealthDto | undefined {
   return isExactAggregateHealth(data) ? data : undefined;
 }
 
+/** Whether a key of the extension store holds an aggregate health snapshot, which main alone writes. */
+export function isAggregateHealthSnapshotKey(key: string): boolean {
+  return key.startsWith(`${AGGREGATE_HEALTH_SNAPSHOT_PREFIX}:`);
+}
+
 export function aggregateHealthSnapshotKey(contextId: string, targetId: string): string {
   return `${AGGREGATE_HEALTH_SNAPSHOT_PREFIX}:${encodeURIComponent(contextId)}:${encodeURIComponent(targetId)}`;
 }

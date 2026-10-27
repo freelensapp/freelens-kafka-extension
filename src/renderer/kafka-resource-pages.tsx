@@ -4,6 +4,7 @@ import { aggregateHealthSnapshotKey, decodeAggregateHealthSnapshot } from "../co
 import { DEFAULT_KAFKA_OVERVIEW_REFRESH_INTERVAL_MS, KAFKA_OVERVIEW_AUTO_REFRESH_OPTIONS } from "../common/constants";
 import { kafkaPersistentStateStore } from "../common/kafka-persistent-state-store";
 import { chooseStrategy } from "../common/reachability";
+import styles from "./kafka.module.scss";
 import { KafkaClusterCatalogStore } from "./kafka-cluster-catalog";
 import { loadManualKafkaEndpoints, mergeKafkaClusters } from "./kafka-manual-endpoints";
 import {
@@ -153,10 +154,10 @@ export function useKafkaResourcePage({
   const [metadataProgress, setMetadataProgress] = useState<KafkaProgressEvent>();
   const [healthProgress, setHealthProgress] = useState<KafkaProgressEvent>();
   const [pcReachable, setPcReachable] = useState<boolean>();
-  const discoveryOperationId = useRef<string>();
-  const lastNetworkMetadata = useRef<{ targetId: string; updatedAt?: number }>();
-  const metadataOperationId = useRef<string>();
-  const healthOperationId = useRef<string>();
+  const discoveryOperationId = useRef<string | undefined>(undefined);
+  const lastNetworkMetadata = useRef<{ targetId: string; updatedAt?: number } | undefined>(undefined);
+  const metadataOperationId = useRef<string | undefined>(undefined);
+  const healthOperationId = useRef<string | undefined>(undefined);
   const forcedHealthRefresh = useRef<{ targetId?: string; version: number }>({ version: 0 });
 
   useEffect(
@@ -570,7 +571,7 @@ export function KafkaResourceActions({
         disabled={state.loading}
       />
       <span
-        className={`KafkaCacheStatus ${cacheState}`}
+        className={`${styles.kafkaCacheStatus} ${cacheState}`}
         data-testid="kafka-cache-status"
         data-cache-state={cacheState}
         data-cache-source={source ?? "none"}
@@ -587,7 +588,7 @@ export function KafkaResourceActions({
       </span>
       <Renderer.Component.Button
         outlined
-        className="KafkaRefreshButton"
+        className={styles.kafkaRefreshButton}
         waiting={state.loading || state.metadataState.loading}
         onClick={state.refresh}
         title="Refresh Kafka metadata"
@@ -605,7 +606,7 @@ export function KafkaResourceState({ state }: { state: ReturnType<typeof useKafk
   }
   if (state.error) {
     return (
-      <div className="KafkaPageState error" role="alert">
+      <div className={`${styles.kafkaPageState} error`} role="alert">
         <Renderer.Component.Icon material="error_outline" />
         <div>
           <strong>Kafka discovery failed</strong>
@@ -619,7 +620,7 @@ export function KafkaResourceState({ state }: { state: ReturnType<typeof useKafk
   }
   if (state.selection.state === "empty") {
     return (
-      <div className="KafkaPageState empty">
+      <div className={`${styles.kafkaPageState} empty`}>
         <Renderer.Component.Icon material="hub" />
         <div>
           <strong>No Kafka clusters found</strong>
@@ -630,7 +631,7 @@ export function KafkaResourceState({ state }: { state: ReturnType<typeof useKafk
   }
   if (state.selection.state === "required") {
     return (
-      <div className="KafkaPageState empty">
+      <div className={`${styles.kafkaPageState} empty`}>
         <Renderer.Component.Icon material="rule" />
         <div>
           <strong>Select a Kafka cluster</strong>
@@ -644,7 +645,7 @@ export function KafkaResourceState({ state }: { state: ReturnType<typeof useKafk
   }
   if (state.metadataState.error) {
     return (
-      <div className="KafkaPageState error" role="alert">
+      <div className={`${styles.kafkaPageState} error`} role="alert">
         <Renderer.Component.Icon material="error_outline" />
         <div>
           <strong>Kafka metadata failed</strong>
@@ -678,7 +679,7 @@ function KafkaHealthCoverageNotice({ health }: { health: ClusterOverviewHealthDt
       : "Consumer-group coverage is incomplete. ";
 
   return (
-    <div className="KafkaHealthNotice" role="status" data-testid="kafka-health-notice">
+    <div className={styles.kafkaHealthNotice} role="status" data-testid="kafka-health-notice">
       <Renderer.Component.Icon material="info_outline" />
       <div>
         <strong>{lowerBound ? "Consumer lag is a minimum" : "Consumer lag unavailable"}</strong>
@@ -702,7 +703,7 @@ function KafkaHealthProgressSlot({
 }) {
   const active = Boolean((healthState.loading || healthState.error) && progress);
   return (
-    <div className="KafkaHealthProgressSlot" data-active={active}>
+    <div className={styles.kafkaHealthProgressSlot} data-active={active}>
       {active && progress && (
         <HealthProgress progress={progress} error={healthState.error} hasSnapshot={Boolean(health)} />
       )}
@@ -826,7 +827,7 @@ export function KafkaClusterOverviewPage(props: KafkaTargetPageProps) {
   const healthMetrics = (
     <KafkaMetricStrip
       ariaLabel="Kafka cluster health"
-      className="KafkaResourceMetricStrip"
+      className={styles.kafkaResourceMetricStrip}
       metrics={[
         {
           label: "Online brokers",
@@ -865,7 +866,7 @@ export function KafkaClusterOverviewPage(props: KafkaTargetPageProps) {
       <KafkaResourceState state={state} />
       {cluster && health && !data && (
         <main
-          className="KafkaResourcePage"
+          className={styles.kafkaResourcePage}
           data-testid="kafka-overview-page"
           data-health-state={state.healthState.loading ? "updating" : "ready"}
           data-health-error={state.healthState.error ?? undefined}
@@ -875,7 +876,7 @@ export function KafkaClusterOverviewPage(props: KafkaTargetPageProps) {
           {healthMetrics}
           <KafkaHealthProgressSlot health={health} healthState={state.healthState} progress={state.healthProgress} />
           {state.healthState.error && (
-            <div className="KafkaHealthNotice" role="status" data-testid="kafka-health-notice">
+            <div className={styles.kafkaHealthNotice} role="status" data-testid="kafka-health-notice">
               <Renderer.Component.Icon material="info_outline" />
               <div>
                 <strong>Health refresh failed</strong>
@@ -884,7 +885,7 @@ export function KafkaClusterOverviewPage(props: KafkaTargetPageProps) {
             </div>
           )}
           <KafkaHealthCoverageNotice health={health} />
-          <section className="KafkaResourceDetails" aria-label="Kafka health freshness">
+          <section className={styles.kafkaResourceDetails} aria-label="Kafka health freshness">
             <KafkaHealthFreshnessDetails
               health={health}
               healthState={state.healthState}
@@ -897,7 +898,7 @@ export function KafkaClusterOverviewPage(props: KafkaTargetPageProps) {
       )}
       {cluster && data && (
         <main
-          className="KafkaResourcePage"
+          className={styles.kafkaResourcePage}
           data-testid="kafka-overview-page"
           data-health-state={state.healthState.loading ? "updating" : state.healthState.error ? "unavailable" : "ready"}
           data-health-source={state.healthState.source}
@@ -905,7 +906,7 @@ export function KafkaClusterOverviewPage(props: KafkaTargetPageProps) {
         >
           <KafkaMetricStrip
             ariaLabel="Kafka cluster summary"
-            className="KafkaResourceMetricStrip"
+            className={styles.kafkaResourceMetricStrip}
             metrics={[
               {
                 label: "Online brokers",
@@ -937,7 +938,7 @@ export function KafkaClusterOverviewPage(props: KafkaTargetPageProps) {
           />
           <KafkaHealthProgressSlot health={health} healthState={state.healthState} progress={state.healthProgress} />
           <KafkaHealthCoverageNotice health={health} />
-          <section className="KafkaResourceDetails" aria-label="Kafka connection summary">
+          <section className={styles.kafkaResourceDetails} aria-label="Kafka connection summary">
             <div>
               <span>Source</span>
               <SourceBadge kafka={cluster} />
@@ -1015,7 +1016,7 @@ function BrokerConfigView({ state, onRetry }: { state: BrokerConfigState; onRetr
   if (state.loading) return <Renderer.Component.Spinner center />;
   if (state.error) {
     return (
-      <div className="KafkaPageState error" role="alert">
+      <div className={`${styles.kafkaPageState} error`} role="alert">
         <Renderer.Component.Icon material="error_outline" />
         <div>
           <strong>Failed to load broker configuration</strong>
@@ -1029,7 +1030,7 @@ function BrokerConfigView({ state, onRetry }: { state: BrokerConfigState; onRetr
   }
   if (!state.data || state.data.entries.length === 0) {
     return (
-      <div className="KafkaPageState empty">
+      <div className={`${styles.kafkaPageState} empty`}>
         <Renderer.Component.Icon material="tune" />
         <div>
           <strong>No configuration entries</strong>
@@ -1041,7 +1042,7 @@ function BrokerConfigView({ state, onRetry }: { state: BrokerConfigState; onRetr
 
   return (
     <Renderer.Component.Table<KafkaConfigEntryDto>
-      className="KafkaBrokerConfigTable"
+      className={styles.kafkaBrokerConfigTable}
       tableId="kafka-broker-configuration"
       autoSize={false}
       scrollable
@@ -1066,20 +1067,20 @@ function BrokerConfigView({ state, onRetry }: { state: BrokerConfigState; onRetr
       {state.data.entries.map((entry) => (
         <Renderer.Component.TableRow key={entry.name} sortItem={entry} nowrap>
           <Renderer.Component.TableCell className="configNameCell" style={BROKER_CONFIG_NAME_STYLE}>
-            <span className="KafkaEllipsis" title={entry.name}>
+            <span className={styles.kafkaEllipsis} title={entry.name}>
               {entry.name}
             </span>
           </Renderer.Component.TableCell>
           <Renderer.Component.TableCell className="configValueCell" style={BROKER_CONFIG_VALUE_STYLE}>
-            <span className="KafkaEllipsis KafkaMono" title={entry.value}>
+            <span className={`${styles.kafkaEllipsis} ${styles.kafkaMono}`} title={entry.value}>
               {entry.value || "—"}
             </span>
           </Renderer.Component.TableCell>
           <Renderer.Component.TableCell className="configSourceCell" style={BROKER_CONFIG_SOURCE_STYLE}>
-            <span className="KafkaConfigSource">{entry.source}</span>
+            <span className={styles.kafkaConfigSource}>{entry.source}</span>
           </Renderer.Component.TableCell>
           <Renderer.Component.TableCell className="configFlagsCell" style={BROKER_CONFIG_FLAGS_STYLE}>
-            <div className="KafkaConfigFlags">
+            <div className={styles.kafkaConfigFlags}>
               {entry.readOnly ? <Renderer.Component.Badge small label="Read-only" /> : null}
               {entry.sensitive ? <Renderer.Component.Badge small label="Sensitive" /> : null}
               {!entry.readOnly && !entry.sensitive ? <span>—</span> : null}
@@ -1098,8 +1099,8 @@ export function KafkaBrokersPage(props: KafkaBrokersPageProps) {
   const data = state.metadataState.data;
   const parsedBrokerId = /^\d+$/.test(rawBrokerId) ? Number(rawBrokerId) : undefined;
   const broker = data?.brokers.find((candidate) => candidate.nodeId === parsedBrokerId);
-  const workspaceTargetId = useRef<string>();
-  const operationId = useRef<string>();
+  const workspaceTargetId = useRef<string | undefined>(undefined);
+  const operationId = useRef<string | undefined>(undefined);
   const [configState, setConfigState] = useState<BrokerConfigState>({ loading: false });
 
   useEffect(
@@ -1204,7 +1205,7 @@ export function KafkaBrokersPage(props: KafkaBrokersPageProps) {
       >
         <KafkaResourceState state={state} />
         {cluster && data && !broker && (
-          <div className="KafkaPageState error" role="alert">
+          <div className={`${styles.kafkaPageState} error`} role="alert">
             <Renderer.Component.Icon material="error_outline" />
             <div>
               <strong>Broker not found</strong>
@@ -1213,17 +1214,20 @@ export function KafkaBrokersPage(props: KafkaBrokersPageProps) {
           </div>
         )}
         {cluster && data && broker && (
-          <main className="KafkaResourcePage KafkaBrokerWorkspace" data-testid="kafka-broker-workspace">
+          <main
+            className={`${styles.kafkaResourcePage} ${styles.kafkaBrokerWorkspace}`}
+            data-testid="kafka-broker-workspace"
+          >
             <KafkaMetricStrip
               ariaLabel="Kafka broker detail summary"
-              className="KafkaResourceMetricStrip"
+              className={styles.kafkaResourceMetricStrip}
               metrics={[
                 { label: "Broker", value: broker.nodeId },
                 { label: "Role", value: broker.nodeId === data.controller ? "Controller" : "Broker" },
                 { label: "Config entries", value: configState.data?.entries.length ?? "—" },
               ]}
             />
-            <section className="KafkaResourceDetails" aria-label="Kafka broker identity">
+            <section className={styles.kafkaResourceDetails} aria-label="Kafka broker identity">
               <div>
                 <span>Advertised host</span>
                 <code title={broker.host}>{broker.host}</code>
@@ -1233,7 +1237,10 @@ export function KafkaBrokersPage(props: KafkaBrokersPageProps) {
                 <strong>{broker.port}</strong>
               </div>
             </section>
-            <section className="KafkaBrokerConfigSection" aria-label={`Configuration for broker ${broker.nodeId}`}>
+            <section
+              className={styles.kafkaBrokerConfigSection}
+              aria-label={`Configuration for broker ${broker.nodeId}`}
+            >
               <h2>Configuration</h2>
               <BrokerConfigView state={configState} onRetry={loadBrokerConfig} />
             </section>
@@ -1251,10 +1258,10 @@ export function KafkaBrokersPage(props: KafkaBrokersPageProps) {
     >
       <KafkaResourceState state={state} />
       {cluster && data && (
-        <main className="KafkaResourcePage" data-testid="kafka-brokers-page">
+        <main className={styles.kafkaResourcePage} data-testid="kafka-brokers-page">
           <KafkaMetricStrip
             ariaLabel="Kafka broker summary"
-            className="KafkaResourceMetricStrip"
+            className={styles.kafkaResourceMetricStrip}
             metrics={[
               { label: "Brokers", value: data.brokers.length },
               { label: "Controller", value: data.controller ?? "—" },
@@ -1262,7 +1269,7 @@ export function KafkaBrokersPage(props: KafkaBrokersPageProps) {
             ]}
           />
           {data.brokers.length === 0 ? (
-            <div className="KafkaPageState empty">
+            <div className={`${styles.kafkaPageState} empty`}>
               <Renderer.Component.Icon material="dns" />
               <div>
                 <strong>No brokers reported</strong>
@@ -1270,7 +1277,7 @@ export function KafkaBrokersPage(props: KafkaBrokersPageProps) {
               </div>
             </div>
           ) : (
-            <Renderer.Component.Table autoSize={false} scrollable className="KafkaBrokerPageTable">
+            <Renderer.Component.Table autoSize={false} scrollable className={styles.kafkaBrokerPageTable}>
               <Renderer.Component.TableHead nowrap>
                 <Renderer.Component.TableCell className="brokerIdCell">Broker</Renderer.Component.TableCell>
                 <Renderer.Component.TableCell className="brokerRoleCell">Role</Renderer.Component.TableCell>
@@ -1297,7 +1304,7 @@ export function KafkaBrokersPage(props: KafkaBrokersPageProps) {
                 return (
                   <Renderer.Component.TableRow
                     {...interaction}
-                    className="KafkaInteractiveRow"
+                    className={styles.kafkaInteractiveRow}
                     key={broker.nodeId}
                     data-broker={broker.nodeId}
                     nowrap
@@ -1308,12 +1315,12 @@ export function KafkaBrokersPage(props: KafkaBrokersPageProps) {
                     <Renderer.Component.TableCell className="brokerRoleCell">
                       <Renderer.Component.Badge
                         small
-                        className={broker.nodeId === data.controller ? "KafkaControllerBadge" : ""}
+                        className={broker.nodeId === data.controller ? styles.kafkaControllerBadge : ""}
                         label={broker.nodeId === data.controller ? "Controller" : "Broker"}
                       />
                     </Renderer.Component.TableCell>
                     <Renderer.Component.TableCell className="brokerHostCell">
-                      <code className="KafkaEllipsis" title={broker.host}>
+                      <code className={styles.kafkaEllipsis} title={broker.host}>
                         {broker.host}
                       </code>
                     </Renderer.Component.TableCell>
@@ -1325,7 +1332,7 @@ export function KafkaBrokersPage(props: KafkaBrokersPageProps) {
               })}
             </Renderer.Component.Table>
           )}
-          <div className="KafkaResourceFootnote">
+          <div className={styles.kafkaResourceFootnote}>
             Broker membership comes from cluster metadata; it is not an individual health probe.
           </div>
         </main>

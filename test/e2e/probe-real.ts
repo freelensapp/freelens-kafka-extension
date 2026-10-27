@@ -12,8 +12,8 @@
  */
 import { discoverAllKafkas } from "../../src/main/kafka/discovery";
 import { connectDirect } from "../../src/main/kafka/kafka-connection";
-import { createKubeReader } from "../../src/main/kafka/kube-reader";
 import { probeBootstrapReachable } from "../../src/main/kafka/reachability";
+import { createKubeReader } from "./kube-reader";
 
 function withTimeout<T>(promise: Promise<T>, ms: number, label: string): Promise<T> {
   return Promise.race([

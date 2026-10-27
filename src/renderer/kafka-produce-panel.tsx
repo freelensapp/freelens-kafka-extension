@@ -1,5 +1,6 @@
 import { Renderer } from "@freelensapp/extensions";
 import { useState } from "react";
+import styles from "./kafka.module.scss";
 import { describeInvalidHeaderLines, parseProduceHeaders, parseProducePartition } from "./kafka-produce-draft";
 import { canSubmitWriteAction, getWriteConfirmationLabel } from "./kafka-write-policy";
 
@@ -62,8 +63,8 @@ export function KafkaProducePanel({ clusterName, topicName, partitionCount, onSe
   };
 
   return (
-    <aside className="KafkaComposePanel" data-testid="kafka-produce-message-drawer" aria-label="Produce message">
-      <header className="KafkaComposeHeader">
+    <aside className={styles.kafkaComposePanel} data-testid="kafka-produce-message-drawer" aria-label="Produce message">
+      <header className={styles.kafkaComposeHeader}>
         <Renderer.Component.Icon material="edit" />
         <div>
           <strong>Produce message</strong>
@@ -72,7 +73,7 @@ export function KafkaProducePanel({ clusterName, topicName, partitionCount, onSe
         <Renderer.Component.Button
           plain
           round
-          className="KafkaIconButton"
+          className={styles.kafkaIconButton}
           title="Close the produce panel"
           aria-label="Close the produce panel"
           data-testid="kafka-produce-close"
@@ -82,23 +83,23 @@ export function KafkaProducePanel({ clusterName, topicName, partitionCount, onSe
         </Renderer.Component.Button>
       </header>
       <form
-        className="KafkaComposeBody"
+        className={styles.kafkaComposeBody}
         onSubmit={(event) => {
           event.preventDefault();
           send();
         }}
       >
-        <div className="KafkaWriteSummary">
+        <div className={styles.kafkaWriteSummary}>
           <strong>Target</strong>
           <span>{clusterName}</span>
           <strong>Topic</strong>
           <span>{topicName}</span>
         </div>
-        <label className="KafkaComposeField">
+        <label className={styles.kafkaComposeField}>
           <span>Key (optional)</span>
           <Renderer.Component.Input value={key} onChange={setKey} aria-label="Message key" disabled={busy} />
         </label>
-        <label className="KafkaComposeField KafkaComposeValue">
+        <label className={`${styles.kafkaComposeField} ${styles.kafkaComposeValue}`}>
           <span>Value</span>
           <Renderer.Component.Input
             multiLine
@@ -109,7 +110,7 @@ export function KafkaProducePanel({ clusterName, topicName, partitionCount, onSe
             disabled={busy}
           />
         </label>
-        <label className="KafkaComposeField">
+        <label className={styles.kafkaComposeField}>
           <span>Headers (key=value, one per line)</span>
           <Renderer.Component.Input
             multiLine
@@ -121,12 +122,12 @@ export function KafkaProducePanel({ clusterName, topicName, partitionCount, onSe
             disabled={busy}
           />
           {headersError && (
-            <em className="KafkaComposeFieldError" role="alert" data-testid="kafka-produce-headers-error">
+            <em className={styles.kafkaComposeFieldError} role="alert" data-testid="kafka-produce-headers-error">
               {headersError}
             </em>
           )}
         </label>
-        <label className="KafkaComposeField">
+        <label className={styles.kafkaComposeField}>
           <span>
             {partitionCount && partitionCount > 0
               ? `Partition (optional, 0 to ${partitionCount - 1})`
@@ -140,12 +141,12 @@ export function KafkaProducePanel({ clusterName, topicName, partitionCount, onSe
             disabled={busy}
           />
           {parsedPartition.error && (
-            <em className="KafkaComposeFieldError" role="alert" data-testid="kafka-produce-partition-error">
+            <em className={styles.kafkaComposeFieldError} role="alert" data-testid="kafka-produce-partition-error">
               {parsedPartition.error}
             </em>
           )}
         </label>
-        <label className="KafkaComposeConfirm">
+        <label className={styles.kafkaComposeConfirm}>
           <span>{getWriteConfirmationLabel({ destructive: false, resourceName: topicName })}</span>
           <Renderer.Component.Switch
             aria-label="Confirm produce message"
@@ -156,7 +157,7 @@ export function KafkaProducePanel({ clusterName, topicName, partitionCount, onSe
           />
         </label>
         {result && (
-          <div className="KafkaWriteStatus" role="status" data-testid="kafka-produce-result">
+          <div className={styles.kafkaWriteStatus} role="status" data-testid="kafka-produce-result">
             <Renderer.Component.Icon material="check_circle" />
             <span>
               Sent to partition {result.partition} at offset {result.offset}
@@ -164,11 +165,11 @@ export function KafkaProducePanel({ clusterName, topicName, partitionCount, onSe
           </div>
         )}
         {error && (
-          <div className="KafkaComposeError" role="alert" data-testid="kafka-produce-error">
+          <div className={styles.kafkaComposeError} role="alert" data-testid="kafka-produce-error">
             {error}
           </div>
         )}
-        <footer className="KafkaComposeActions">
+        <footer className={styles.kafkaComposeActions}>
           <Renderer.Component.Button outlined onClick={onClose}>
             {result ? "Close" : "Cancel"}
           </Renderer.Component.Button>

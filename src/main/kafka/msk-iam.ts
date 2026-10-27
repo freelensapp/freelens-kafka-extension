@@ -3,6 +3,7 @@ import { defaultProvider } from "@aws-sdk/credential-provider-node";
 import { formatUrl } from "@aws-sdk/util-format-url";
 import { SignatureV4 } from "@smithy/signature-v4";
 import { EXTENSION_VERSION } from "../../common/extension-version";
+import { createAwsFetchRequestHandler } from "./aws-fetch-handler";
 
 import type { SASLOptions } from "kafkajs";
 
@@ -37,6 +38,8 @@ export interface MskIamOptions {
   profile?: string;
   /** Credentials provider in place of the SDK chain. Tests only. */
   credentials?: AwsCredentialsProvider;
+  /** The host's HTTP client, `Main.Util.fetch`, for the STS and SSO calls of the SDK chain (SPEC-019, REQ-226). */
+  fetchImpl?: typeof fetch;
 }
 
 export interface MskIamToken {
@@ -49,15 +52,22 @@ export function mskIamHostname(region: string): string {
   return `kafka.${region}.amazonaws.com`;
 }
 
-/** The credentials chain of the AWS SDK, memoized and refreshed by the SDK itself. */
-export function awsCredentialsProvider(profile?: string): AwsCredentialsProvider {
-  return defaultProvider(profile ? { profile } : {});
+/**
+ * The credentials chain of the AWS SDK, memoized and refreshed by the SDK itself. With `fetchImpl`, the clients the
+ * chain makes for STS and SSO send their requests through it; the instance metadata and container endpoints take no
+ * request handler and keep the SDK's own client.
+ */
+export function awsCredentialsProvider(profile?: string, fetchImpl?: typeof fetch): AwsCredentialsProvider {
+  return defaultProvider({
+    ...(profile ? { profile } : {}),
+    ...(fetchImpl ? { clientConfig: { requestHandler: createAwsFetchRequestHandler(fetchImpl) } } : {}),
+  });
 }
 
 export async function generateMskIamToken(options: MskIamOptions & { now?: Date }): Promise<MskIamToken> {
   const region = options.region.trim();
   if (!region) throw new Error("AWS region is required for AWS IAM (MSK) authentication");
-  const provider = options.credentials ?? awsCredentialsProvider(options.profile);
+  const provider = options.credentials ?? awsCredentialsProvider(options.profile, options.fetchImpl);
   const credentials = await provider();
   if (!credentials.accessKeyId || !credentials.secretAccessKey) {
     throw new Error(
@@ -106,7 +116,7 @@ export async function generateMskIamToken(options: MskIamOptions & { now?: Date 
  * reconnection after the 15 minutes gets a fresh one and refreshed credentials are picked up.
  */
 export function createMskIamSasl(options: MskIamOptions): SASLOptions {
-  const credentials = options.credentials ?? awsCredentialsProvider(options.profile);
+  const credentials = options.credentials ?? awsCredentialsProvider(options.profile, options.fetchImpl);
   return {
     mechanism: "oauthbearer",
     oauthBearerProvider: async () => ({

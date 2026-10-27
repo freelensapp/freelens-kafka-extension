@@ -9,9 +9,9 @@
 import { createKafkaTargetId } from "../../src/common/kafka-target";
 import { type AnyDiscoveredKafka, discoverAllKafkas } from "../../src/main/kafka/discovery";
 import { connectDirect } from "../../src/main/kafka/kafka-connection";
-import { createKubeReader } from "../../src/main/kafka/kube-reader";
 import { probeBootstrapReachable } from "../../src/main/kafka/reachability";
 import { KafkaResourceCache } from "../../src/renderer/kafka-resource-cache";
+import { createKubeReader } from "./kube-reader";
 
 import type { ClusterOverviewDto, DiscoveredKafkaInfo } from "../../src/common/ipc";
 

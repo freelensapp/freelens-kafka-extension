@@ -6,7 +6,7 @@
 
 |                           |                                                                                                                                                                                                                                                                  |
 | ------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Last updated**          | 2026-09-26                                                                                                                                                                                                                                                       |
+| **Last updated**          | 2026-10-26                                                                                                                                                                                                                                                       |
 | **Phase**                 | **SPEC-001–014 Verified. Slices 0–16 and the v1.0.0 implementation sign-off are complete.**                                                                                                                                                                      |
 | **Testable in Freelens?** | **Yes — verified on Freelens 1.10.3.** The final production package passed 12/12 base Playwright/Jest scenarios and the three-run authorized browser paint gate, plus all local protocol, security and fallback gates. Install the generated `.tgz` in Freelens. |
 
@@ -16,7 +16,6 @@
 
 Conformant Freelens extension package (matches the other `freelensapp` extensions). Where the earlier phases
 say `engine/` or `poc/`, the code now lives here:
-
 - `src/main/` — Main process: `index.ts` (extension) + `ipc.ts` (`Main.Ipc`). `src/main/kafka/` is the **connectivity engine** (former `engine/src`), with colocated `*.test.ts` unit tests.
 - `src/renderer/` — Renderer UI: `index.tsx` (cluster page + menu), `kafka-overview.tsx` (Overview page), `kafka-ipc.ts` (`Renderer.Ipc` client). `src/common/` — shared IPC contract + DTOs.
 - `test/e2e/` — engine Docker/KinD integration tests + fixtures + `docker-compose.yml` (former `poc/` + `engine/test`), run via `pnpm itest*` / `kind:*`.
@@ -44,9 +43,9 @@ does not replace Tiers 0, 2 or 3. Every accepted MCP finding is promoted to dete
 evidence or recorded as blocked. Runbook: [`docs/playwright-mcp-testing.md`](./docs/playwright-mcp-testing.md).
 
 **Local gates every step:** `type:check`, `lint:check`, `knip:check`, `test:unit` (+ `build`). All green through SPEC-014 Slice 16.
-Every library the extension uses at runtime is bundled into `out/` by electron-vite and shipped inside the
-package, so they are declared as `devDependencies`; the published manifest intentionally has no runtime
-`dependencies`.
+Every library the extension uses at runtime is bundled into `dist/` by Vite and shipped inside the package.
+They are declared as `dependencies`, as the template does, although Freelens installs no dependency of an
+extension; the host-provided modules are `devDependencies`, for their types alone.
 
 ---
 
@@ -55,7 +54,6 @@ package, so they are declared as `devDependencies`; the published manifest inten
 A **cluster-native Kafka console** embedded in Freelens. Unlike standalone Kafka
 UIs — which are deployed separately and configured by hand — this extension lives **inside a Freelens
 session already authenticated to a Kubernetes cluster**, and therefore can:
-
 - **auto-discover** Kafka endpoints (Strimzi `Kafka` CRs, `Service`s on 9092/9093, app env/ConfigMaps);
 - **auto-wire credentials** from Kubernetes `Secret`s (SASL/SCRAM, TLS);
 - **resolve connectivity transparently** (per-broker port-forward) for clusters reachable only from inside.
@@ -68,33 +66,34 @@ Redpanda) — not only Strimzi CRDs.
 
 ## 2. Current status
 
-| Item                                                                                                                     | State                                                                                                                                   | Location                                                                         |
-| ------------------------------------------------------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------- |
-| Connectivity engine PoC (kafkajs + redirect `socketFactory`)                                                             | **Validated**                                                                                                                           | [`src/main/kafka/`](./src/main/kafka)                                            |
-| Reproduction of the internal-only "advertised listener" trap (Docker)                                                    | **Validated**                                                                                                                           | [`test/e2e/docker-compose.yml`](./test/e2e/docker-compose.yml)                   |
-| **P1 engine**: Port-Forward Manager + address map + socketFactory + `KafkaConnection`                                    | **Built & validated** (unit + local e2e)                                                                                                | [`src/main/kafka/`](./src/main/kafka)                                            |
-| Kube `Forwarder` adapter (`@kubernetes/client-node`)                                                                     | **Validated on kind** (real SPDY port-forward; produce+consume)                                                                         | [`src/main/kafka/kube-forwarder.ts`](./src/main/kafka/kube-forwarder.ts)         |
-| **P2 discovery**: Strimzi `Kafka` CR + broker pods, generic Services                                                     | **Built & validated** (unit + kind)                                                                                                     | [`src/main/kafka/discovery.ts`](./src/main/kafka/discovery.ts)                   |
-| **P2 credentials**: SASL/SCRAM + TLS/mTLS from Secrets                                                                   | **Built & validated** (unit + kind)                                                                                                     | [`src/main/kafka/credentials.ts`](./src/main/kafka/credentials.ts)               |
-| **P2.5 two-phase connect**: metadata → match brokers→pods → per-broker forwards                                          | **Built & validated** (unit + kind e2e)                                                                                                 | [`src/main/kafka/connect-discovered.ts`](./src/main/kafka/connect-discovered.ts) |
-| Freelens extension wiring + **CI/workflow conformance** (`.github/workflows`, biome/knip/vitest, integration harness)    | Not started (P3.0)  → **Done**                                                                                                          | —                                                                                |
-| **SPEC-001–004 verified**: navigation, stabilization, page migration, settings panel, Clusters/Overview/Topics/Brokers   | **Verified** (100+ unit tests + packaged E2E)                                                                                           | [`SPEC-004`](./docs/specs/004-resource-navigation-cluster-context.md)            |
-| **SPEC-005 verified**: Read-only Messages Browse/Tail, byte-safe records, bounded window                                 | **Verified** (80+ unit tests + local protocol + packaged E2E)                                                                           | [`SPEC-005`](./docs/specs/005-read-only-message-browser.md)                      |
-| **SPEC-006 verified**: Consumer Groups list, Offsets & Lag, Members, tab workspace                                       | **Verified** (100+ unit tests + local protocol + packaged E2E)                                                                          | [`SPEC-006`](./docs/specs/006-consumer-groups-lag.md)                            |
-| **SPEC-007 verified**: Topic/Broker config and bidirectional Topic↔Consumer Group depth                                  | **Verified** (112 unit tests + local protocol + packaged E2E); large-cluster Topic Consumers scan is optimized, bounded and progressive | [`SPEC-007`](./docs/specs/007-topic-broker-depth.md)                             |
-| **SPEC-008 verified**: Message filters, timestamp seek and renderer-session-scoped full-window route/filter restoration  | **Verified** (139 unit tests + focused reload E2E + integrated packaged E2E; 11/11 tests)                                               | [`SPEC-008`](./docs/specs/008-message-browser-enhancements.md)                   |
-| **SPEC-009 verified**: Per-target write mode, Produce Message and Consumer Group offset reset                            | **Verified** (122 unit tests + local Docker/KinD packaged E2E; 7/7 tests)                                                               | [`SPEC-009`](./docs/specs/009-write-operations.md)                               |
-| **SPEC-010 verified**: Schema Registry settings, Subjects, versions, Avro/Protobuf decode and write operations           | **Verified** (133 unit tests + local HTTP Registry packaged E2E; 8/8 tests)                                                             | [`SPEC-010`](./docs/specs/010-schema-registry.md)                                |
-| **SPEC-011 verified**: Kafka Connect configuration, list/detail and lifecycle/management writes                          | **Verified** (137 unit tests + local REST packaged E2E; Connect flow passed)                                                            | [`SPEC-011`](./docs/specs/011-kafka-connect.md)                                  |
-| **SPEC-012 verified**: ACL inspection gated by a DescribeAcls probe, filtering, and local-safe ACL create/delete         | **Verified** (147 unit tests + authorized local broker packaged E2E; 11/11 tests)                                                       | [`SPEC-012`](./docs/specs/012-acl-security-views.md)                             |
-| **SPEC-013 verified**: UX quality gate for navigation, responsive layouts, accessibility and packaged regressions        | **Verified**                                                                                                                            | [`SPEC-013`](./docs/specs/013-ux-performance-v1-gate.md)                         |
-| **SPEC-014 verified**: production-scale request batching, bounded persistent workers, honest progress, ETA and freshness | **Verified — Slices 0–16, executable evidence and explicit approval complete**                                                          | [`SPEC-014`](./docs/specs/014-production-scale-performance.md)                   |
-| **SPEC-017 implemented**: direct AWS IAM authentication for Amazon MSK                                                   | **Implemented — verified on MSK Express on 2026-09-28; REQ-221 (#82) awaits the reporter's check (SC-132)**                             | [`SPEC-017`](./docs/specs/017-msk-iam-authentication.md)                         |
+| Item                                                                                                                     | State                                                                                                                                   | Location                                                                                                                                                 |
+| ------------------------------------------------------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Connectivity engine PoC (kafkajs + redirect `socketFactory`)                                                             | **Validated**                                                                                                                           | [`src/main/kafka/`](./src/main/kafka)                                                                                                                    |
+| Reproduction of the internal-only "advertised listener" trap (Docker)                                                    | **Validated**                                                                                                                           | [`test/e2e/docker-compose.yml`](./test/e2e/docker-compose.yml)                                                                                           |
+| **P1 engine**: Port-Forward Manager + address map + socketFactory + `KafkaConnection`                                    | **Built & validated** (unit + local e2e)                                                                                                | [`src/main/kafka/`](./src/main/kafka)                                                                                                                    |
+| Kube `Forwarder` adapter (`@kubernetes/client-node`), itests only since v2                                               | **Validated on kind** (real SPDY port-forward; produce+consume)                                                                         | [`test/e2e/kube-forwarder.ts`](./test/e2e/kube-forwarder.ts)                                                                                             |
+| kubectl `Forwarder` (`Main.Shell`, Freelens v2, SPEC-019)                                                                | **Built & validated** (unit + Freelens v2 dev on kind: connect, disconnect, reconnect, disable)                                         | [`src/main/kafka/kubectl-tunnels.ts`](./src/main/kafka/kubectl-tunnels.ts), [`src/main/kafka/tunnel-forwarder.ts`](./src/main/kafka/tunnel-forwarder.ts) |
+| **P2 discovery**: Strimzi `Kafka` CR + broker pods, generic Services                                                     | **Built & validated** (unit + kind)                                                                                                     | [`src/main/kafka/discovery.ts`](./src/main/kafka/discovery.ts)                                                                                           |
+| **P2 credentials**: SASL/SCRAM + TLS/mTLS from Secrets                                                                   | **Built & validated** (unit + kind)                                                                                                     | [`src/main/kafka/credentials.ts`](./src/main/kafka/credentials.ts)                                                                                       |
+| **P2.5 two-phase connect**: metadata → match brokers→pods → per-broker forwards                                          | **Built & validated** (unit + kind e2e)                                                                                                 | [`src/main/kafka/connect-discovered.ts`](./src/main/kafka/connect-discovered.ts)                                                                         |
+| Freelens extension wiring + **CI/workflow conformance** (`.github/workflows`, biome/knip/vitest, integration harness)    | Not started (P3.0)  → **Done**                                                                                                          | —                                                                                                                                                        |
+| **SPEC-001–004 verified**: navigation, stabilization, page migration, settings panel, Clusters/Overview/Topics/Brokers   | **Verified** (100+ unit tests + packaged E2E)                                                                                           | [`SPEC-004`](./docs/specs/004-resource-navigation-cluster-context.md)                                                                                    |
+| **SPEC-005 verified**: Read-only Messages Browse/Tail, byte-safe records, bounded window                                 | **Verified** (80+ unit tests + local protocol + packaged E2E)                                                                           | [`SPEC-005`](./docs/specs/005-read-only-message-browser.md)                                                                                              |
+| **SPEC-006 verified**: Consumer Groups list, Offsets & Lag, Members, tab workspace                                       | **Verified** (100+ unit tests + local protocol + packaged E2E)                                                                          | [`SPEC-006`](./docs/specs/006-consumer-groups-lag.md)                                                                                                    |
+| **SPEC-007 verified**: Topic/Broker config and bidirectional Topic↔Consumer Group depth                                  | **Verified** (112 unit tests + local protocol + packaged E2E); large-cluster Topic Consumers scan is optimized, bounded and progressive | [`SPEC-007`](./docs/specs/007-topic-broker-depth.md)                                                                                                     |
+| **SPEC-008 verified**: Message filters, timestamp seek and renderer-session-scoped full-window route/filter restoration  | **Verified** (139 unit tests + focused reload E2E + integrated packaged E2E; 11/11 tests)                                               | [`SPEC-008`](./docs/specs/008-message-browser-enhancements.md)                                                                                           |
+| **SPEC-009 verified**: Per-target write mode, Produce Message and Consumer Group offset reset                            | **Verified** (122 unit tests + local Docker/KinD packaged E2E; 7/7 tests)                                                               | [`SPEC-009`](./docs/specs/009-write-operations.md)                                                                                                       |
+| **SPEC-010 verified**: Schema Registry settings, Subjects, versions, Avro/Protobuf decode and write operations           | **Verified** (133 unit tests + local HTTP Registry packaged E2E; 8/8 tests)                                                             | [`SPEC-010`](./docs/specs/010-schema-registry.md)                                                                                                        |
+| **SPEC-011 verified**: Kafka Connect configuration, list/detail and lifecycle/management writes                          | **Verified** (137 unit tests + local REST packaged E2E; Connect flow passed)                                                            | [`SPEC-011`](./docs/specs/011-kafka-connect.md)                                                                                                          |
+| **SPEC-012 verified**: ACL inspection gated by a DescribeAcls probe, filtering, and local-safe ACL create/delete         | **Verified** (147 unit tests + authorized local broker packaged E2E; 11/11 tests)                                                       | [`SPEC-012`](./docs/specs/012-acl-security-views.md)                                                                                                     |
+| **SPEC-013 verified**: UX quality gate for navigation, responsive layouts, accessibility and packaged regressions        | **Verified**                                                                                                                            | [`SPEC-013`](./docs/specs/013-ux-performance-v1-gate.md)                                                                                                 |
+| **SPEC-014 verified**: production-scale request batching, bounded persistent workers, honest progress, ETA and freshness | **Verified — Slices 0–16, executable evidence and explicit approval complete**                                                          | [`SPEC-014`](./docs/specs/014-production-scale-performance.md)                                                                                           |
+| **SPEC-017 implemented**: direct AWS IAM authentication for Amazon MSK                                                   | **Implemented — verified on MSK Express on 2026-09-28; REQ-221 (#82) awaits the reporter's check (SC-132)**                             | [`SPEC-017`](./docs/specs/017-msk-iam-authentication.md)                                                                                                 |
 
 **Consequence:** the current artifact is a loadable, packaged Freelens extension with verified
 discovery, connectivity, security, UX v3 resource pages, read-only message browsing, consumer group lag inspection and local-safe write operations.
 Connection Settings is the only secondary Drawer. All SPEC-001–013 increments are verified with full traceability.
-SPEC-013 closes the original UX quality gate. SPEC-014 adds the production-scale performance architecture and extends the v1.0.0 release gate. v2.0.0 covers later stream-query, audit, topology and advanced-management capabilities.
+SPEC-013 closes the original UX quality gate. SPEC-014 adds the production-scale performance architecture and extends the v1.0.0 release gate. Version 2.0.0 is the port to the Freelens v2 extension API ([SPEC-019](./docs/specs/019-v2-port.md)); the later stream-query, audit, topology and advanced-management capabilities are unscheduled.
 
 ---
 
@@ -135,14 +134,14 @@ flowchart TB
 
 ## 4. Components & responsibilities
 
-| Component                | Process         | Responsibility                                                                                                                                                                                                          |
-| ------------------------ | --------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Cluster Discovery**    | Main            | Find Kafka targets: Strimzi `Kafka`/`KafkaTopic` CRs, `Service`s exposing 9092/9093, bootstrap refs in workload env/ConfigMaps.                                                                                         |
-| **Credential Resolver**  | Main            | Extract SASL/SCRAM users, TLS certs/CA from referenced `Secret`s; build kafkajs auth config.                                                                                                                            |
-| **Port-Forward Manager** | Main            | Open one port-forward per broker **pod** via `@kubernetes/client-node` (kubeconfig from `Catalog` `kubeConfigPath`/`contextName`); maintain the `advertised → 127.0.0.1:localPort` map; tear down on disconnect.        |
-| **Kafka Client**         | Main            | kafkajs admin/producer/consumer. Uses the **redirect `socketFactory`** ([`src/main/kafka/redirect.ts`](./src/main/kafka/redirect.ts)) to dial mapped local endpoints while preserving advertised hostnames for TLS SNI. |
-| **Bridge**               | Main ↔ Renderer | Expose engine operations to the UI (see open decision [§6.1](#61-mainrenderer-communication--decided-built-in-extension-ipc)).                                                                                          |
-| **UI pages**             | Renderer        | Overview, topic list/detail, message browser, consumer groups + lag. Later: ACLs, Connect, Schema Registry.                                                                                                             |
+| Component                | Process         | Responsibility                                                                                                                                                                                                                                                  |
+| ------------------------ | --------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Cluster Discovery**    | Main            | Find Kafka targets: Strimzi `Kafka`/`KafkaTopic` CRs, `Service`s exposing 9092/9093, bootstrap refs in workload env/ConfigMaps.                                                                                                                                 |
+| **Credential Resolver**  | Main            | Extract SASL/SCRAM users, TLS certs/CA from referenced `Secret`s; build kafkajs auth config.                                                                                                                                                                    |
+| **Port-Forward Manager** | Main            | Open one port-forward per broker **pod**: on Freelens v2 a `kubectl port-forward` run with the host's kubectl and environment for the request's cluster (`Main.Shell`, SPEC-019); maintain the `advertised → 127.0.0.1:localPort` map; tear down on disconnect. |
+| **Kafka Client**         | Main            | kafkajs admin/producer/consumer. Uses the **redirect `socketFactory`** ([`src/main/kafka/redirect.ts`](./src/main/kafka/redirect.ts)) to dial mapped local endpoints while preserving advertised hostnames for TLS SNI.                                         |
+| **Bridge**               | Main ↔ Renderer | Expose engine operations to the UI (see open decision [§6.1](#61-mainrenderer-communication--decided-built-in-extension-ipc)).                                                                                                                                  |
+| **UI pages**             | Renderer        | Overview, topic list/detail, message browser, consumer groups + lag. Later: ACLs, Connect, Schema Registry.                                                                                                                                                     |
 
 ---
 
@@ -194,14 +193,12 @@ sequenceDiagram
 
 **Verified against the API** (`freelens/packages/core/src/extensions/ipc/`). `@freelensapp/extensions`
 exposes a first-class, per-extension IPC abstraction:
-
 - `Main.Ipc` (`IpcMain`): `handle(channel, handler)` for request/response RPC; `listen(channel, cb)` for broadcasts.
 - `Renderer.Ipc` (`IpcRenderer`): `invoke(channel, ...args): Promise` for RPC; `listen(channel, cb)` for broadcasts.
 - Channels are auto-namespaced per extension (`extensions@<id>:<channel>`) and auto-disposed on disable/uninstall.
 - It is the same path Freelens core uses to proxy the renderer's K8s calls to main, so it is the idiomatic choice.
 
 **Decision:** the Kafka engine runs in **Main**; the UI talks to it **exclusively through the built-in `Ipc`**:
-
 - **RPC (`invoke`/`handle`)** for: `connect`, `listTopics`, `describeTopic`, `listGroups`, `offsets`/lag, `fetchMessages(page)`.
 - **Broadcasts (`listen`)** for live streams: message tail, lag refresh, connection status (main pushes; renderer subscribes with `disposeOnUnmount`).
 - A thin **typed contract** in `src/common/` wraps the stringly channels for compile-time safety.
@@ -213,7 +210,22 @@ running kafkajs in the renderer (couples backend lifetime to the UI, fragile acr
 **Constraints to honor:** keep IPC payloads small — paginate message fetches, throttle the live tail, send message
 metadata with lazy body fetch; main owns consumer lifecycle and applies backpressure.
 
-### 6.2 Port-forward — DECIDED: client-side via `@kubernetes/client-node` from the Catalog kubeconfig
+**Freelens v2 (SPEC-019, decided).** In v2 `Ipc.broadcast` reaches every frame of every window, so data must not
+travel on it (REQ-227): the progress events name topics, groups and the authentication mode. Request/response stays
+on `invoke`/`handle`, bound to the frame that asked. For progress, main keeps the recent events of each operation and
+broadcasts only its operation id, a random value; the frame that started the operation fetches the events over
+`invoke`. `broadcast` carries no data: the pattern of freelensapp/freelens-velero-extension. The local server stays
+rejected: there is no long stream to carry. Built: main keeps the events in
+[`progress-store.ts`](./src/main/progress-store.ts), bound to the sending frame (`processId:frameId` of the invoke
+event, as Velero's `senderOf`), and answers `kafka:progress-event` for that frame only, with every event after the cursor of its previous answer
+(64 per operation at most); the renderer ([`kafka-progress-pull.ts`](./src/renderer/kafka-progress-pull.ts)) listens
+once, owns the ids of the requests it sends (random UUIDs), runs one fetch at a time per operation, folding the signals
+that arrive meanwhile, and hands the events of an answer to the page one task apart. Before the answer of a request
+reaches the page, its remaining events are fetched and delivered: on 1.x every event was a message on the channel of
+the answer, so all of them arrived before it, and a fast scan still shows each counted step. One
+`KafkaIpcRenderer` per activation, made in `onActivate` and reset in `onDeactivate`.
+
+### 6.2 Port-forward — DECIDED: client-side, kubectl through the host on Freelens 2 (client-node on 1.x)
 
 **Verified against the API.** Freelens does **not** expose a port-forward helper to extensions
 (Main API = `Ipc`, `Catalog`, `K8s` CRUD, `K8sApi`, `Navigation`, `Power`). Core's own port-forward
@@ -237,11 +249,26 @@ ephemeral). Optional advanced mode: opt-in in-cluster proxy for very large broke
 **Honest caveat:** via client-node _we_ handle auth from the raw kubeconfig (tokens, client-certs, exec
 plugins) instead of Lens's proxy; rare proxy-only auth setups degrade gracefully with a clear error + the kubectl fallback.
 
+**Freelens v2 (SPEC-019, decided).** v2 asks extensions to reach a catalog cluster through Freelens, not through a
+client built from its `kubeConfigPath` (REQ-224). The forward runs the host's kubectl: `Main.Shell.getKubectlPath`
+and `Main.Shell.getEnvironment` of the request's cluster (contract C15), one `kubectl port-forward pod/<broker>
+:<port>` per broker pod and port, opened on the first socket and shared by the session's sockets; the per-broker
+local listener and the redirect `socketFactory` are unchanged. kubectl is killed when its session closes, when the
+extension is deactivated, when the process exits and when the cluster leaves the connected state (REQ-225), as the
+tunnels of freelensapp/freelens-velero-extension are ([`kubectl-tunnels.ts`](./src/main/kafka/kubectl-tunnels.ts),
+[`tunnel-forwarder.ts`](./src/main/kafka/tunnel-forwarder.ts), [`tunnel-host.ts`](./src/main/tunnel-host.ts)). A
+refusal of the cluster (`pods/portforward`, an expired credential) reaches the page in words; nothing kubectl writes
+does. Every request names its cluster (`clusterId`): there is no active-cluster fallback and no kubeconfig path or
+context in the requests. client-node on the environment's kubeconfig is not an
+option: its credential plugin needs a token that Freelens gives only to the tools it runs. client-node stays for
+the itests' reader and forwarder ([`test/e2e/kube-reader.ts`](./test/e2e/kube-reader.ts),
+[`test/e2e/kube-forwarder.ts`](./test/e2e/kube-forwarder.ts)), which take an explicit lab kubeconfig.
+
 ### 6.3 Message deserialization & Schema Registry
 
 JSON/text/binary plus Confluent Avro/Protobuf decoding are implemented through the bounded Schema Registry client; custom serialization remains raw with a non-fatal warning.
 
-### 6.4 Discovery & credentials — DECIDED: `KubeReader` seam over client-node
+### 6.4 Discovery & credentials — DECIDED: `KubeReader` seam, `Main.K8s` in the extension
 
 Discovery/credential reads go through a `KubeReader` seam (`listCustomResources`/`listPods`/`listServices`/`getSecret`),
 implemented with `@kubernetes/client-node` from the same kubeconfig as the port-forward. Unit tests inject an in-memory
@@ -251,7 +278,9 @@ fake; a fake Strimzi CRD + fixtures validate the real reads on kind. Strimzi dis
 qualifies only with a Kafka signal (kafka/`tcp-clients` port name, or 9092/9093 on a kafka-named service) — port 9093
 alone is ambiguous (Prometheus Alertmanager, caught during kind testing). Credentials come from Secrets: cluster CA
 (`<cluster>-cluster-ca-cert`), SCRAM (`KafkaUser` `password`), or mTLS (`user.crt`/`user.key`). The extension (P3) may
-back the seam with `Main.K8s` instead.
+back the seam with `Main.K8s` instead. It does: requests from the renderer read through `Main.K8s`
+(`src/main/catalog-kube-reader.ts`); the client-node reader remains for the itests (`test/e2e/kube-reader.ts`), and
+SPEC-019 (REQ-224) keeps it out of every production path.
 
 ### 6.5 Advertised-host reconciliation — DONE: two-phase `connectDiscovered`
 
@@ -292,7 +321,8 @@ root tooling; its unit tests are the extension's `test:unit`; the Docker/KinD sc
 | **P3.5**        | **Read-only message browser (SPEC-005):** bounded Browse, explicit Tail and selected-message inspector without offset commits.                                                                                                                                                                      | **Verified**                          |
 | **P3.6**        | **Consumer Groups and lag (SPEC-006):** group list, offsets/lag, members/topics detail and Topic cross-links.                                                                                                                                                                                       | **Verified**                          |
 | **P4 / v1.0.0** | Topic and Broker depth (SPEC-007), Message browser enhancements (SPEC-008), Write policy + Produce + offset reset (SPEC-009), Schema Registry (SPEC-010), Kafka Connect (SPEC-011), ACL views (SPEC-012), UX quality gate (SPEC-013), production-scale performance (SPEC-014).                      | **Complete — SPEC-001–014 Verified.** |
-| **v2.0.0**      | Features beyond v1.0.0 scope: KsqlDB, audit log, Kafka Streams topology, advanced management, broker config write, relay pod and OAUTHBEARER. AWS MSK IAM was delivered by SPEC-017.                                                                                                                | Unscheduled                           |
+| **v2.0.0**      | Port to the Freelens v2 extension API ([SPEC-019](./docs/specs/019-v2-port.md)): parity with 1.4.3, cluster access through Freelens, HTTP through the host, per-frame progress, labs of the repository's own.                                                                                       | Planned                               |
+| **Later**       | Features beyond the v1.0.0 scope: KsqlDB, audit log, Kafka Streams topology, advanced management, broker config write, relay pod and OAUTHBEARER. AWS MSK IAM was delivered by SPEC-017.                                                                                                            | Unscheduled                           |
 
 ### P4 / SPEC-014 completion roadmap
 
@@ -312,8 +342,7 @@ Detailed requirements, tasks and evidence remain authoritative in
 ### P3.1 increments
 
 Each increment is gated by the local checks (`type:check`, `lint:check`, `knip:check`, `build`, `test:unit`) and updates this doc plus the relevant `docs/*.md`.
-
-- **(a) Overview — Done.** Cluster page lists the discovered Strimzi Kafka clusters via the `discover` IPC (Main auto-resolves the active cluster). Renderer: [`kafka-overview.tsx`](./src/renderer/kafka-overview.tsx) + [`kafka-ipc.ts`](./src/renderer/kafka-ipc.ts). Doc: [`docs/overview-ui.md`](./docs/overview-ui.md).
+- **(a) Overview — Done.** Cluster page lists the discovered Strimzi Kafka clusters via the `discover` IPC (for the cluster the renderer names; v1 fell back to the active cluster). Renderer: [`kafka-overview.tsx`](./src/renderer/kafka-overview.tsx) + [`kafka-ipc.ts`](./src/renderer/kafka-ipc.ts). Doc: [`docs/overview-ui.md`](./docs/overview-ui.md).
 - **(b) Cluster drill-in / brokers — Done.** Opening Overview invokes the `overview` handler (two-phase connect → per-broker forward → `kafkajs` metadata) and renders brokers (id / host / port), the controller and topic count. Added the `ClusterOverviewDto` + `KafkaIpcRenderer.overview()`; no new Main handler. Doc: [`docs/overview-ui.md`](./docs/overview-ui.md).
 - **(c) Topics list & detail — Done (SPEC-003).** Existing overview supplies lightweight names; topic-scoped `kafka:topic` lazily calls `fetchTopicMetadata`, returning partition leader/replicas/ISR/offline/health. Native searchable list + keyboard detail is verified through MCP, protocol and packaged/committed E2E.
 - **(d) Message browser — Done (SPEC-005).** Bounded Browse with lazy message fetching per page + explicit Tail session with throttling. UI: key/value/headers/timestamp/offset inspector with no automatic read or offset commit. Fully verified via protocol evidence and packaged E2E.
@@ -330,7 +359,6 @@ from the cluster's pods. This realises the §1 "any Kafka" goal for external/man
 > forward after user testing. Manual review then exposed the Drawer-first navigation limit, so
 > accepted **P3.4 / SPEC-004** now precedes message depth (P3.5) and Consumer Groups (P3.6). Relay (i)
 > remains P4 because it requires Kubernetes writes and a separate safety/RBAC decision.
-
 - **(f) Universal discovery — Done (verified on Freelens 1.10.3).** Wires `discoverKafkaServices`
   (in-cluster non-Strimzi `Service`s) and adds **workload-config discovery**: `discoverWorkloadKafkas`
   scans `Deployment`/`StatefulSet`/`DaemonSet` container env + `envFrom` (`ConfigMap`/`Secret`) for
@@ -413,25 +441,24 @@ from the cluster's pods. This realises the §1 "any Kafka" goal for external/man
 
 Contract: [`SPEC-004`](./docs/specs/004-resource-navigation-cluster-context.md), based on the accepted
 [`Kafka UX v3`](./docs/design/kafka-ux-v3-proposal.md).
-
 1. **Kafka cluster context — Done:** derive a stable non-secret `targetId`, persist explicit selection
-  per active Kubernetes cluster and provide pure stale/ambiguous selection resolution.
+   per active Kubernetes cluster and provide pure stale/ambiguous selection resolution.
 2. **Freelens navigation — Done:** Apache Kafka `hub` parent and functional Clusters, Overview,
-  Topics and Brokers children use typed URL state and a shared page shell/selector. Further children
-  are registered only when functional.
+   Topics and Brokers children use typed URL state and a shared page shell/selector. Further children
+   are registered only when functional.
 3. **Resource pages — Clusters/Overview/Brokers/Topics done:** discovery/manual endpoint parity,
-  truthful summaries and SPEC-003 Topic Workspace are packaged-app verified. Topic detail uses
-  URL-backed state on `kafka-topics` so its owning sidebar item remains active.
+   truthful summaries and SPEC-003 Topic Workspace are packaged-app verified. Topic detail uses
+   URL-backed state on `kafka-topics` so its owning sidebar item remains active.
 4. **Selector semantics:** switching cluster keeps a resource list, while switching from Topic
    Workspace returns to Topics for the new cluster. Secrets never enter route params.
 5. **Stabilization — Done:** duplicate sibling tabs are removed (6A); shared metric plus
-  Topics/Partitions table geometry passes Linux packaged and Windows visual evidence (6B); a
-  renderer-owned 60-second discovery/reachability/overview cache provides in-flight deduplication,
-  generation-safe invalidation, visible age/state and packaged plus authorized read-only timing
-  evidence (6C).
+   Topics/Partitions table geometry passes Linux packaged and Windows visual evidence (6B); a
+   renderer-owned 60-second discovery/reachability/overview cache provides in-flight deduplication,
+   generation-safe invalidation, visible age/state and packaged plus authorized read-only timing
+   evidence (6C).
 6. **Drawer retirement — Done:** the primary resource Drawer, duplicate loaders and resource tabs
-  are removed; only the context-isolated Connection Settings remains as a secondary panel (durable since
-  SPEC-018, passwords excepted).
+   are removed; only the context-isolated Connection Settings remains as a secondary panel (durable since
+   SPEC-018, passwords excepted).
 7. **No dead navigation:** Consumer Groups, Schema Registry, Kafka Connect and Produce Message are
    not registered until their own functionality and acceptance gates exist.
 8. **Verification:** unit/static, Docker metadata, KinD discovery/port-forward, isolated MCP,
@@ -471,7 +498,7 @@ Contract: [`SPEC-004`](./docs/specs/004-resource-navigation-cluster-context.md),
 
 ## 8. References
 
-- **Connectivity engine**: [`src/main/kafka/`](./src/main/kafka) — `redirect.ts`, `port-forward-manager.ts`, `kube-forwarder.ts`, `kafka-connection.ts`, `connect-discovered.ts`
+- **Connectivity engine**: [`src/main/kafka/`](./src/main/kafka) — `redirect.ts`, `port-forward-manager.ts`, `kubectl-tunnels.ts`, `tunnel-forwarder.ts`, `kafka-connection.ts`, `connect-discovered.ts`
 - **Discovery & credentials**: [`src/main/kafka/discovery.ts`](./src/main/kafka/discovery.ts), [`src/main/kafka/credentials.ts`](./src/main/kafka/credentials.ts), [`src/main/kafka/external-credentials.ts`](./src/main/kafka/external-credentials.ts), [`src/main/kafka/workload-environment.ts`](./src/main/kafka/workload-environment.ts), [`src/main/kafka/kube-reader.ts`](./src/main/kafka/kube-reader.ts)
 - **Feature docs**: [`docs/connectivity-engine.md`](./docs/connectivity-engine.md), [`docs/discovery.md`](./docs/discovery.md), [`docs/overview-ui.md`](./docs/overview-ui.md), [`docs/message-browser.md`](./docs/message-browser.md)
 - **Accepted UX and current contract**: [`docs/design/kafka-ux-v3-proposal.md`](./docs/design/kafka-ux-v3-proposal.md), [`docs/specs/005-read-only-message-browser.md`](./docs/specs/005-read-only-message-browser.md)

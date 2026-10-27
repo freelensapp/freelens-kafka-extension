@@ -10,16 +10,22 @@
  *   node scripts/demo.mjs status   show what is running
  *
  * Only the dedicated kind cluster and the dedicated Docker container are ever
- * touched, never the user's own `kind` cluster (see TESTING-SAFETY.md).
+ * touched, never the user's own `kind` cluster (see TESTING-SAFETY.md). The
+ * cluster's kubeconfig is a file of its own, .demo/kubeconfig: the user's
+ * kubeconfig is neither read nor changed.
  */
 
 import { spawn } from "node:child_process";
 import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import process from "node:process";
+import { fileURLToPath } from "node:url";
 
 const CLUSTER = process.env.DEMO_CLUSTER || "freelens-kafka-demo";
 const CONTEXT = `kind-${CLUSTER}`;
+// The kubeconfig of the demo cluster: a file of its own, never the user's (SPEC-019, REQ-232). Freelens reads it once
+// it is added in Preferences > Kubernetes > Kubeconfig Syncs.
+const KUBECONFIG = join(dirname(fileURLToPath(import.meta.url)), "..", ".demo", "kubeconfig");
 const NODE_CONTAINER = `${CLUSTER}-control-plane`;
 const KAFKA_IMAGE = process.env.DEMO_KAFKA_IMAGE || "apache/kafka:3.9.0";
 const KIND_NODE_IMAGE = process.env.DEMO_KIND_NODE_IMAGE || "";
@@ -100,7 +106,7 @@ function run(command, args, options = {}) {
 
 function kubectl(args, options = {}) {
   if (hostKubectl) {
-    return run("kubectl", ["--context", CONTEXT, ...args], options);
+    return run("kubectl", ["--kubeconfig", KUBECONFIG, "--context", CONTEXT, ...args], options);
   }
   return run(
     "docker",
@@ -611,22 +617,17 @@ async function ensureImage() {
 }
 
 async function ensureCluster() {
+  mkdirSync(dirname(KUBECONFIG), { recursive: true });
   if (await clusterExists()) {
     log(`kind cluster ${CLUSTER} already exists, reusing it`);
+    if (!existsSync(KUBECONFIG))
+      await run("kind", ["export", "kubeconfig", "--name", CLUSTER, "--kubeconfig", KUBECONFIG]);
     return;
   }
   log(`Creating kind cluster ${CLUSTER} (the first run also pulls the node image)`);
-  const previousContext = hostKubectl
-    ? (await run("kubectl", ["config", "current-context"], { quiet: true, allowFailure: true })).stdout.trim()
-    : "";
-  const args = ["create", "cluster", "--name", CLUSTER, "--wait", "120s"];
+  const args = ["create", "cluster", "--name", CLUSTER, "--kubeconfig", KUBECONFIG, "--wait", "120s"];
   if (KIND_NODE_IMAGE) args.push("--image", KIND_NODE_IMAGE);
   await run("kind", args);
-  // kind switches the current context to the new cluster: give the user back the one they had.
-  if (previousContext && previousContext !== CONTEXT) {
-    await run("kubectl", ["config", "use-context", previousContext], { quiet: true, allowFailure: true });
-    log(`Current kubectl context restored to ${previousContext} (the demo cluster is ${CONTEXT})`);
-  }
 }
 
 async function imageLoaded() {
@@ -817,7 +818,13 @@ async function seedDirectBroker() {
 }
 
 function printSummary(windowsKubeconfig) {
-  const lines = ["", "Demo environment ready.", "", `  Kubernetes context : ${CONTEXT} (added to your kubeconfig)`];
+  const lines = [
+    "",
+    "Demo environment ready.",
+    "",
+    `  Kubernetes context : ${CONTEXT}, in ${KUBECONFIG} (your own kubeconfig is not changed)`,
+    `  Freelens           : add that file in Preferences, Kubernetes, Kubeconfig Syncs`,
+  ];
   if (windowsKubeconfig) {
     lines.push(`  Freelens on Windows: add the kubeconfig file ${windowsKubeconfig} (Preferences, Kubernetes)`);
   }
@@ -865,11 +872,12 @@ async function down() {
   }
   if (await clusterExists()) {
     log(`Deleting the kind cluster ${CLUSTER}`);
-    await run("kind", ["delete", "cluster", "--name", CLUSTER]);
+    await run("kind", ["delete", "cluster", "--name", CLUSTER, "--kubeconfig", KUBECONFIG]);
   } else {
     log(`kind cluster ${CLUSTER} is not there`);
   }
   await removeWindowsKubeconfig();
+  if (existsSync(KUBECONFIG)) rmSync(KUBECONFIG);
   log("Demo environment removed (the pulled images are kept)");
 }
 

@@ -1,9 +1,9 @@
 # SPEC-005 — Read-Only Message Browser
 
-| Field | Value |
-| --- | --- |
-| Status | Done |
-| Date | 2026-08-03 |
+| Field  | Value                                                                        |
+| ------ | ---------------------------------------------------------------------------- |
+| Status | Done                                                                         |
+| Date   | 2026-08-03                                                                   |
 | Source | User-approved next increment after verified SPEC-004; accepted UX v3 roadmap |
 | Safety | Kafka reads only; governed by [`TESTING-SAFETY.md`](../../TESTING-SAFETY.md) |
 
@@ -273,13 +273,13 @@ Process exits cleanly after all disconnects, confirming no leaked sockets.
 
 ## Planned Traceability
 
-| Requirement | Planned code surface | Planned evidence |
-| --- | --- | --- |
-| REQ-055–REQ-058 | Topic Workspace navigation and pure browse-control normalization | Navigation/control unit tests; packaged idle/latest-window assertions |
-| REQ-059–REQ-065 | KafkaJS broker-fetch adapter, message DTO normalizer and Browse IPC | Mocked adapter units; Docker protocol/group-count/offset tests |
-| REQ-066–REQ-068 | Renderer Messages list/inspector and URL-backed harmless controls | View-model units; desktop/compact packaged keyboard and URL checks |
-| REQ-069–REQ-071 | Main-owned Tail registry and correlated Renderer lifecycle | Fake-clock/buffer tests; local protocol + packaged Start/Stop/navigation checks |
-| REQ-072–REQ-073 | Safety guards, connection lifecycle and workflow fixtures | Static API review; socket cleanup; local-only write workflow evidence |
+| Requirement     | Planned code surface                                                | Planned evidence                                                                |
+| --------------- | ------------------------------------------------------------------- | ------------------------------------------------------------------------------- |
+| REQ-055–REQ-058 | Topic Workspace navigation and pure browse-control normalization    | Navigation/control unit tests; packaged idle/latest-window assertions           |
+| REQ-059–REQ-065 | KafkaJS broker-fetch adapter, message DTO normalizer and Browse IPC | Mocked adapter units; Docker protocol/group-count/offset tests                  |
+| REQ-066–REQ-068 | Renderer Messages list/inspector and URL-backed harmless controls   | View-model units; desktop/compact packaged keyboard and URL checks              |
+| REQ-069–REQ-071 | Main-owned Tail registry and correlated Renderer lifecycle          | Fake-clock/buffer tests; local protocol + packaged Start/Stop/navigation checks |
+| REQ-072–REQ-073 | Safety guards, connection lifecycle and workflow fixtures           | Static API review; socket cleanup; local-only write workflow evidence           |
 
 ## Verification Plan
 

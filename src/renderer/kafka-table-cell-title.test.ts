@@ -1,45 +1,29 @@
-import { readdirSync, readFileSync } from "node:fs";
-import { join, relative } from "node:path";
-import ts from "typescript";
 import { describe, expect, it } from "vitest";
+import { parseSources, walk } from "../../test/source-ast";
 
-const RENDERER = import.meta.dirname;
-
-function sourceFiles(directory: string): string[] {
-  return readdirSync(directory, { withFileTypes: true }).flatMap((entry) => {
-    const path = join(directory, entry.name);
-    if (entry.isDirectory()) return sourceFiles(path);
-    return /\.tsx$/.test(entry.name) && !/\.test\.tsx$/.test(entry.name) ? [path] : [];
-  });
-}
+import type { SourceNode } from "../../test/source-ast";
 
 /** `TableCell` elements that pass a `title`, as `file:line`. */
-function titledTableCells(path: string): string[] {
-  const file = ts.createSourceFile(path, readFileSync(path, "utf8"), ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX);
-  const found: string[] = [];
-  const visit = (node: ts.Node) => {
-    if (ts.isJsxOpeningElement(node) || ts.isJsxSelfClosingElement(node)) {
-      const tag = node.tagName.getText(file);
-      const hasTitle = node.attributes.properties.some(
-        (attribute) => ts.isJsxAttribute(attribute) && attribute.name.getText(file) === "title",
-      );
-      if (/(^|\.)TableCell$/.test(tag) && hasTitle) {
-        const { line } = file.getLineAndCharacterOfPosition(node.getStart(file));
-        found.push(`${relative(RENDERER, path)}:${line + 1}`);
-      }
-    }
-    ts.forEachChild(node, visit);
-  };
-  visit(file);
-  return found;
+function titledTableCells(): string[] {
+  return parseSources(import.meta.dirname, /\.tsx$/).flatMap((file) =>
+    [...walk(file.program)]
+      .filter((node) => node.type === "JSXOpeningElement")
+      .filter((node) => {
+        const name = node.name as SourceNode;
+        const tag = file.text.slice(name.start, name.end);
+        const hasTitle = (node.attributes as SourceNode[]).some(
+          (attribute) => attribute.type === "JSXAttribute" && (attribute.name as { name?: string }).name === "title",
+        );
+        return /(^|\.)TableCell$/.test(tag) && hasTitle;
+      })
+      .map((node) => `${file.path}:${file.lineOf(node.start)}`),
+  );
 }
 
 describe("table cells", () => {
   // The host's TableCell renders `title || children`: a title on the cell replaces what the cell holds, so a formatted
   // timestamp shows as raw milliseconds and an icon or a badge disappears. The tooltip goes on an element inside.
   it("never take a title, which would replace their content", () => {
-    const titled = sourceFiles(RENDERER).flatMap(titledTableCells);
-
-    expect(titled).toEqual([]);
+    expect(titledTableCells()).toEqual([]);
   });
 });

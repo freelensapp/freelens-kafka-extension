@@ -29,28 +29,30 @@ Specification states: `Draft` → `Accepted` → `Implementing` → `Verified` �
 
 ## Index
 
-| Spec | Status | Requirements | Scope |
-| --- | --- | --- | --- |
-| [SPEC-001](./001-loading-usage-navigation.md) | Verified | REQ-001–REQ-011 | Meaningful progress, Kubernetes usage semantics and row navigation |
-| [SPEC-002](./002-playwright-mcp-assisted-verification.md) | Verified | REQ-012–REQ-022 | Safe Playwright MCP assisted-verification layer |
-| [SPEC-003](./003-topic-list-detail.md) | Verified | REQ-023–REQ-032 | Read-only topic list, partition topology and replica health |
-| [SPEC-004](./004-resource-navigation-cluster-context.md) | Verified | REQ-033–REQ-054 | Resource navigation, Kafka cluster context, page migration and stabilization |
-| [SPEC-005](./005-read-only-message-browser.md) | Verified | REQ-055–REQ-073 | Explicit bounded Browse/Tail and byte-safe record inspection |
-| [SPEC-006](./006-consumer-groups-lag.md) | Verified | REQ-074–REQ-083 | Consumer group list, Offsets & Lag and Members workspace |
-| [SPEC-007](./007-topic-broker-depth.md) | Verified | REQ-084–REQ-093 | Topic Configuration tab, Topic↔Consumer Group cross-links, Broker config |
-| [SPEC-008](./008-message-browser-enhancements.md) | Verified | REQ-094–REQ-101 | Message browser filtering (key/value/header) and seek-by-timestamp |
-| [SPEC-009](./009-write-operations.md) | Verified | REQ-102–REQ-115, REQ-194–REQ-197, REQ-203–REQ-208 | Write policy, Produce Message (compose panel beside the workspace), Consumer Group offset reset, topic deletion (single and batch) and the main-process guard |
-| [SPEC-010](./010-schema-registry.md) | Verified | REQ-116–REQ-125 | Schema Registry integration: subjects, versions, Avro/Protobuf deserialization |
-| [SPEC-011](./011-kafka-connect.md) | Verified | REQ-126–REQ-135 | Kafka Connect: connector list, detail, lifecycle and management |
-| [SPEC-012](./012-acl-security-views.md) | Verified | REQ-136–REQ-143 | ACL list, filtering and write management |
-| [SPEC-013](./013-ux-performance-v1-gate.md) | Verified | REQ-144–REQ-151 | UX/performance cross-cutting quality and v1.0.0 release gate |
-| [SPEC-014](./014-production-scale-performance.md) | Verified | REQ-152–REQ-191 | Production-scale performance, lossless aggregate-health batching, backend/API/browser gates and explicit final approval |
-| [SPEC-015](./015-topic-size.md) | Implemented | REQ-198–REQ-201 | Topic and partition size on disk through DescribeLogDirs (v1.2.0) |
-| [SPEC-016](./016-update-without-restart.md) | Implemented | REQ-209–REQ-211 | Version probe between the two halves of the extension and restart notice after an in-place update |
-| [SPEC-017](./017-msk-iam-authentication.md) | Verified | REQ-212–REQ-217, REQ-221 | AWS IAM authentication for direct Amazon MSK connections (SASL/OAUTHBEARER with a token minted from the AWS SDK credential chain) |
-| [SPEC-018](./018-durable-settings.md) | Implemented | REQ-218–REQ-220 | Settings kept in the host extension store so that they survive a Freelens restart; the Security override persisted without its password |
+| Spec                                                      | Status       | Requirements                                      | Scope                                                                                                                                                            |
+| --------------------------------------------------------- | ------------ | ------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| [SPEC-001](./001-loading-usage-navigation.md)             | Verified     | REQ-001–REQ-011                                   | Meaningful progress, Kubernetes usage semantics and row navigation                                                                                               |
+| [SPEC-002](./002-playwright-mcp-assisted-verification.md) | Verified     | REQ-012–REQ-022                                   | Safe Playwright MCP assisted-verification layer                                                                                                                  |
+| [SPEC-003](./003-topic-list-detail.md)                    | Verified     | REQ-023–REQ-032                                   | Read-only topic list, partition topology and replica health                                                                                                      |
+| [SPEC-004](./004-resource-navigation-cluster-context.md)  | Verified     | REQ-033–REQ-054                                   | Resource navigation, Kafka cluster context, page migration and stabilization                                                                                     |
+| [SPEC-005](./005-read-only-message-browser.md)            | Verified     | REQ-055–REQ-073                                   | Explicit bounded Browse/Tail and byte-safe record inspection                                                                                                     |
+| [SPEC-006](./006-consumer-groups-lag.md)                  | Verified     | REQ-074–REQ-083                                   | Consumer group list, Offsets & Lag and Members workspace                                                                                                         |
+| [SPEC-007](./007-topic-broker-depth.md)                   | Verified     | REQ-084–REQ-093                                   | Topic Configuration tab, Topic↔Consumer Group cross-links, Broker config                                                                                         |
+| [SPEC-008](./008-message-browser-enhancements.md)         | Verified     | REQ-094–REQ-101                                   | Message browser filtering (key/value/header) and seek-by-timestamp                                                                                               |
+| [SPEC-009](./009-write-operations.md)                     | Verified     | REQ-102–REQ-115, REQ-194–REQ-197, REQ-203–REQ-208 | Write policy, Produce Message (compose panel beside the workspace), Consumer Group offset reset, topic deletion (single and batch) and the main-process guard    |
+| [SPEC-010](./010-schema-registry.md)                      | Verified     | REQ-116–REQ-125                                   | Schema Registry integration: subjects, versions, Avro/Protobuf deserialization                                                                                   |
+| [SPEC-011](./011-kafka-connect.md)                        | Verified     | REQ-126–REQ-135                                   | Kafka Connect: connector list, detail, lifecycle and management                                                                                                  |
+| [SPEC-012](./012-acl-security-views.md)                   | Verified     | REQ-136–REQ-143                                   | ACL list, filtering and write management                                                                                                                         |
+| [SPEC-013](./013-ux-performance-v1-gate.md)               | Verified     | REQ-144–REQ-151                                   | UX/performance cross-cutting quality and v1.0.0 release gate                                                                                                     |
+| [SPEC-014](./014-production-scale-performance.md)         | Verified     | REQ-152–REQ-191                                   | Production-scale performance, lossless aggregate-health batching, backend/API/browser gates and explicit final approval                                          |
+| [SPEC-015](./015-topic-size.md)                           | Implemented  | REQ-198–REQ-201                                   | Topic and partition size on disk through DescribeLogDirs (v1.2.0)                                                                                                |
+| [SPEC-016](./016-update-without-restart.md)               | Implemented  | REQ-209–REQ-211                                   | Version probe between the two halves of the extension and restart notice after an in-place update                                                                |
+| [SPEC-017](./017-msk-iam-authentication.md)               | Verified     | REQ-212–REQ-217, REQ-221                          | AWS IAM authentication for direct Amazon MSK connections (SASL/OAUTHBEARER with a token minted from the AWS SDK credential chain)                                |
+| [SPEC-018](./018-durable-settings.md)                     | Implemented  | REQ-218–REQ-220                                   | Settings kept in the host extension store so that they survive a Freelens restart; the Security override persisted without its password                          |
+| [SPEC-019](./019-v2-port.md)                              | Implementing | REQ-222–REQ-233                                   | Port to the Freelens v2 extension API: cluster access through Freelens, HTTP through the host, per-frame progress, clean lifecycle, labs of the repository's own |
 
-The next available requirement ID is `REQ-222`. SPEC-007–014 allocate REQ-084–REQ-191 and define
+The next available requirement ID is `REQ-234`. SPEC-007–014 allocate REQ-084–REQ-191 and define
 the complete v1.0.0 scope; the post-release additions use REQ-193 (SPEC-008), REQ-194–REQ-197 and
 REQ-203–REQ-208 (SPEC-009), REQ-198–REQ-201 (SPEC-015), REQ-209–REQ-211 (SPEC-016) and
-REQ-212–REQ-217 and REQ-221 (SPEC-017) and REQ-218–REQ-220 (SPEC-018).
+REQ-212–REQ-217 and REQ-221 (SPEC-017) and REQ-218–REQ-220 (SPEC-018), and the v2 port
+REQ-222–REQ-233 (SPEC-019).

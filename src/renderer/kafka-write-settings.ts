@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
 
-export const KAFKA_WRITE_MODE_KEY = "freelens-kafka.write-mode.v1";
+export { KAFKA_WRITE_MODE_KEY } from "../common/write-mode-key";
+
+import { KAFKA_WRITE_MODE_KEY } from "../common/write-mode-key";
 
 export interface KafkaWriteSettingsStorage {
   getItem(key: string): string | null;
@@ -58,6 +60,17 @@ export class KafkaWriteSettingsStore {
   /** Re-read the storage, for example once the host store has loaded from disk. */
   reload(): void {
     this.syncFromStorage();
+  }
+
+  /**
+   * Re-read the storage after a change made elsewhere, such as in the frame of another cluster, which the host syncs
+   * into this frame's copy of the store, and tell the listeners when the targets changed (SPEC-019, REQ-231).
+   */
+  refresh(): void {
+    const before = [...this.writeMode].sort().join("\n");
+
+    this.syncFromStorage();
+    if ([...this.writeMode].sort().join("\n") !== before) this.emit();
   }
 
   /** Targets with write mode on, sorted; used to mirror the state to the main process. */

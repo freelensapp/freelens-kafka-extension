@@ -1,10 +1,10 @@
 # SPEC-015 - Topic Size on Disk
 
-| Field | Value |
-| --- | --- |
-| Status | Implemented |
-| Date | 2026-09-10 |
-| Source | Issue #30, requested by a user after v1.0.0 |
+| Field  | Value                                                        |
+| ------ | ------------------------------------------------------------ |
+| Status | Implemented                                                  |
+| Date   | 2026-09-10                                                   |
+| Source | Issue #30, requested by a user after v1.0.0                  |
 | Safety | Read-only (DescribeLogDirs); governed by `TESTING-SAFETY.md` |
 
 ## Problem
@@ -55,8 +55,8 @@ Admin call for `DescribeLogDirs`.
 
 ## Verification Evidence
 
-| Requirement range | Evidence |
-| --- | --- |
-| REQ-198, SC-116 | `src/main/kafka/log-dirs-protocol.test.ts` (encoding, decoding, read-only transport gate) |
-| REQ-199–REQ-200, SC-116 | `src/main/kafka/log-dirs.test.ts` (aggregation, lower bounds, unavailable and unsupported brokers) |
-| REQ-201, SC-115 | Packaged Electron E2E: Topics list, summary strip and Partitions tab show byte values on the loopback fixture |
+| Requirement range       | Evidence                                                                                                      |
+| ----------------------- | ------------------------------------------------------------------------------------------------------------- |
+| REQ-198, SC-116         | `src/main/kafka/log-dirs-protocol.test.ts` (encoding, decoding, read-only transport gate)                     |
+| REQ-199–REQ-200, SC-116 | `src/main/kafka/log-dirs.test.ts` (aggregation, lower bounds, unavailable and unsupported brokers)            |
+| REQ-201, SC-115         | Packaged Electron E2E: Topics list, summary strip and Partitions tab show byte values on the loopback fixture |

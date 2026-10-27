@@ -1,7 +1,10 @@
-import { CompressionCodecs, CompressionTypes, type Kafka } from "kafkajs";
+import { CompressionTypes, type Kafka } from "kafkajs";
+import kafkaJsBatchModule from "kafkajs/src/consumer/batch.js";
+import lz4AsmModule from "lz4-asm/dist/lz4asm.js";
 import { decodeConfluentAvro } from "../schema-registry/avro-decoder";
 import { SchemaRegistryClient } from "../schema-registry/client";
 import { decodeConfluentProtobuf } from "../schema-registry/protobuf-decoder";
+import { CompressionCodecs } from "./kafkajs";
 
 import type {
   KafkaMessageBytesDto,
@@ -31,8 +34,7 @@ type Lz4AsmInitializer = (module: Record<string, unknown>) => Promise<Lz4AsmModu
 
 // Use the package's ASM build directly. Its default entry loads an external WASM file through
 // fetch(), which is not safe in Node 24/Electron or a self-contained Freelens extension bundle.
-// eslint-disable-next-line @typescript-eslint/no-require-imports
-const initializeLz4 = require("lz4-asm/dist/lz4asm.js") as Lz4AsmInitializer;
+const initializeLz4 = lz4AsmModule as Lz4AsmInitializer;
 const lz4Ready = initializeLz4({});
 
 const lz4Codec = () => ({
@@ -145,8 +147,7 @@ type KafkaJsBatchConstructor = new (
 ) => KafkaJsBatchInstance;
 
 // KafkaJS has no public group-free record reader. Keep its pinned internal surface behind this file.
-// eslint-disable-next-line @typescript-eslint/no-require-imports
-const KafkaJsBatch = require("kafkajs/src/consumer/batch") as KafkaJsBatchConstructor;
+const KafkaJsBatch = kafkaJsBatchModule as KafkaJsBatchConstructor;
 
 class PreviewBudget {
   private remaining = MESSAGE_RESPONSE_PREVIEW_MAX_BYTES;
@@ -353,6 +354,7 @@ async function normalizeRecord(
 export async function browseMessagesWithCluster(
   cluster: KafkaReadCluster,
   rawInput: MessageBrowseInput,
+  registryFetch: typeof fetch,
 ): Promise<MessageBrowseDto> {
   const input = validateMessageBrowseInput(rawInput);
   await cluster.addTargetTopic(input.topic);
@@ -411,6 +413,7 @@ export async function browseMessagesWithCluster(
           baseUrl: input.registryUrl,
           username: input.registryUsername,
           password: input.registryPassword,
+          fetchImpl: registryFetch,
         })
       : undefined;
     messages = await Promise.all(
@@ -439,12 +442,16 @@ export async function browseMessagesWithCluster(
   };
 }
 
-export async function browseMessages(kafka: Kafka, input: MessageBrowseInput): Promise<MessageBrowseDto> {
+export async function browseMessages(
+  kafka: Kafka,
+  input: MessageBrowseInput,
+  registryFetch: typeof fetch,
+): Promise<MessageBrowseDto> {
   const validated = validateMessageBrowseInput(input);
   const cluster = createKafkaJsReadCluster(kafka);
   await cluster.connect();
   try {
-    return await browseMessagesWithCluster(cluster, validated);
+    return await browseMessagesWithCluster(cluster, validated, registryFetch);
   } finally {
     await cluster.disconnect();
   }

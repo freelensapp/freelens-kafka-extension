@@ -1,11 +1,11 @@
 # SPEC-001 — Loading, Kubernetes Usage and Cluster Navigation
 
-| Field | Value |
-| --- | --- |
-| Status | Verified |
-| Date | 2026-07-22 |
+| Field  | Value                                                                               |
+| ------ | ----------------------------------------------------------------------------------- |
+| Status | Verified                                                                            |
+| Date   | 2026-07-22                                                                          |
 | Source | User feedback from manual testing on an explicitly authorized read-only environment |
-| Safety | Read-only behavior; governed by [`TESTING-SAFETY.md`](../../TESTING-SAFETY.md) |
+| Safety | Read-only behavior; governed by [`TESTING-SAFETY.md`](../../TESTING-SAFETY.md)      |
 
 ## Problem
 
@@ -106,15 +106,15 @@ If a phase fails, the last phase and error remain visible.
 
 ## Traceability
 
-| Requirement | Delivered code | Verification evidence |
-| --- | --- | --- |
-| REQ-001–REQ-004 | `KafkaProgressEvent`, monotonic reporter, discovery phases, native `LineProgress` | `progress.test.ts`; packaged Freelens E2E observes first event <500 ms, monotonic values and `complete=100` |
-| REQ-003 | Bounded-concurrency workload scan with completed/total callbacks | `discovery.test.ts`; EKS read-only evidence shows `2/232` through `231/232` and 100% |
-| REQ-005–REQ-006 | `kafkaUsageSummary` / `KafkaUsageCell` | `kafka-view-model.test.ts`; E2E renders `2 workloads / 2 namespaces` |
-| REQ-007 | Click/keyboard row interaction with native Drawer propagation fix | E2E opens from `.nameCell`, closes, then reopens with Enter |
-| REQ-008 | Disabled-row `aria-disabled`, label/title reason | Type/lint gates + renderer contract inspection |
-| REQ-009–REQ-010 | Security/connection/broker/topic progress callbacks and retained failing phase | E2E observes `security`, `connection`, `connect`, `brokers`, `topics`, `complete`; UI error uses last correlated event |
-| REQ-011 | Selective env resolver + Promise cache + concurrency limit 6 | unrelated-Secret regression in `external-credentials.test.ts`; authorized read-only EKS run |
+| Requirement     | Delivered code                                                                    | Verification evidence                                                                                                  |
+| --------------- | --------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| REQ-001–REQ-004 | `KafkaProgressEvent`, monotonic reporter, discovery phases, native `LineProgress` | `progress.test.ts`; packaged Freelens E2E observes first event <500 ms, monotonic values and `complete=100`            |
+| REQ-003         | Bounded-concurrency workload scan with completed/total callbacks                  | `discovery.test.ts`; EKS read-only evidence shows `2/232` through `231/232` and 100%                                   |
+| REQ-005–REQ-006 | `kafkaUsageSummary` / `KafkaUsageCell`                                            | `kafka-view-model.test.ts`; E2E renders `2 workloads / 2 namespaces`                                                   |
+| REQ-007         | Click/keyboard row interaction with native Drawer propagation fix                 | E2E opens from `.nameCell`, closes, then reopens with Enter                                                            |
+| REQ-008         | Disabled-row `aria-disabled`, label/title reason                                  | Type/lint gates + renderer contract inspection                                                                         |
+| REQ-009–REQ-010 | Security/connection/broker/topic progress callbacks and retained failing phase    | E2E observes `security`, `connection`, `connect`, `brokers`, `topics`, `complete`; UI error uses last correlated event |
+| REQ-011         | Selective env resolver + Promise cache + concurrency limit 6                      | unrelated-Secret regression in `external-credentials.test.ts`; authorized read-only EKS run                            |
 
 ## Verification Evidence
 

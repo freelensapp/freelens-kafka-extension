@@ -1,6 +1,7 @@
 *.d.ts
 *.gz
 *.lock
+!mise.lock
 *.log
 *.map
 *.out
@@ -22,9 +23,14 @@
 
 /coverage/
 /node_modules/
-/out/
+
+# Scratch space of the CI agent, which checks out Freelens at tmp/freelens.
+/tmp/
 
 /.nyc_output/
+
+# Snapshots, screenshots and console logs written by the Playwright MCP server.
+/.playwright-mcp/
 
 *.DS_Store
 /.idea
@@ -42,3 +48,7 @@
 *.pfx
 *.pem
 *.key
+
+# The kubeconfig files of the lab and of the demo cluster (scripts/lab.sh, scripts/demo.mjs).
+/.lab/
+/.demo/

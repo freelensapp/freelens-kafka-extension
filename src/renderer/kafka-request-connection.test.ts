@@ -1,44 +1,28 @@
-import { readdirSync, readFileSync } from "node:fs";
-import { join, relative } from "node:path";
-import ts from "typescript";
 import { describe, expect, it } from "vitest";
+import { parseSources, walk } from "../../test/source-ast";
 
-const RENDERER = import.meta.dirname;
+import type { SourceNode } from "../../test/source-ast";
 
-function sourceFiles(directory: string): string[] {
-  return readdirSync(directory, { withFileTypes: true }).flatMap((entry) => {
-    const path = join(directory, entry.name);
-    if (entry.isDirectory()) return sourceFiles(path);
-    return /\.tsx?$/.test(entry.name) && !/\.test\.tsx?$/.test(entry.name) ? [path] : [];
-  });
-}
-
-function propertyNames(literal: ts.ObjectLiteralExpression): Set<string> {
+function propertyNames(literal: SourceNode): Set<string> {
   const names = new Set<string>();
-  for (const property of literal.properties) {
-    if (property.name && (ts.isIdentifier(property.name) || ts.isStringLiteral(property.name))) {
-      names.add(property.name.text);
-    }
+  for (const property of literal.properties as SourceNode[]) {
+    if (property.type !== "Property" || property.computed) continue;
+    const key = property.key as { type: string; name?: string; value?: unknown };
+    if (key.type === "Identifier" && key.name) names.add(key.name);
+    if (key.type === "Literal" && typeof key.value === "string") names.add(key.value);
   }
   return names;
 }
 
 /** Object literals that select a Kafka target for the main process: they name the cluster and its bootstrap. */
-function targetRequests(path: string): { at: string; names: Set<string> }[] {
-  const file = ts.createSourceFile(path, readFileSync(path, "utf8"), ts.ScriptTarget.Latest, true);
-  const found: { at: string; names: Set<string> }[] = [];
-  const visit = (node: ts.Node) => {
-    if (ts.isObjectLiteralExpression(node)) {
-      const names = propertyNames(node);
-      if (names.has("clusterName") && names.has("bootstrap")) {
-        const { line } = file.getLineAndCharacterOfPosition(node.getStart(file));
-        found.push({ at: `${relative(RENDERER, path)}:${line + 1}`, names });
-      }
-    }
-    ts.forEachChild(node, visit);
-  };
-  visit(file);
-  return found;
+function targetRequests(): { at: string; names: Set<string> }[] {
+  return parseSources(import.meta.dirname, /\.tsx?$/).flatMap((file) =>
+    [...walk(file.program)]
+      .filter((node) => node.type === "ObjectExpression")
+      .map((node) => ({ node, names: propertyNames(node) }))
+      .filter(({ names }) => names.has("clusterName") && names.has("bootstrap"))
+      .map(({ node, names }) => ({ at: `${file.path}:${file.lineOf(node.start)}`, names })),
+  );
 }
 
 describe("requests to the main process", () => {
@@ -46,7 +30,7 @@ describe("requests to the main process", () => {
   // them gets a session of its own without the saved Security override, so a broker that requires
   // authentication (AWS IAM on MSK, SASL) closes its connection while the other pages work (#82).
   it("carry the saved Security override and the workload source of the target", () => {
-    const requests = sourceFiles(RENDERER).flatMap(targetRequests);
+    const requests = targetRequests();
     const missing = requests
       .filter(({ names }) => !names.has("security") || !names.has("sourceLocator"))
       .map(({ at, names }) =>

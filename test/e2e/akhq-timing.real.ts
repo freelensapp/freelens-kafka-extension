@@ -8,6 +8,9 @@ import { execFileSync, spawnSync } from "node:child_process";
 import { existsSync, mkdtempSync, rmSync, statSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
+import { firstBrokerAddress, splitBootstrap } from "../../src/common/reachability";
+import { type AnyDiscoveredKafka, discoverAllKafkas } from "../../src/main/kafka/discovery";
+import { resolveExternalCredentials } from "../../src/main/kafka/external-credentials";
 import {
   AKHQ_CLUSTER_ID,
   AKHQ_DIGEST,
@@ -19,16 +22,10 @@ import {
   AkhqPageValidationError,
   assertAkhqUsefulPage,
   createAkhqReadOnlyConfiguration,
-} from "../../src/common/akhq-read-only-config";
-import {
-  assertSanitizedPerformanceEvidence,
-  summarizePerformanceDurations,
-} from "../../src/common/performance-evidence";
-import { firstBrokerAddress, splitBootstrap } from "../../src/common/reachability";
-import { authorizeReadOnlyTarget, selectSingleAuthorizedTarget } from "../../src/common/read-only-target-authorization";
-import { type AnyDiscoveredKafka, discoverAllKafkas } from "../../src/main/kafka/discovery";
-import { resolveExternalCredentials } from "../../src/main/kafka/external-credentials";
-import { createKubeReader } from "../../src/main/kafka/kube-reader";
+} from "../evidence/akhq-read-only-config";
+import { assertSanitizedPerformanceEvidence, summarizePerformanceDurations } from "../evidence/performance-evidence";
+import { authorizeReadOnlyTarget, selectSingleAuthorizedTarget } from "../evidence/read-only-target-authorization";
+import { createKubeReader } from "./kube-reader";
 
 const CONTAINER_NAME = "freelens-kafka-akhq-read-only";
 const OWNER_LABEL = "io.freelens.test=slice16-akhq-read-only";

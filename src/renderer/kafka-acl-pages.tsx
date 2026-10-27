@@ -1,8 +1,11 @@
 import { Renderer } from "@freelensapp/extensions";
 import { useCallback, useEffect, useMemo, useState } from "react";
+import styles from "./kafka.module.scss";
+import { ANY_ACL_FILTER, filterKafkaAcls } from "./kafka-acl-filter";
 import { KafkaPageShell } from "./kafka-page-shell";
 import { KafkaResourceActions, type KafkaResourcePageDependencies, useKafkaResourcePage } from "./kafka-resource-pages";
 import { canSubmitWriteAction } from "./kafka-write-policy";
+import { useKafkaWriteMode } from "./kafka-write-settings";
 
 import type { HTMLAttributes } from "react";
 
@@ -66,8 +69,8 @@ export function KafkaAclPage({ params, acls, aclCreate, aclDelete, ...dependenci
 
   const [result, setResult] = useState<KafkaAclResultDto>();
   const [principalFilter, setPrincipalFilter] = useState("");
-  const [resourceTypeFilter, setResourceTypeFilter] = useState("ALL");
-  const [operationFilter, setOperationFilter] = useState("ALL");
+  const [resourceTypeFilter, setResourceTypeFilter] = useState(ANY_ACL_FILTER);
+  const [operationFilter, setOperationFilter] = useState(ANY_ACL_FILTER);
 
   const [resourceType, setResourceType] = useState("TOPIC");
   const [resourceName, setResourceName] = useState("");
@@ -108,16 +111,15 @@ export function KafkaAclPage({ params, acls, aclCreate, aclDelete, ...dependenci
 
   const filtered = useMemo(
     () =>
-      (result?.acls ?? []).filter(
-        (acl) =>
-          (resourceTypeFilter === "ALL" || acl.resourceType === resourceTypeFilter) &&
-          (operationFilter === "ALL" || acl.operation === operationFilter) &&
-          acl.principal.toLowerCase().includes(principalFilter.toLowerCase()),
-      ),
+      filterKafkaAcls(result?.acls ?? [], {
+        principal: principalFilter,
+        resourceType: resourceTypeFilter,
+        operation: operationFilter,
+      }),
     [operationFilter, principalFilter, resourceTypeFilter, result],
   );
 
-  const canWrite = Boolean(cluster && dependencies.writeSettings.get(cluster.targetId));
+  const canWrite = useKafkaWriteMode(dependencies.writeSettings, cluster?.targetId);
   const draft: KafkaAclDto = { resourceType, resourceName, patternType, principal, host, operation, permissionType };
   const draftComplete = resourceName.trim().length > 0 && principal.trim().length > 0 && host.trim().length > 0;
 
@@ -143,8 +145,8 @@ export function KafkaAclPage({ params, acls, aclCreate, aclDelete, ...dependenci
       subtitle={cluster?.name ?? "Kafka security rules"}
       actions={<KafkaResourceActions state={state} />}
     >
-      <main className="KafkaResourcePage" data-testid="kafka-acl-page">
-        <div className="KafkaToolbar">
+      <main className={styles.kafkaResourcePage} data-testid="kafka-acl-page">
+        <div className={styles.kafkaToolbar}>
           <Renderer.Component.Input
             value={principalFilter}
             onChange={setPrincipalFilter}
@@ -156,7 +158,8 @@ export function KafkaAclPage({ params, acls, aclCreate, aclDelete, ...dependenci
             onChange={(event) => setResourceTypeFilter(event.target.value)}
             aria-label="Filter ACL resource type"
           >
-            {["ALL", ...RESOURCE_TYPES].map((value) => (
+            <option value={ANY_ACL_FILTER}>Any</option>
+            {RESOURCE_TYPES.map((value) => (
               <option key={value}>{value}</option>
             ))}
           </select>
@@ -165,19 +168,22 @@ export function KafkaAclPage({ params, acls, aclCreate, aclDelete, ...dependenci
             onChange={(event) => setOperationFilter(event.target.value)}
             aria-label="Filter ACL operation"
           >
-            {["ALL", ...OPERATIONS].map((value) => (
+            <option value={ANY_ACL_FILTER}>Any</option>
+            {OPERATIONS.map((value) => (
               <option key={value}>{value}</option>
             ))}
           </select>
         </div>
 
         {result && !result.available ? (
-          <div className="KafkaPageState empty" data-testid="kafka-acl-unavailable">
+          <div className={`${styles.kafkaPageState} empty`} data-testid="kafka-acl-unavailable">
             {result.message}
           </div>
         ) : (
           <>
-            {result && filtered.length === 0 && <div className="KafkaPageState empty">No ACL rules match.</div>}
+            {result && filtered.length === 0 && (
+              <div className={`${styles.kafkaPageState} empty`}>No ACL rules match.</div>
+            )}
             <Renderer.Component.Table className="KafkaAclTable">
               <Renderer.Component.TableHead>
                 <Renderer.Component.TableCell>Resource</Renderer.Component.TableCell>

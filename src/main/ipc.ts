@@ -40,12 +40,10 @@ import {
   type TopicConsumersRequest,
   type TopicRequest,
   type TopicSizesRequest,
-  type WriteModeRequest,
 } from "../common/ipc";
 import { kafkaPersistentStateStore } from "../common/kafka-persistent-state-store";
 import { createKafkaTargetId } from "../common/kafka-target";
 import { createCatalogKubeReader } from "./catalog-kube-reader";
-import { resolveForwarderOptions } from "./forwarder-options";
 import { createAcl, deleteAcl } from "./kafka/acl";
 import { aggregateHealthWorkerKey, KafkaAggregateHealthManager } from "./kafka/aggregate-health-manager";
 import { connectDiscovered } from "./kafka/connect-discovered";
@@ -58,57 +56,50 @@ import {
   resolveExternalCredentials,
 } from "./kafka/external-credentials";
 import { connectDirect, type KafkaConnection } from "./kafka/kafka-connection";
-import { createKubeForwarder } from "./kafka/kube-forwarder";
-import { createKubeReader, type KubeReader } from "./kafka/kube-reader";
+import { KubectlTunnels, type TunnelHost } from "./kafka/kubectl-tunnels";
 import { createProgressReporter, type KafkaProgressReporter } from "./kafka/progress";
 import { probeBootstrapReachable } from "./kafka/reachability";
 import { KafkaSessionManager } from "./kafka/session-manager";
 import { KafkaTargetSessionRegistry } from "./kafka/target-session-registry";
+import { createTunnelForwarder } from "./kafka/tunnel-forwarder";
 import { KafkaConnectClient } from "./kafka-connect/client";
 import { withFinalizer, withTimeout } from "./operation-timeout";
+import { type IpcSenderEvent, KafkaProgressStore, senderKey } from "./progress-store";
 import { SchemaRegistryClient } from "./schema-registry/client";
-import { WriteModeRegistry } from "./write-mode";
+import { createTunnelHost } from "./tunnel-host";
+import { WriteModeGuard } from "./write-mode";
 
-import type { ExtensionVersionDto, KafkaSecurityHint, KafkaSecuritySummary } from "../common/ipc";
-import type { ForwarderRequest } from "./forwarder-options";
-import type { KubeForwarderOptions } from "./kafka/kube-forwarder";
+import type {
+  ExtensionVersionDto,
+  KafkaProgressEvent,
+  KafkaProgressEventRequest,
+  KafkaProgressEvents,
+  KafkaProgressSignal,
+  KafkaSecurityHint,
+  KafkaSecuritySummary,
+} from "../common/ipc";
+import type { KubeReader } from "./kafka/kube-reader";
 
-/**
- * The kubeconfig file and context for the request's cluster, used by the real port-forward:
- * the file the cluster was added to Freelens from (`kubeConfigPath`), which may live outside
- * the default `~/.kube/config` / `$KUBECONFIG` resolution.
- */
-function clusterForwarderOptions(request: ForwarderRequest): KubeForwarderOptions {
-  return resolveForwarderOptions(Main.Catalog.getAllClusters(), request);
-}
-
-/** The id of the cluster the user is currently viewing (falls back to the first). */
-function activeClusterId(): string {
-  const clusters = Main.Catalog.getAllClusters();
-  const active = clusters.find((c) => c.isActive) ?? clusters[0];
-  if (!active) throw new Error("no Kubernetes cluster is available");
-  return active.id;
+/** The Freelens cluster of a request: every request names one (SPEC-019, REQ-224). */
+function requireClusterId(request: { clusterId?: string }): string {
+  if (typeof request.clusterId !== "string" || !request.clusterId) {
+    throw new Error("no Kubernetes cluster was named for the request");
+  }
+  return request.clusterId;
 }
 
 function aggregateHealthIdentity(request: OverviewRequest): { contextId: string; targetId: string } {
   return {
-    contextId: request.clusterId ?? request.context ?? "active",
+    contextId: requireClusterId(request),
     targetId:
       request.targetId ??
       createKafkaTargetId(request.bootstrap ?? `${request.namespace}/${request.clusterName}/${request.user ?? ""}`),
   };
 }
 
-/**
- * Read Kubernetes objects through Freelens's connected cluster (`Main.K8s`) by default, so
- * no kubeconfig has to be loaded or authenticated again for reads.
- * An explicit kubeconfig in the request (e.g. tests) still uses direct client-node access.
- */
-function createReader(request: { clusterId?: string; kubeConfigPath?: string; context?: string }): KubeReader {
-  if (request.kubeConfigPath || request.context) {
-    return createKubeReader({ kubeConfigPath: request.kubeConfigPath, context: request.context });
-  }
-  return createCatalogKubeReader(request.clusterId ?? activeClusterId());
+/** Read Kubernetes objects through Freelens's connected cluster (`Main.K8s`), with the identity of the host. */
+function createReader(request: { clusterId?: string }): KubeReader {
+  return createCatalogKubeReader(requireClusterId(request));
 }
 
 /** Map an engine discovery result to the serializable DTO returned to the renderer. */
@@ -166,6 +157,7 @@ async function connectForRequest(
   report: KafkaProgressReporter,
   credentialProfiles: KafkaCredentialProfileCache,
   sessions: KafkaSessionManager,
+  tunnels: KubectlTunnels,
   onSessionKey: (sessionKey: string) => void,
 ): Promise<{ connection: KafkaConnection; security: KafkaSecuritySummary; sessionKey: string }> {
   report({
@@ -181,7 +173,7 @@ async function connectForRequest(
     const bootstrap = request.bootstrap;
     const sessionKey = credentialProfileKey({
       bootstrap,
-      contextId: request.clusterId ?? request.context ?? "active",
+      contextId: requireClusterId(request),
       namespace: request.namespace,
       sourceLocator: request.sourceLocator,
       security: request.security,
@@ -210,6 +202,7 @@ async function connectForRequest(
           )
         : { detected: false as const, hint: { tls: false, auth: "none" as const } };
     const applied = applySecurityOverride({
+      awsFetch: Main.Util.fetch,
       automatic,
       automaticHint: automatic.detected ? automatic.hint : { tls: Boolean(request.tls), auth: "none" },
       fallbackTls: Boolean(request.tls),
@@ -247,7 +240,7 @@ async function connectForRequest(
   }
   const sessionKey = credentialProfileKey({
     bootstrap: discovered.bootstrap,
-    contextId: request.clusterId ?? request.context ?? "active",
+    contextId: requireClusterId(request),
     namespace: request.namespace,
     security: request.security,
     targetId: request.targetId,
@@ -277,13 +270,14 @@ async function connectForRequest(
           : "none",
   };
   const applied = applySecurityOverride({
+    awsFetch: Main.Util.fetch,
     automatic: credentials,
     automaticHint,
     fallbackTls: discovered.tls,
     override: request.security,
     source: "strimzi",
   });
-  const forwarder = createKubeForwarder(clusterForwarderOptions(request));
+  const clusterId = requireClusterId(request);
   report({
     value: 30,
     phase: "connection",
@@ -293,21 +287,39 @@ async function connectForRequest(
   onSessionKey(sessionKey);
   return {
     connection: (
-      await sessions.acquire(sessionKey, () =>
-        connectDiscovered({
-          discovered,
-          forwarder,
-          sasl: applied.sasl,
-          ssl: applied.ssl,
-          onPhase: (phase, info) => {
-            report(
-              phase === "metadata"
-                ? { value: 48, phase: "connection", label: "Bootstrap metadata received", detail: info }
-                : { value: 56, phase: "connection", label: "Opening broker port-forwards", detail: info },
-            );
+      await sessions.acquire(sessionKey, async () => {
+        // The tunnels of the session are kubectl port-forwards; they end with the session's connection (REQ-225).
+        let tunnelError: unknown;
+        const forwarder = createTunnelForwarder({
+          tunnels,
+          clusterId,
+          onPhase: (message) => report({ value: 30, phase: "connection", label: "Preparing kubectl", detail: message }),
+          onError: (error) => {
+            tunnelError ??= error;
           },
-        }),
-      )
+        });
+        try {
+          const connection = await connectDiscovered({
+            discovered,
+            forwarder: forwarder.forward,
+            sasl: applied.sasl,
+            ssl: applied.ssl,
+            onPhase: (phase, info) => {
+              report(
+                phase === "metadata"
+                  ? { value: 48, phase: "connection", label: "Bootstrap metadata received", detail: info }
+                  : { value: 56, phase: "connection", label: "Opening broker port-forwards", detail: info },
+              );
+            },
+          });
+          connection.onDisconnect(() => forwarder.close());
+          return connection;
+        } catch (error) {
+          await forwarder.close();
+          // Why kafkajs could not reach a broker is the tunnel's refusal, when there was one.
+          throw tunnelError ?? error;
+        }
+      })
     ).connection,
     security: applied.summary,
     sessionKey,
@@ -324,22 +336,33 @@ export class KafkaIpcMain extends Main.Ipc {
   private readonly credentialProfiles = new KafkaCredentialProfileCache();
   private readonly healthWorkersByTarget = new Map<string, Map<string, string>>();
   private readonly pendingConnectionsByTarget = new Map<string, Set<Promise<unknown>>>();
+  private readonly progress = new KafkaProgressStore();
   private readonly sessions = new KafkaSessionManager();
   private readonly targetSessions = new KafkaTargetSessionRegistry();
-  private readonly writeMode = new WriteModeRegistry();
+  private readonly tunnels: KubectlTunnels;
+  // The write mode as persisted, read from main's own copy of the extension store (REQ-233).
+  private readonly writeMode = new WriteModeGuard(() => kafkaPersistentStateStore());
 
-  constructor(extension: Main.LensExtension) {
+  constructor(extension: Main.LensExtension, tunnelHost: TunnelHost = createTunnelHost(() => extension.manifestPath)) {
     super(extension);
+    this.tunnels = new KubectlTunnels(tunnelHost);
 
     // The version of the code that is actually running here, not the one of the manifest (SPEC-016).
     this.handle(KAFKA_IPC.version, async (): Promise<ExtensionVersionDto> => ({ version: EXTENSION_VERSION }));
 
-    this.handle(KAFKA_IPC.discover, async (_event, request: DiscoverRequest) => {
+    // The progress events of an operation since a cursor, for the frame that started it only (REQ-227).
+    this.handle(
+      KAFKA_IPC.progressEvent,
+      async (event, request: KafkaProgressEventRequest): Promise<KafkaProgressEvents | null> =>
+        this.progress.get(senderKey(event), request?.operationId, request?.after) ?? null,
+    );
+
+    this.handle(KAFKA_IPC.discover, async (event, request: DiscoverRequest) => {
       const reader = createReader(request);
       const report = createProgressReporter({
         operationId: request.operationId,
         operation: "discovery",
-        emit: (progress) => this.broadcast(KAFKA_IPC.progress, progress),
+        emit: (progress) => this.publishProgress(event, progress),
       });
       const discovered = await discoverAllKafkas(reader, request.namespace, report);
       return discovered.map(toDiscoveredKafkaInfo);
@@ -353,17 +376,17 @@ export class KafkaIpcMain extends Main.Ipc {
     });
 
     this.handle(KAFKA_IPC.healthInvalidate, async (_event, request: AggregateHealthInvalidateRequest) => {
-      const targetKey = aggregateHealthSnapshotKey(request.clusterId ?? request.context ?? "active", request.targetId);
+      const targetKey = aggregateHealthSnapshotKey(requireClusterId(request), request.targetId);
       await this.invalidateHealthTarget(targetKey, request.closeSessions === true);
       if (request.removePersisted) kafkaPersistentStateStore().removeItem(targetKey);
     });
 
-    this.handle(KAFKA_IPC.overview, async (_event, request: OverviewRequest) => {
+    this.handle(KAFKA_IPC.overview, async (event, request: OverviewRequest) => {
       const reader = createReader(request);
       const report = createProgressReporter({
         operationId: request.operationId,
         operation: "overview",
-        emit: (progress) => this.broadcast(KAFKA_IPC.progress, progress),
+        emit: (progress) => this.publishProgress(event, progress),
       });
       const { connection, security } = await this.resolveConnection(request, reader, report);
       try {
@@ -380,12 +403,12 @@ export class KafkaIpcMain extends Main.Ipc {
       }
     });
 
-    this.handle(KAFKA_IPC.health, async (_event, request: ClusterHealthRequest) => {
+    this.handle(KAFKA_IPC.health, async (event, request: ClusterHealthRequest) => {
       const reader = createReader(request);
       const report = createProgressReporter({
         operationId: request.operationId,
         operation: "health",
-        emit: (progress) => this.broadcast(KAFKA_IPC.progress, progress),
+        emit: (progress) => this.publishProgress(event, progress),
       });
       const identity = aggregateHealthIdentity(request);
       const persistentKey = aggregateHealthSnapshotKey(identity.contextId, identity.targetId);
@@ -467,12 +490,12 @@ export class KafkaIpcMain extends Main.Ipc {
       }
     });
 
-    this.handle(KAFKA_IPC.topic, async (_event, request: TopicRequest) => {
+    this.handle(KAFKA_IPC.topic, async (event, request: TopicRequest) => {
       const reader = createReader(request);
       const report = createProgressReporter({
         operationId: request.operationId,
         operation: "topic",
-        emit: (progress) => this.broadcast(KAFKA_IPC.progress, progress),
+        emit: (progress) => this.publishProgress(event, progress),
       });
       const { connection } = await this.resolveConnection(request, reader, report);
       try {
@@ -502,12 +525,12 @@ export class KafkaIpcMain extends Main.Ipc {
       return withTimeout(finalized, KAFKA_ADMIN_TIMEOUT_MS, "Topic sizes");
     });
 
-    this.handle(KAFKA_IPC.topicConfig, async (_event, request: TopicConfigRequest) => {
+    this.handle(KAFKA_IPC.topicConfig, async (event, request: TopicConfigRequest) => {
       const reader = createReader(request);
       const report = createProgressReporter({
         operationId: request.operationId,
         operation: "topicConfig",
-        emit: (progress) => this.broadcast(KAFKA_IPC.progress, progress),
+        emit: (progress) => this.publishProgress(event, progress),
       });
       const connectionPromise = this.resolveConnection(request, reader, report);
       const operation = connectionPromise.then(async ({ connection }) => {
@@ -533,7 +556,7 @@ export class KafkaIpcMain extends Main.Ipc {
       return withTimeout(finalized, KAFKA_ADMIN_TIMEOUT_MS, "Topic configuration");
     });
 
-    this.handle(KAFKA_IPC.topicConsumers, async (_event, request: TopicConsumersRequest) => {
+    this.handle(KAFKA_IPC.topicConsumers, async (event, request: TopicConsumersRequest) => {
       const reader = createReader(request);
       let cancelled = false;
       let connection: KafkaConnection | undefined;
@@ -542,7 +565,7 @@ export class KafkaIpcMain extends Main.Ipc {
         operationId: request.operationId,
         operation: "topicConsumers",
         emit: (progress) => {
-          if (!cancelled) this.broadcast(KAFKA_IPC.progress, progress);
+          if (!cancelled) this.publishProgress(event, progress);
         },
       });
       const connectionPromise = this.resolveConnection(request, reader, report);
@@ -586,7 +609,7 @@ export class KafkaIpcMain extends Main.Ipc {
       }
     });
 
-    this.handle(KAFKA_IPC.brokerConfig, async (_event, request: BrokerConfigRequest) => {
+    this.handle(KAFKA_IPC.brokerConfig, async (event, request: BrokerConfigRequest) => {
       const reader = createReader(request);
       let cancelled = false;
       let connection: KafkaConnection | undefined;
@@ -594,7 +617,7 @@ export class KafkaIpcMain extends Main.Ipc {
         operationId: request.operationId,
         operation: "brokerConfig",
         emit: (progress) => {
-          if (!cancelled) this.broadcast(KAFKA_IPC.progress, progress);
+          if (!cancelled) this.publishProgress(event, progress);
         },
       });
       const connectionPromise = this.resolveConnection(request, reader, report);
@@ -629,7 +652,7 @@ export class KafkaIpcMain extends Main.Ipc {
       }
     });
 
-    this.handle(KAFKA_IPC.messagesBrowse, async (_event, request: MessageBrowseRequest) => {
+    this.handle(KAFKA_IPC.messagesBrowse, async (event, request: MessageBrowseRequest) => {
       const reader = createReader(request);
       let cancelled = false;
       let connection: KafkaConnection | undefined;
@@ -637,7 +660,7 @@ export class KafkaIpcMain extends Main.Ipc {
         operationId: request.operationId,
         operation: "messagesBrowse",
         emit: (progress) => {
-          if (!cancelled) this.broadcast(KAFKA_IPC.progress, progress);
+          if (!cancelled) this.publishProgress(event, progress);
         },
       });
       const connectionPromise = this.resolveConnection(request, reader, report);
@@ -650,7 +673,7 @@ export class KafkaIpcMain extends Main.Ipc {
           label: "Resolving message window",
           detail: `Reading partition ${request.partition} offsets without a consumer group.`,
         });
-        const result = await connection.browseMessages(request);
+        const result = await connection.browseMessages(request, Main.Util.fetch);
         if (cancelled) throw new Error("Message Browse was cancelled");
         report({
           value: 100,
@@ -672,12 +695,12 @@ export class KafkaIpcMain extends Main.Ipc {
       }
     });
 
-    this.handle(KAFKA_IPC.groups, async (_event, request: GroupsRequest) => {
+    this.handle(KAFKA_IPC.groups, async (event, request: GroupsRequest) => {
       const reader = createReader(request);
       const report = createProgressReporter({
         operationId: request.operationId,
         operation: "groups",
-        emit: (progress) => this.broadcast(KAFKA_IPC.progress, progress),
+        emit: (progress) => this.publishProgress(event, progress),
       });
       const connectionPromise = this.resolveConnection(request, reader, report);
       const operation = connectionPromise.then(async ({ connection }) => {
@@ -703,12 +726,12 @@ export class KafkaIpcMain extends Main.Ipc {
       return withTimeout(finalized, KAFKA_ADMIN_TIMEOUT_MS, "Consumer Groups list");
     });
 
-    this.handle(KAFKA_IPC.groupDetail, async (_event, request: GroupDetailRequest) => {
+    this.handle(KAFKA_IPC.groupDetail, async (event, request: GroupDetailRequest) => {
       const reader = createReader(request);
       const report = createProgressReporter({
         operationId: request.operationId,
         operation: "groupDetail",
-        emit: (progress) => this.broadcast(KAFKA_IPC.progress, progress),
+        emit: (progress) => this.publishProgress(event, progress),
       });
       const connectionPromise = this.resolveConnection(request, reader, report);
       const operation = connectionPromise.then(async ({ connection }) => {
@@ -732,10 +755,6 @@ export class KafkaIpcMain extends Main.Ipc {
         if (resolved) await this.sessions.release(resolved.connection);
       });
       return withTimeout(finalized, KAFKA_ADMIN_TIMEOUT_MS, "Consumer Group detail");
-    });
-
-    this.handle(KAFKA_IPC.writeMode, async (_event, request: WriteModeRequest) => {
-      this.writeMode.set(String(request.targetId ?? ""), Boolean(request.enabled));
     });
 
     this.handle(KAFKA_IPC.produce, async (_event, request: ProduceRequest) => {
@@ -784,6 +803,7 @@ export class KafkaIpcMain extends Main.Ipc {
 
     this.handle(KAFKA_IPC.schemaSubjects, async (_event, request: SchemaSubjectsRequest) => {
       const client = new SchemaRegistryClient({
+        fetchImpl: Main.Util.fetch,
         baseUrl: request.registryUrl,
         username: request.registryUsername,
         password: request.registryPassword,
@@ -794,6 +814,7 @@ export class KafkaIpcMain extends Main.Ipc {
 
     this.handle(KAFKA_IPC.schemaSubjectNames, async (_event, request: SchemaSubjectNamesRequest) => {
       return new SchemaRegistryClient({
+        fetchImpl: Main.Util.fetch,
         baseUrl: request.registryUrl,
         username: request.registryUsername,
         password: request.registryPassword,
@@ -802,6 +823,7 @@ export class KafkaIpcMain extends Main.Ipc {
 
     this.handle(KAFKA_IPC.schemaSubjectDetail, async (_event, request: SchemaSubjectDetailRequest) => {
       const client = new SchemaRegistryClient({
+        fetchImpl: Main.Util.fetch,
         baseUrl: request.registryUrl,
         username: request.registryUsername,
         password: request.registryPassword,
@@ -812,6 +834,7 @@ export class KafkaIpcMain extends Main.Ipc {
     this.handle(KAFKA_IPC.schemaRegister, async (_event, request: SchemaRegisterRequest) => {
       this.writeMode.assertEnabled(request.targetId, "Register schema");
       const client = new SchemaRegistryClient({
+        fetchImpl: Main.Util.fetch,
         baseUrl: request.registryUrl,
         username: request.registryUsername,
         password: request.registryPassword,
@@ -822,6 +845,7 @@ export class KafkaIpcMain extends Main.Ipc {
     this.handle(KAFKA_IPC.schemaDeleteSubject, async (_event, request: SchemaDeleteSubjectRequest) => {
       this.writeMode.assertEnabled(request.targetId, "Delete subject");
       const client = new SchemaRegistryClient({
+        fetchImpl: Main.Util.fetch,
         baseUrl: request.registryUrl,
         username: request.registryUsername,
         password: request.registryPassword,
@@ -831,6 +855,7 @@ export class KafkaIpcMain extends Main.Ipc {
 
     this.handle(KAFKA_IPC.connectList, async (_event, request: KafkaConnectRequest) => {
       return new KafkaConnectClient({
+        fetchImpl: Main.Util.fetch,
         baseUrl: request.connectUrl,
         username: request.connectUsername,
         password: request.connectPassword,
@@ -839,6 +864,7 @@ export class KafkaIpcMain extends Main.Ipc {
 
     this.handle(KAFKA_IPC.connectNames, async (_event, request: KafkaConnectRequest) => {
       return new KafkaConnectClient({
+        fetchImpl: Main.Util.fetch,
         baseUrl: request.connectUrl,
         username: request.connectUsername,
         password: request.connectPassword,
@@ -847,6 +873,7 @@ export class KafkaIpcMain extends Main.Ipc {
 
     this.handle(KAFKA_IPC.connectDetail, async (_event, request: KafkaConnectDetailRequest) => {
       return new KafkaConnectClient({
+        fetchImpl: Main.Util.fetch,
         baseUrl: request.connectUrl,
         username: request.connectUsername,
         password: request.connectPassword,
@@ -890,6 +917,7 @@ export class KafkaIpcMain extends Main.Ipc {
     this.handle(KAFKA_IPC.connectPause, async (_event, request: KafkaConnectDetailRequest) => {
       this.writeMode.assertEnabled(request.targetId, "Pause connector");
       return new KafkaConnectClient({
+        fetchImpl: Main.Util.fetch,
         baseUrl: request.connectUrl,
         username: request.connectUsername,
         password: request.connectPassword,
@@ -898,6 +926,7 @@ export class KafkaIpcMain extends Main.Ipc {
     this.handle(KAFKA_IPC.connectResume, async (_event, request: KafkaConnectDetailRequest) => {
       this.writeMode.assertEnabled(request.targetId, "Resume connector");
       return new KafkaConnectClient({
+        fetchImpl: Main.Util.fetch,
         baseUrl: request.connectUrl,
         username: request.connectUsername,
         password: request.connectPassword,
@@ -906,6 +935,7 @@ export class KafkaIpcMain extends Main.Ipc {
     this.handle(KAFKA_IPC.connectDelete, async (_event, request: KafkaConnectDetailRequest) => {
       this.writeMode.assertEnabled(request.targetId, "Delete connector");
       return new KafkaConnectClient({
+        fetchImpl: Main.Util.fetch,
         baseUrl: request.connectUrl,
         username: request.connectUsername,
         password: request.connectPassword,
@@ -914,6 +944,7 @@ export class KafkaIpcMain extends Main.Ipc {
     this.handle(KAFKA_IPC.connectRestart, async (_event, request: KafkaConnectDetailRequest) => {
       this.writeMode.assertEnabled(request.targetId, "Restart connector");
       return new KafkaConnectClient({
+        fetchImpl: Main.Util.fetch,
         baseUrl: request.connectUrl,
         username: request.connectUsername,
         password: request.connectPassword,
@@ -922,6 +953,7 @@ export class KafkaIpcMain extends Main.Ipc {
     this.handle(KAFKA_IPC.connectUpdate, async (_event, request: KafkaConnectCreateRequest) => {
       this.writeMode.assertEnabled(request.targetId, "Update connector");
       return new KafkaConnectClient({
+        fetchImpl: Main.Util.fetch,
         baseUrl: request.connectUrl,
         username: request.connectUsername,
         password: request.connectPassword,
@@ -930,6 +962,7 @@ export class KafkaIpcMain extends Main.Ipc {
     this.handle(KAFKA_IPC.connectCreate, async (_event, request: KafkaConnectCreateRequest) => {
       this.writeMode.assertEnabled(request.targetId, "Create connector");
       return new KafkaConnectClient({
+        fetchImpl: Main.Util.fetch,
         baseUrl: request.connectUrl,
         username: request.connectUsername,
         password: request.connectPassword,
@@ -974,6 +1007,7 @@ export class KafkaIpcMain extends Main.Ipc {
         report,
         this.credentialProfiles,
         this.sessions,
+        this.tunnels,
         (candidate) => {
           sessionKey = candidate;
           if (this.closed || !this.targetSessions.register(targetKey, generation, candidate)) {
@@ -996,8 +1030,19 @@ export class KafkaIpcMain extends Main.Ipc {
     }
   }
 
+  /** Keeps the event for the frame of `event` and tells every frame only the id of its operation. */
+  private publishProgress(event: IpcSenderEvent, progress: KafkaProgressEvent): void {
+    const owner = senderKey(event);
+
+    if (this.closed || owner === undefined || !this.progress.put(owner, progress)) return;
+    const signal: KafkaProgressSignal = { operationId: progress.operationId };
+
+    this.broadcast(KAFKA_IPC.progress, signal);
+  }
+
   async shutdown(): Promise<void> {
     this.closed = true;
+    this.progress.clear();
     this.aggregateHealth.clear();
     this.healthWorkersByTarget.clear();
     this.targetSessions.clear();
@@ -1007,6 +1052,8 @@ export class KafkaIpcMain extends Main.Ipc {
     await Promise.allSettled([...pending, sessionCleanup]);
     this.pendingConnectionsByTarget.clear();
     await this.sessions.clear();
+    // What a session left behind still ends with the extension.
+    this.tunnels.closeAll();
   }
 
   private async invalidateHealthTarget(targetKey: string, closeSessions: boolean): Promise<void> {

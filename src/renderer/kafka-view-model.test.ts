@@ -14,6 +14,7 @@ import {
   kafkaUsageContext,
   kafkaUsageSummary,
   matchesKafkaMessageFilters,
+  resetOffsetsTarget,
   topicPartitionHealth,
 } from "./kafka-view-model";
 
@@ -248,5 +249,21 @@ describe("topic view model", () => {
     expect(topicPartitionHealth(partition)).toBe("Healthy");
     expect(topicPartitionHealth({ ...partition, underReplicated: true })).toBe("Under-replicated");
     expect(topicPartitionHealth({ ...partition, underReplicated: true, unavailable: true })).toBe("Unavailable");
+  });
+});
+
+describe("resetOffsetsTarget", () => {
+  const partition = { partition: 0, committedOffset: "2", highWatermark: "4", lag: "2" };
+
+  it("is the first partition of the first topic of a loaded group", () => {
+    expect(
+      resetOffsetsTarget({ topicOffsets: [{ topic: "orders", partitions: [partition], totalLag: "2" }] } as never),
+    ).toEqual({ topic: expect.objectContaining({ topic: "orders" }), partition });
+  });
+
+  it("is nothing before the group is loaded, or for a group without offsets", () => {
+    expect(resetOffsetsTarget(undefined)).toBeUndefined();
+    expect(resetOffsetsTarget({ topicOffsets: [] })).toBeUndefined();
+    expect(resetOffsetsTarget({ topicOffsets: [{ topic: "orders", partitions: [] }] } as never)).toBeUndefined();
   });
 });

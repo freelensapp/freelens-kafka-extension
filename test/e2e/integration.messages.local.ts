@@ -28,12 +28,15 @@ async function main(): Promise<void> {
   const connection = await connectDirect({ bootstrap: BROKER });
   try {
     const groupsBefore = await groupIds(connection);
-    const earliest = await connection.browseMessages({
-      topic: TOPIC,
-      partition: 0,
-      startMode: "earliest",
-      limit: 10,
-    });
+    const earliest = await connection.browseMessages(
+      {
+        topic: TOPIC,
+        partition: 0,
+        startMode: "earliest",
+        limit: 10,
+      },
+      fetch,
+    );
     if (earliest.messages.length !== 4) throw new Error(`expected 4 records, got ${earliest.messages.length}`);
     if (earliest.messages.map(({ offset }) => offset).join(",") !== "0,1,2,3") {
       throw new Error("records were not returned in ascending offset order");
@@ -47,23 +50,29 @@ async function main(): Promise<void> {
     if (traceHeaders.map(({ value }) => value.text).join(",") !== "first,second") {
       throw new Error("duplicate header values were not preserved");
     }
-    const latest = await connection.browseMessages({
-      topic: TOPIC,
-      partition: 0,
-      startMode: "latest",
-      limit: 2,
-    });
+    const latest = await connection.browseMessages(
+      {
+        topic: TOPIC,
+        partition: 0,
+        startMode: "latest",
+        limit: 2,
+      },
+      fetch,
+    );
     if (latest.startOffset !== "2" || latest.messages.map(({ offset }) => offset).join(",") !== "2,3") {
       throw new Error("latest offset window was incorrect");
     }
 
-    const timestampWindow = await connection.browseMessages({
-      topic: TOPIC,
-      partition: 0,
-      startMode: "timestamp",
-      timestamp: MESSAGE_FIXTURE_TIMESTAMP + 2,
-      limit: 10,
-    });
+    const timestampWindow = await connection.browseMessages(
+      {
+        topic: TOPIC,
+        partition: 0,
+        startMode: "timestamp",
+        timestamp: MESSAGE_FIXTURE_TIMESTAMP + 2,
+        limit: 10,
+      },
+      fetch,
+    );
     if (timestampWindow.messages[0]?.offset !== "2") throw new Error("timestamp offset resolution was incorrect");
 
     const groupsAfter = await groupIds(connection);
@@ -78,12 +87,15 @@ async function main(): Promise<void> {
     // REQ-073 Tail evidence: each Tail poll is an independent connection/disconnect (mirrors the IPC
     // handler). Verify that 3 sequential offset-cursor polls leave groups and committed offsets
     // unchanged, and that every connection disconnects exactly once (process must exit cleanly).
-    const tailStart = await connection.browseMessages({
-      topic: TOPIC,
-      partition: 0,
-      startMode: "latest",
-      limit: 1,
-    });
+    const tailStart = await connection.browseMessages(
+      {
+        topic: TOPIC,
+        partition: 0,
+        startMode: "latest",
+        limit: 1,
+      },
+      fetch,
+    );
     let tailCursor = tailStart.nextOffset;
     const groupsBeforeTail = await groupIds(connection);
 
@@ -91,13 +103,16 @@ async function main(): Promise<void> {
       // Create a fresh connection per poll — exactly as the IPC messagesBrowse handler does.
       const pollConnection = await connectDirect({ bootstrap: BROKER });
       try {
-        const result = await pollConnection.browseMessages({
-          topic: TOPIC,
-          partition: 0,
-          startMode: "offset",
-          offset: tailCursor,
-          limit: 10,
-        });
+        const result = await pollConnection.browseMessages(
+          {
+            topic: TOPIC,
+            partition: 0,
+            startMode: "offset",
+            offset: tailCursor,
+            limit: 10,
+          },
+          fetch,
+        );
         tailCursor = result.nextOffset;
       } finally {
         await pollConnection.disconnect();

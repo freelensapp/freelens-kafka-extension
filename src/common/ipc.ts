@@ -18,7 +18,6 @@ export const KAFKA_IPC = {
   produce: "kafka:produce",
   deleteTopic: "kafka:topic:delete",
   deleteTopics: "kafka:topics:delete",
-  writeMode: "kafka:write-mode",
   resetOffsets: "kafka:group:reset-offsets",
   schemaSubjects: "kafka:schema-registry:subjects",
   schemaSubjectNames: "kafka:schema-registry:subject-names",
@@ -38,14 +37,16 @@ export const KAFKA_IPC = {
   aclCreate: "kafka:acl:create",
   aclDelete: "kafka:acl:delete",
   reachability: "kafka:reachability",
+  /** Broadcast: a {@link KafkaProgressSignal}, the id of an operation with a new progress event and nothing else. */
   progress: "kafka:progress",
+  /** Invoke: the {@link KafkaProgressEvents} of an operation since a cursor, for the frame that started it only. */
+  progressEvent: "kafka:progress-event",
 } as const;
 
 export interface DiscoverRequest {
   operationId?: string;
+  /** The Freelens cluster the request is for; required by the main process (SPEC-019, REQ-224). */
   clusterId?: string;
-  kubeConfigPath?: string;
-  context?: string;
   namespace?: string;
 }
 
@@ -53,9 +54,8 @@ export interface OverviewRequest {
   operationId?: string;
   /** Stable non-secret renderer identity used to correlate shared metadata cache entries. */
   targetId?: string;
+  /** The Freelens cluster the request is for; required by the main process (SPEC-019, REQ-224). */
   clusterId?: string;
-  kubeConfigPath?: string;
-  context?: string;
   namespace: string;
   clusterName: string;
   user?: string;
@@ -82,7 +82,6 @@ export interface ClusterHealthRequest extends OverviewRequest {
 
 export interface AggregateHealthInvalidateRequest {
   clusterId?: string;
-  context?: string;
   targetId: string;
   closeSessions?: boolean;
   removePersisted?: boolean;
@@ -149,6 +148,26 @@ export type KafkaProgressOperation =
   | "messagesBrowse"
   | "groups"
   | "groupDetail";
+
+/**
+ * What every frame receives of the progress of an operation: its id. The events name topics, groups and the
+ * authentication mode, so the frame that started the operation fetches them over `progressEvent` (SPEC-019, REQ-227).
+ */
+export interface KafkaProgressSignal {
+  operationId: string;
+}
+
+export interface KafkaProgressEventRequest {
+  operationId: string;
+  /** The cursor of the previous answer: only the events after it are returned. */
+  after?: number;
+}
+
+/** The events of an operation after the request's cursor, in order, and the cursor to ask from next time. */
+export interface KafkaProgressEvents {
+  events: KafkaProgressEvent[];
+  cursor: number;
+}
 
 export interface KafkaProgressEvent {
   operationId: string;
@@ -407,12 +426,6 @@ export interface ProduceResultDto {
 /** Version the running main bundle was built from (SPEC-016). */
 export interface ExtensionVersionDto {
   version: string;
-}
-
-/** Renderer -> Main mirror of the per-target write mode switch (SPEC-009 REQ-197). */
-export interface WriteModeRequest {
-  targetId: string;
-  enabled: boolean;
 }
 
 /** Destructive: deletes one topic with all its partitions and records (SPEC-009 REQ-194). */

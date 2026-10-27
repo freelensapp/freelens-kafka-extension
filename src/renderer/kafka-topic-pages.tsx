@@ -2,6 +2,7 @@ import { Renderer } from "@freelensapp/extensions";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { kafkaPersistentStateStore } from "../common/kafka-persistent-state-store";
 import { formatBytes, sumBytes } from "./format-bytes";
+import styles from "./kafka.module.scss";
 import { kafkaListWindow } from "./kafka-list-window";
 import { KafkaMessagesBrowser } from "./kafka-messages";
 import { implementedKafkaTopicView, rememberKafkaClusterSelection, saveKafkaReloadRoute } from "./kafka-navigation";
@@ -112,7 +113,7 @@ function TopicSelectBox({
       aria-label={label}
       title={title}
       tabIndex={disabled ? -1 : 0}
-      className="KafkaSelectBox"
+      className={styles.kafkaSelectBox}
       data-testid={testId}
       onClick={stopRowEvent}
       onKeyDown={(event) => {
@@ -154,17 +155,17 @@ interface TopicConsumersState {
 function TopicConsumerStateBadge({ state }: { state: string }) {
   const tone =
     state === "Stable"
-      ? "KafkaHealthyBadge"
+      ? styles.kafkaHealthyBadge
       : state === "Dead" || state === "Unknown"
-        ? "KafkaErrorBadge"
-        : "KafkaWarningBadge";
+        ? styles.kafkaErrorBadge
+        : styles.kafkaWarningBadge;
   return <Renderer.Component.Badge small className={tone} label={state || "Unknown"} />;
 }
 
 function TopicConsumerLag({ lag }: { lag: string }) {
-  if (lag === "—") return <span className="KafkaLagUnknown">—</span>;
+  if (lag === "—") return <span className={styles.kafkaLagUnknown}>—</span>;
   const value = BigInt(lag);
-  const tone = value === 0n ? "KafkaLagZero" : value < 1000n ? "KafkaLagLow" : "KafkaLagHigh";
+  const tone = value === 0n ? styles.kafkaLagZero : value < 1000n ? styles.kafkaLagLow : styles.kafkaLagHigh;
   return <strong className={tone}>{lag}</strong>;
 }
 
@@ -186,7 +187,7 @@ function TopicConsumers({
 
   if (state.error) {
     return (
-      <div className="KafkaTopicInlineError" role="alert">
+      <div className={styles.kafkaTopicInlineError} role="alert">
         <span>{state.error}</span>
         <Renderer.Component.Button outlined onClick={onRetry}>
           <Renderer.Component.Icon material="refresh" />
@@ -198,7 +199,7 @@ function TopicConsumers({
 
   if (!state.data || state.data.groups.length === 0) {
     return (
-      <div className="KafkaPageState empty">
+      <div className={`${styles.kafkaPageState} empty`}>
         <Renderer.Component.Icon material="group_off" />
         <div>
           <strong>No consumer groups</strong>
@@ -210,7 +211,7 @@ function TopicConsumers({
 
   return (
     <Renderer.Component.Table<TopicConsumerGroupDto>
-      className="KafkaTopicConsumersTable"
+      className={styles.kafkaTopicConsumersTable}
       tableId="kafka-topic-consumers"
       autoSize={false}
       scrollable
@@ -257,7 +258,7 @@ function TopicConsumers({
         return (
           <Renderer.Component.TableRow
             {...interaction}
-            className="KafkaInteractiveRow"
+            className={styles.kafkaInteractiveRow}
             key={group.groupId}
             sortItem={group}
             data-group={group.groupId}
@@ -265,7 +266,7 @@ function TopicConsumers({
           >
             <Renderer.Component.TableCell className="consumerGroupCell" style={TOPIC_CONSUMER_NAME_COLUMN_STYLE}>
               <Renderer.Component.Icon material="group" />
-              <span className="KafkaEllipsis" title={group.groupId}>
+              <span className={styles.kafkaEllipsis} title={group.groupId}>
                 {group.groupId}
               </span>
             </Renderer.Component.TableCell>
@@ -305,7 +306,7 @@ function TopicConfiguration({
 
   if (state.error) {
     return (
-      <div className="KafkaTopicInlineError" role="alert">
+      <div className={styles.kafkaTopicInlineError} role="alert">
         <span>{state.error}</span>
         <Renderer.Component.Button outlined onClick={onRetry}>
           <Renderer.Component.Icon material="refresh" />
@@ -317,7 +318,7 @@ function TopicConfiguration({
 
   if (!hasEntries) {
     return (
-      <div className="KafkaTopicPrompt">
+      <div className={styles.kafkaTopicPrompt}>
         <Renderer.Component.Icon material="tune" />
         <span>No configuration entries returned for {topic}.</span>
       </div>
@@ -326,7 +327,7 @@ function TopicConfiguration({
 
   return (
     <Renderer.Component.Table<TopicConfigEntryDto>
-      className="KafkaTopicConfigTable"
+      className={styles.kafkaTopicConfigTable}
       tableId="kafka-topic-configuration"
       autoSize={false}
       scrollable
@@ -351,20 +352,20 @@ function TopicConfiguration({
       {state.data?.entries.map((entry) => (
         <Renderer.Component.TableRow key={entry.name} sortItem={entry} nowrap>
           <Renderer.Component.TableCell className="configNameCell" style={TOPIC_CONFIG_NAME_COLUMN_STYLE}>
-            <span className="KafkaEllipsis" title={entry.name}>
+            <span className={styles.kafkaEllipsis} title={entry.name}>
               {entry.name}
             </span>
           </Renderer.Component.TableCell>
           <Renderer.Component.TableCell className="configValueCell" style={TOPIC_CONFIG_VALUE_COLUMN_STYLE}>
-            <span className="KafkaEllipsis KafkaMono" title={entry.value}>
+            <span className={`${styles.kafkaEllipsis} ${styles.kafkaMono}`} title={entry.value}>
               {entry.value || "—"}
             </span>
           </Renderer.Component.TableCell>
           <Renderer.Component.TableCell className="configSourceCell" style={TOPIC_CONFIG_SOURCE_COLUMN_STYLE}>
-            <span className="KafkaConfigSource">{entry.source}</span>
+            <span className={styles.kafkaConfigSource}>{entry.source}</span>
           </Renderer.Component.TableCell>
           <Renderer.Component.TableCell className="configFlagsCell" style={TOPIC_CONFIG_FLAGS_COLUMN_STYLE}>
-            <div className="KafkaConfigFlags">
+            <div className={styles.kafkaConfigFlags}>
               {entry.readOnly ? <Renderer.Component.Badge small label="Read-only" /> : null}
               {entry.sensitive ? <Renderer.Component.Badge small label="Sensitive" /> : null}
               {!entry.readOnly && !entry.sensitive ? <span>—</span> : null}
@@ -434,7 +435,7 @@ export function KafkaTopicsPage({
   const [sizesState, setSizesState] = useState<TopicSizesState>({ loading: false });
   const [produceOpen, setProduceOpen] = useState(false);
   // The cluster and topic locked when the compose panel opened (SPEC-009 REQ-106).
-  const produceTarget = useRef<{ targetId: string; topic: string }>();
+  const produceTarget = useRef<{ targetId: string; topic: string } | undefined>(undefined);
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [deleteConfirmed, setDeleteConfirmed] = useState(false);
   const [deleteText, setDeleteText] = useState("");
@@ -442,7 +443,7 @@ export function KafkaTopicsPage({
   const [deleteError, setDeleteError] = useState<string>();
   const [writeStatus, setWriteStatus] = useState<string>();
   // The cluster and topic locked when the delete confirmation opened (SPEC-009 REQ-106).
-  const deleteTarget = useRef<{ targetId: string; topic: string }>();
+  const deleteTarget = useRef<{ targetId: string; topic: string } | undefined>(undefined);
   // Batch deletion from the list (SPEC-009 REQ-203–REQ-205): the selection belongs to one cluster,
   // the names are locked when the confirmation opens (REQ-106).
   const [selectedTopics, setSelectedTopics] = useState<ReadonlySet<string>>(() => new Set());
@@ -452,11 +453,11 @@ export function KafkaTopicsPage({
   const [batchBusy, setBatchBusy] = useState(false);
   const [batchError, setBatchError] = useState<string>();
   const [batchFailures, setBatchFailures] = useState<DeleteTopicsFailureDto[]>([]);
-  const batchTarget = useRef<{ targetId: string; topics: string[] }>();
-  const topicOperationId = useRef<string>();
-  const topicConfigOperationId = useRef<string>();
-  const topicConsumersOperationId = useRef<string>();
-  const workspaceTargetId = useRef<string>();
+  const batchTarget = useRef<{ targetId: string; topics: string[] } | undefined>(undefined);
+  const topicOperationId = useRef<string | undefined>(undefined);
+  const topicConfigOperationId = useRef<string | undefined>(undefined);
+  const topicConsumersOperationId = useRef<string | undefined>(undefined);
+  const workspaceTargetId = useRef<string | undefined>(undefined);
   const [topicPage, setTopicPage] = useState(0);
 
   useEffect(() => setTopicPage(0), [query]);
@@ -612,18 +613,18 @@ export function KafkaTopicsPage({
     if (data) {
       if (!data.supported) {
         return (
-          <span className="KafkaTopicSize muted" title="The brokers do not offer DescribeLogDirs">
+          <span className={`${styles.kafkaTopicSize} muted`} title="The brokers do not offer DescribeLogDirs">
             n/a
           </span>
         );
       }
       const size = data.topics[name];
-      if (!size) return <span className="KafkaTopicSize muted">—</span>;
+      if (!size) return <span className={`${styles.kafkaTopicSize} muted`}>—</span>;
       const title = `Leader replicas ${formatBytes(size.leaderBytes)}, all replicas ${formatBytes(size.replicaBytes)}${
         size.exact ? "" : " (lower bound: a broker did not report)"
       }`;
       return (
-        <span className="KafkaTopicSize" title={title}>
+        <span className={styles.kafkaTopicSize} title={title}>
           {size.exact ? "" : "≥ "}
           {formatBytes(size.leaderBytes)}
         </span>
@@ -631,12 +632,12 @@ export function KafkaTopicsPage({
     }
     if (sizesState.error && sizesState.targetId === sizeCluster?.targetId) {
       return (
-        <span className="KafkaTopicSize muted" title={sizesState.error}>
+        <span className={`${styles.kafkaTopicSize} muted`} title={sizesState.error}>
           n/a
         </span>
       );
     }
-    return <span className="KafkaTopicSize muted">…</span>;
+    return <span className={`${styles.kafkaTopicSize} muted`}>…</span>;
   };
 
   const loadTopic = useCallback(() => {
@@ -1086,7 +1087,7 @@ export function KafkaTopicsPage({
             {canWrite && (
               <Renderer.Component.Button
                 outlined
-                className="KafkaDangerButton"
+                className={styles.kafkaDangerButton}
                 data-testid="kafka-delete-topic-button"
                 onClick={openDeleteTopic}
               >
@@ -1100,7 +1101,7 @@ export function KafkaTopicsPage({
       >
         <KafkaResourceState state={state} />
         {writeStatus && (
-          <div className="KafkaWriteStatus" role="status" data-testid="kafka-topic-write-status">
+          <div className={styles.kafkaWriteStatus} role="status" data-testid="kafka-topic-write-status">
             <Renderer.Component.Icon material="check_circle" />
             <span>{writeStatus}</span>
           </div>
@@ -1109,19 +1110,19 @@ export function KafkaTopicsPage({
           <main
             className={
               produceOpen
-                ? "KafkaResourcePage KafkaTopicWorkspace withCompose"
-                : "KafkaResourcePage KafkaTopicWorkspace"
+                ? `${styles.kafkaResourcePage} ${styles.kafkaTopicWorkspace} withCompose`
+                : `${styles.kafkaResourcePage} ${styles.kafkaTopicWorkspace}`
             }
             data-testid="kafka-topic-workspace"
           >
-            <div className="KafkaTopicWorkspaceMain">
+            <div className={styles.kafkaTopicWorkspaceMain}>
               {deleteOpen && (
                 <section
                   className="KafkaWriteDrawer"
                   data-testid="kafka-delete-topic-drawer"
                   aria-label="Delete topic confirmation"
                 >
-                  <div className="KafkaPageState warning">
+                  <div className={`${styles.kafkaPageState} warning`}>
                     <Renderer.Component.Icon material="delete_forever" />
                     <div>
                       <strong>Delete topic</strong>
@@ -1132,7 +1133,7 @@ export function KafkaTopicsPage({
                     {deleteError && <div role="alert">{deleteError}</div>}
                   </div>
                   <div className="KafkaWriteForm" style={{ display: "grid", gap: 12 }}>
-                    <div className="KafkaWriteSummary">
+                    <div className={styles.kafkaWriteSummary}>
                       <strong>Target</strong>
                       <span>{state.selectedCluster.name}</span>
                       <strong>Topic</strong>
@@ -1164,7 +1165,7 @@ export function KafkaTopicsPage({
                       </Renderer.Component.Button>
                       <Renderer.Component.Button
                         primary
-                        className="KafkaDangerButton"
+                        className={styles.kafkaDangerButton}
                         data-testid="kafka-delete-topic-submit"
                         disabled={!canSubmitDelete}
                         onClick={submitDeleteTopic}
@@ -1175,7 +1176,7 @@ export function KafkaTopicsPage({
                   </div>
                 </section>
               )}
-              <nav className="KafkaEntityTabs" role="tablist" aria-label="Topic sections">
+              <nav className={styles.kafkaEntityTabs} role="tablist" aria-label="Topic sections">
                 {(["overview", "messages", "partitions", "consumers", "configuration"] as const).map((tab) => (
                   <Renderer.Component.Button
                     key={tab}
@@ -1295,7 +1296,7 @@ export function KafkaTopicsPage({
       <KafkaResourceState state={state} />
       {writeStatus && (
         <div
-          className={batchFailures.length > 0 ? "KafkaWriteStatus warning" : "KafkaWriteStatus"}
+          className={batchFailures.length > 0 ? `${styles.kafkaWriteStatus} warning` : styles.kafkaWriteStatus}
           role="status"
           data-testid="kafka-topic-write-status"
         >
@@ -1304,7 +1305,7 @@ export function KafkaTopicsPage({
         </div>
       )}
       {batchFailures.length > 0 && (
-        <div className="KafkaWriteFailures" role="alert" data-testid="kafka-topic-write-failures">
+        <div className={styles.kafkaWriteFailures} role="alert" data-testid="kafka-topic-write-failures">
           <Renderer.Component.Icon material="error_outline" />
           <div>
             <strong>{formatTopicCount(batchFailures.length)} not deleted</strong>
@@ -1319,10 +1320,10 @@ export function KafkaTopicsPage({
         </div>
       )}
       {state.selectedCluster && state.metadataState.data && (
-        <main className="KafkaResourcePage KafkaTopicsPage" data-testid="kafka-topics-page">
+        <main className={`${styles.kafkaResourcePage} ${styles.kafkaTopicsPage}`} data-testid="kafka-topics-page">
           <KafkaMetricStrip
             ariaLabel="Kafka topic summary"
-            className="KafkaResourceMetricStrip"
+            className={styles.kafkaResourceMetricStrip}
             metrics={[
               { label: "Topics", value: allTopics.length },
               { label: "Application", value: allTopics.length - internalCount },
@@ -1331,7 +1332,7 @@ export function KafkaTopicsPage({
             ]}
           />
           {allTopics.length === 0 ? (
-            <div className="KafkaPageState empty">
+            <div className={`${styles.kafkaPageState} empty`}>
               <Renderer.Component.Icon material="topic" />
               <div>
                 <strong>No topics returned</strong>
@@ -1340,9 +1341,9 @@ export function KafkaTopicsPage({
             </div>
           ) : (
             <>
-              <div className="KafkaTopicToolbar">
+              <div className={styles.kafkaTopicToolbar}>
                 <Renderer.Component.Input
-                  className="KafkaTopicSearch"
+                  className={styles.kafkaTopicSearch}
                   value={query}
                   onChange={(nextQuery) => setQuery(nextQuery, true)}
                   iconLeft="search"
@@ -1350,7 +1351,7 @@ export function KafkaTopicsPage({
                   aria-label="Filter Kafka topics"
                 />
                 {canWrite && (
-                  <div className="KafkaTopicSelectionActions" data-testid="kafka-topic-selection-actions">
+                  <div className={styles.kafkaTopicSelectionActions} data-testid="kafka-topic-selection-actions">
                     <span aria-live="polite">
                       {selectedTopics.size === 0
                         ? "No topic selected"
@@ -1366,7 +1367,7 @@ export function KafkaTopicsPage({
                     </Renderer.Component.Button>
                     <Renderer.Component.Button
                       outlined
-                      className="KafkaDangerButton"
+                      className={styles.kafkaDangerButton}
                       data-testid="kafka-delete-topics-button"
                       disabled={selectedTopics.size === 0 || batchOpen || batchBusy}
                       onClick={openDeleteTopics}
@@ -1379,11 +1380,11 @@ export function KafkaTopicsPage({
               </div>
               {batchOpen && batchTarget.current && (
                 <section
-                  className="KafkaWriteDrawer KafkaTopicBatchDrawer"
+                  className={`KafkaWriteDrawer ${styles.kafkaTopicBatchDrawer}`}
                   data-testid="kafka-delete-topics-drawer"
                   aria-label="Delete topics confirmation"
                 >
-                  <div className="KafkaPageState warning">
+                  <div className={`${styles.kafkaPageState} warning`}>
                     <Renderer.Component.Icon material="delete_forever" />
                     <div>
                       <strong>Delete {formatTopicCount(batchCount)}</strong>
@@ -1395,21 +1396,21 @@ export function KafkaTopicsPage({
                     {batchError && <div role="alert">{batchError}</div>}
                   </div>
                   <div className="KafkaWriteForm" style={{ display: "grid", gap: 12 }}>
-                    <div className="KafkaWriteSummary">
+                    <div className={styles.kafkaWriteSummary}>
                       <strong>Target</strong>
                       <span>{state.selectedCluster.name}</span>
                       <strong>Topics</strong>
                       <span>{batchCount}</span>
                     </div>
                     <ul
-                      className="KafkaTopicSelectionList"
+                      className={styles.kafkaTopicSelectionList}
                       aria-label="Topics to delete"
                       data-testid="kafka-delete-topics-list"
                     >
                       {batchTarget.current.topics.map((name) => (
                         <li key={name}>
                           <Renderer.Component.Icon material="topic" />
-                          <span className="KafkaEllipsis" title={name}>
+                          <span className={styles.kafkaEllipsis} title={name}>
                             {name}
                           </span>
                         </li>
@@ -1441,7 +1442,7 @@ export function KafkaTopicsPage({
                       </Renderer.Component.Button>
                       <Renderer.Component.Button
                         primary
-                        className="KafkaDangerButton"
+                        className={styles.kafkaDangerButton}
                         data-testid="kafka-delete-topics-submit"
                         disabled={!canSubmitBatch}
                         onClick={submitDeleteTopics}
@@ -1453,7 +1454,7 @@ export function KafkaTopicsPage({
                 </section>
               )}
               <Renderer.Component.Table<string>
-                className="KafkaTopicTable KafkaTopicPageTable"
+                className={`${styles.kafkaTopicTable} ${styles.kafkaTopicPageTable}`}
                 tableId="kafka-topics-page"
                 autoSize={false}
                 scrollable
@@ -1464,7 +1465,7 @@ export function KafkaTopicsPage({
                   size: (name) => Number(currentSizes?.topics[name]?.leaderBytes ?? -1),
                 }}
                 noItems={
-                  <div className="KafkaTopicPrompt">
+                  <div className={styles.kafkaTopicPrompt}>
                     <Renderer.Component.Icon material="filter_alt_off" />
                     <span>No topics match the current filter.</span>
                   </div>
@@ -1520,7 +1521,7 @@ export function KafkaTopicsPage({
                   return (
                     <Renderer.Component.TableRow
                       {...interaction}
-                      className="KafkaInteractiveRow"
+                      className={styles.kafkaInteractiveRow}
                       key={name}
                       sortItem={name}
                       data-topic={name}
@@ -1545,15 +1546,15 @@ export function KafkaTopicsPage({
                       )}
                       <Renderer.Component.TableCell className="topicNameCell" style={TOPIC_NAME_COLUMN_STYLE}>
                         <Renderer.Component.Icon material="topic" />
-                        <span className="KafkaEllipsis" title={name}>
+                        <span className={styles.kafkaEllipsis} title={name}>
                           {name}
                         </span>
                       </Renderer.Component.TableCell>
                       <Renderer.Component.TableCell className="topicTypeCell" style={TOPIC_TYPE_COLUMN_STYLE}>
                         {name.startsWith("__") ? (
-                          <Renderer.Component.Badge small className="KafkaInternalTopicBadge" label="Internal" />
+                          <Renderer.Component.Badge small className={styles.kafkaInternalTopicBadge} label="Internal" />
                         ) : (
-                          <span className="KafkaTopicType">Application</span>
+                          <span className={styles.kafkaTopicType}>Application</span>
                         )}
                       </Renderer.Component.TableCell>
                       <Renderer.Component.TableCell className="topicSizeCell" style={TOPIC_SIZE_COLUMN_STYLE}>

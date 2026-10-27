@@ -1,6 +1,6 @@
 import { createHash } from "node:crypto";
 import { readFileSync, realpathSync } from "node:fs";
-import { aggregatePerformanceProbeRuns } from "../../src/common/performance-run-aggregation";
+import { aggregatePerformanceProbeRuns } from "../evidence/performance-run-aggregation";
 
 function main(): void {
   const runFiles = process.argv.slice(2);

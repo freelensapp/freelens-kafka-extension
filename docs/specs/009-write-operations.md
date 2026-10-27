@@ -1,10 +1,10 @@
 # SPEC-009 — Write Operations: Policy, Produce Message and Offset Reset
 
-| Field | Value |
-| --- | --- |
-| Status | Verified |
-| Date | 2026-08-06 |
-| Source | v1.0.0 scope; write policy accepted by user 2026-08-06 |
+| Field  | Value                                                                                                                                                        |
+| ------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Status | Verified                                                                                                                                                     |
+| Date   | 2026-08-06                                                                                                                                                   |
+| Source | v1.0.0 scope; write policy accepted by user 2026-08-06                                                                                                       |
 | Safety | **First write-capable spec.** Write policy defined here is normative for all subsequent write-capable SPEC (010, 011, 012). Governed by `TESTING-SAFETY.md`. |
 
 ## Problem
@@ -199,9 +199,9 @@ confirming, **then** the compose view closes and no message is produced.
 
 - **REQ-197** — The main process MUST refuse every write IPC call (produce, topic deletion, offset
   reset, Schema Registry and Kafka Connect writes, ACL create and delete) for a Kafka target whose
-  write mode has not been enabled in the current session. The renderer mirrors the per-target
-  switch to main on activation and on every change; the guard is defence in depth against a
-  renderer bug, not a substitute for the renderer policy.
+  write mode is not on in the extension store. Main reads its own copy of the store, which the host
+  keeps in sync with the renderer, at every call (SPEC-019, REQ-233); the guard is defence in depth
+  against a renderer bug, not a substitute for the renderer policy.
 
 ## Success Criteria
 
@@ -272,17 +272,25 @@ confirming, **then** the compose view closes and no message is produced.
   inspector `Drawer` still opens over it. The header parser moved to a pure module because the
   previous `split("=", 2)` dropped everything after a second `=` and the single-line field could
   not hold the documented one header per line.
+- **2026-10-26** — REQ-197 changed by the Freelens 2 port (SPEC-019, REQ-233): main no longer keeps
+  a mirror of the switch that the renderer sent over `kafka:write-mode` during the session; it reads
+  the persisted write mode from its own copy of the extension store at every write call. The guard
+  now holds before any cluster frame has started and whatever the frames did; the IPC channel goes.
+- **2026-10-27** — The offset reset applies to the first partition of the group's loaded detail; until the detail is
+  loaded (or for a group without committed offsets) the confirmed reset stays disabled and the drawer says why. It
+  could be confirmed and pressed while the detail loaded, and then did nothing, without a word (found in the
+  Freelens 2 port, SPEC-019).
 
 ## Verification Evidence
 
-| Requirement range | Evidence |
-| --- | --- |
-| REQ-102–REQ-105, REQ-108–REQ-109, REQ-112, REQ-115 | Packaged Electron Playwright E2E: write mode is default-off, controls appear only after target opt-in, Produce confirmation and typed Reset confirmation are enforced, and the test asserts the loopback bootstrap. |
-| REQ-103 | `src/renderer/kafka-write-settings.test.ts`: per-target isolation, persistence, and cross-instance synchronization. |
-| REQ-110–REQ-111 | `src/main/kafka/kafka-connection.ts` plus packaged E2E: idempotent KafkaJS producer returns and renders partition/offset. |
-| REQ-113–REQ-114 | `src/main/kafka/kafka-connection.ts` plus packaged E2E: earliest reset resolves and commits the selected partition after reinforced confirmation. |
-| REQ-197, SC-114 | `src/main/write-mode.test.ts`: unknown, disabled and missing targets are refused, enabled ones pass; the packaged write E2E scenarios run through the renderer mirror. |
-| REQ-194–REQ-196, SC-112 | `src/main/kafka/kafka-connection.test.ts` (`deleteTopic`) plus packaged E2E: a disposable loopback topic is deleted only after the typed name and the switch, then it is absent from the list and the broker. |
-| REQ-203–REQ-205, SC-117 | `src/renderer/kafka-topic-selection.test.ts` (page selection without internal topics, pruning, outcome wording), `src/main/kafka/kafka-connection.test.ts` (`deleteTopics`: one session, one request per topic, per-topic failures) plus packaged E2E: three disposable loopback topics ticked in the list, gate enforced on the switch and on a wrong count, then absent from the list and the broker. |
-| REQ-206–REQ-208, SC-119–SC-121 | `src/renderer/kafka-produce-draft.test.ts` (header lines with `=` in the value, blank and invalid lines, partition bounds) plus packaged E2E (Messages table height with the panel open, scoped compose fields, confirmation reset after the send). Verified on 2026-09-20 in the packaged Freelens 1.10.3, dark and light themes, against the loopback Docker fixture: table 320 px with six visible rows beside the panel (v1.3.0: 2 px), record read back from the broker with both headers intact, cancellation notice on leaving the topic, stacked layout on a 925 px frame. |
-| SC-058–SC-064 | Packaged Electron Playwright suite: **7/7 tests passed** on 2026-08-18 using only `127.0.0.1:19092` and the local KinD fixture; typecheck, 122 unit tests and Prettier also passed. |
+| Requirement range                                  | Evidence                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           |
+| -------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| REQ-102–REQ-105, REQ-108–REQ-109, REQ-112, REQ-115 | Packaged Electron Playwright E2E: write mode is default-off, controls appear only after target opt-in, Produce confirmation and typed Reset confirmation are enforced, and the test asserts the loopback bootstrap.                                                                                                                                                                                                                                                                                                                                                                |
+| REQ-103                                            | `src/renderer/kafka-write-settings.test.ts`: per-target isolation, persistence, and cross-instance synchronization.                                                                                                                                                                                                                                                                                                                                                                                                                                                                |
+| REQ-110–REQ-111                                    | `src/main/kafka/kafka-connection.ts` plus packaged E2E: idempotent KafkaJS producer returns and renders partition/offset.                                                                                                                                                                                                                                                                                                                                                                                                                                                          |
+| REQ-113–REQ-114                                    | `src/main/kafka/kafka-connection.ts` plus packaged E2E: earliest reset resolves and commits the selected partition after reinforced confirmation.                                                                                                                                                                                                                                                                                                                                                                                                                                  |
+| REQ-197, SC-114                                    | `src/main/write-mode.test.ts`: targets off, missing, malformed values and a failing store are refused, targets on pass, read at every call; `src/main/ipc-write-guard.test.ts`: the produce handler refuses while the persisted mode is off and passes the guard once it is on, with no `kafka:write-mode` handler. Freelens 2 dev: a produce sent straight from the frame is refused with the switch off, goes through with it on, and is refused at once when it is off again.                                                                                                   |
+| REQ-194–REQ-196, SC-112                            | `src/main/kafka/kafka-connection.test.ts` (`deleteTopic`) plus packaged E2E: a disposable loopback topic is deleted only after the typed name and the switch, then it is absent from the list and the broker.                                                                                                                                                                                                                                                                                                                                                                      |
+| REQ-203–REQ-205, SC-117                            | `src/renderer/kafka-topic-selection.test.ts` (page selection without internal topics, pruning, outcome wording), `src/main/kafka/kafka-connection.test.ts` (`deleteTopics`: one session, one request per topic, per-topic failures) plus packaged E2E: three disposable loopback topics ticked in the list, gate enforced on the switch and on a wrong count, then absent from the list and the broker.                                                                                                                                                                            |
+| REQ-206–REQ-208, SC-119–SC-121                     | `src/renderer/kafka-produce-draft.test.ts` (header lines with `=` in the value, blank and invalid lines, partition bounds) plus packaged E2E (Messages table height with the panel open, scoped compose fields, confirmation reset after the send). Verified on 2026-09-20 in the packaged Freelens 1.10.3, dark and light themes, against the loopback Docker fixture: table 320 px with six visible rows beside the panel (v1.3.0: 2 px), record read back from the broker with both headers intact, cancellation notice on leaving the topic, stacked layout on a 925 px frame. |
+| SC-058–SC-064                                      | Packaged Electron Playwright suite: **7/7 tests passed** on 2026-08-18 using only `127.0.0.1:19092` and the local KinD fixture; typecheck, 122 unit tests and Prettier also passed.                                                                                                                                                                                                                                                                                                                                                                                                |

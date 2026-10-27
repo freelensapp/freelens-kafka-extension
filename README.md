@@ -41,6 +41,14 @@ them.
 
 ### Status
 
+> **Version 2 runs on Freelens 2.**
+> [SPEC-019](./docs/specs/019-v2-port.md) ports every feature of 1.4.3 to the
+> Freelens 2 extension API: the main process keeps the Kafka connections,
+> port-forwards and credentials, and answers each cluster frame with that
+> frame's own requests and progress alone. Tests and scripts run on a lab of
+> their own, and the 15 integration scenarios of 1.4.3 run against Freelens 2
+> dev. Versions 1.x are for Freelens 1.x.
+
 > **SPEC-001–014 verified; v1.0.0 implementation sign-off complete.** The
 > extension discovers Strimzi, generic in-cluster and workload-referenced
 > external/managed Kafka (including MSK), probes PC reachability, connects via
@@ -83,8 +91,11 @@ cell or the keyboard.
 
 ## Requirements
 
-- **Freelens >= 1.8.0.** Verified on Freelens 1.10.3, the version the
-  integration tests run against.
+- **Freelens >= 2.0.0.** The manifest declares `engines.freelens` as
+  `^2.0.0`; Freelens 1.x lists the package as incompatible. Until Freelens
+  2.0.0 is released the integration tests run against Freelens dev built
+  from `main` of freelensapp/freelens (verified at `113abe5d`). Versions 1.x
+  of the extension are for Freelens 1.x and need Freelens >= 1.8.0.
 - **Kubernetes access** through the kubeconfig context Freelens uses for the
   cluster. Discovery reads Strimzi custom resources, Services, Pods, Secrets
   and ConfigMaps; port-forwards use the same credentials.
@@ -94,18 +105,19 @@ cell or the keyboard.
   AWS IAM for direct Amazon MSK connections. OAUTHBEARER is not supported yet.
 - **Node.js** is required only when building the extension from source; it
   is not needed to run it. The package is a self-contained bundle: its
-  runtime libraries (`kafkajs`, `@kubernetes/client-node`) are compiled into
-  `out/`, so Freelens loads it without installing anything extra (Freelens
+  runtime libraries (`kafkajs` and the AWS SDK credential providers) are
+  compiled into `dist/`, so Freelens loads it without installing anything
+  extra (Freelens
   does not npm-install an extension's dependencies).
 
 ## Supported sources
 
-| Source | Found through | Reached through |
-| --- | --- | --- |
-| Strimzi `Kafka` resources | CRs and broker pods | Per-broker port-forward |
-| In-cluster Services | Services on the Kafka ports | Port-forward or Direct |
-| External or managed Kafka | Workload env and config | Direct, when reachable |
-| Manual endpoints | **Add endpoint** on Clusters | Direct, TLS optional |
+| Source                    | Found through                | Reached through         |
+| ------------------------- | ---------------------------- | ----------------------- |
+| Strimzi `Kafka` resources | CRs and broker pods          | Per-broker port-forward |
+| In-cluster Services       | Services on the Kafka ports  | Port-forward or Direct  |
+| External or managed Kafka | Workload env and config      | Direct, when reachable  |
+| Manual endpoints          | **Add endpoint** on Clusters | Direct, TLS optional    |
 
 Strimzi clusters are reached through the pod-DNS advertised listeners of
 their broker pods; in-cluster Services are found best effort on the Kafka
@@ -255,7 +267,6 @@ authorized read-only runs; the evidence is in
 ## Development
 
 The repository is developed spec-first, with the specs in the repository:
-
 - [ARCHITECTURE.md](./ARCHITECTURE.md) — design, decisions, roadmap.
 - [Spec index](./docs/specs/README.md) — globally unique requirements,
   lifecycle and verification status, one spec per feature in
@@ -280,7 +291,7 @@ The repository is developed spec-first, with the specs in the repository:
 
 ### Local gates
 
-Node 24.15.0 (`.nvmrc` / `mise.toml`) + `corepack pnpm`. Run the local gates
+Node 24.22.0 (`.nvmrc` / `mise.toml`) + `corepack pnpm`. Run the local gates
 after every change:
 
 ```sh
@@ -294,6 +305,40 @@ corepack pnpm test:unit
 Engine integration tests run against Docker / KinD, see
 [test/e2e](./test/e2e) and the `kafka:*` / `kind:*` / `itest*` scripts in
 [package.json](./package.json).
+
+### Integration tests
+
+The integration tests drive Freelens dev, started from a
+[freelensapp/freelens](https://github.com/freelensapp/freelens) checkout next
+to this repository, against the repository's lab (see
+[Local fixtures](#local-fixtures-kind-and-docker)) and two Docker brokers:
+
+```sh
+corepack pnpm lab:up
+bash scripts/lab.sh compose direct up   # the broker the scenarios browse
+bash scripts/lab.sh compose acl up      # the broker with ACLs
+corepack pnpm lab:freelens              # Freelens dev on a fresh profile
+```
+
+`lab:freelens` writes a profile under `/tmp/freelens-kafka-integration` whose
+preferences sync `.lab/kubeconfig` alone, and runs `pnpm dev` of the Freelens
+checkout (`FREELENS_DIR` names another one) with its CDP endpoint on port
+9223. Then, in this repository:
+
+```sh
+corepack pnpm build
+FREELENS_INTEGRATION_TESTING_DIR=/tmp/freelens-kafka-integration \
+  corepack pnpm test:integration
+```
+
+The tests install this checkout in place, replacing any other installation
+of the extension in Freelens dev, apply their workload fixture to the lab
+cluster, seed the direct broker and read the extension store of the profile.
+Each run needs a fresh profile: restart `lab:freelens` before running them
+again. Without Freelens dev or the lab the tests are skipped. The CI workflow
+[integration-tests.yaml](./.github/workflows/integration-tests.yaml) runs
+the same steps. `FREELENS_CDP_URL` changes the CDP endpoint and
+`FREELENS_MAIN_LOG` names a log of the main process to check for errors.
 
 ### Demo environment (Docker + kind)
 
@@ -309,14 +354,16 @@ corepack pnpm demo:down    # deletes the demo cluster and the Docker broker
 ```
 
 What you get:
-
 - A dedicated kind cluster `freelens-kafka-demo` (context
-  `kind-freelens-kafka-demo`, added to your kubeconfig). Your own `kind`
-  cluster is never touched.
+  `kind-freelens-kafka-demo`) whose kubeconfig is a file of its own,
+  `.demo/kubeconfig`: add it to Freelens (Preferences, Kubernetes, sync a
+  kubeconfig file). Your own kubeconfig and your own `kind` cluster are never
+  touched.
 - A real single-broker Kafka 3.9 inside the cluster, discovered as the
   Strimzi cluster `orders` in namespace `kafka-demo` and reached through a
   port-forward.
-- A second broker in Docker on `127.0.0.1:19093`, referenced by the
+- A second broker in Docker on `127.0.0.1:19093` (`DEMO_DIRECT_PORT` moves it,
+  for instance when the `kafka:auth` broker of the tests holds 19093), referenced by the
   `checkout-service` workload in the cluster, discovered as an external
   Kafka and reached directly.
 - On both brokers: the topics `orders` (6 partitions), `payments`,
@@ -345,6 +392,12 @@ forwarding, which is on by default.
 
 ### Local fixtures (kind and Docker)
 
+The tests and the fixtures below run on the repository's own lab: a kind
+cluster `freelens-kafka-lab` whose kubeconfig is `.lab/kubeconfig`. Create it
+once with `corepack pnpm lab:up` (`lab:status`, `lab:down`); every script
+names that file and its context, refuses anything else, and leaves your
+kubeconfig unchanged (see [TESTING-SAFETY.md](./TESTING-SAFETY.md)). To see
+the lab in Freelens, add `.lab/kubeconfig` in Preferences, Kubernetes.
 - **Discovery only** (populate the Overview table, no real brokers): deploy
   the Strimzi CRD and sample `Kafka` fixtures used by the tests:
 
@@ -359,14 +412,14 @@ forwarding, which is on by default.
   remains available independently.
 
 - **Fastest Overview + Topics test** uses a disposable host-reachable Kafka
-  and a zero-impact workload reference in `kind-kind`:
+  and a zero-impact workload reference in the lab cluster:
 
   ```sh
   # starts Kafka and creates freelens-orders (3 partitions)
   corepack pnpm kafka:direct:up
-  # makes the bootstrap discoverable from kind-kind
+  # makes the bootstrap discoverable from the lab cluster
   corepack pnpm kind:direct:up
-  # Open kind-kind → Kafka → 127.0.0.1 → Topics → freelens-orders
+  # Open kind-freelens-kafka-lab → Kafka → 127.0.0.1 → Topics → freelens-orders
   corepack pnpm kind:direct:down
   corepack pnpm kafka:direct:down
   ```
@@ -378,7 +431,7 @@ forwarding, which is on by default.
 ### Assisted UI verification with Playwright MCP
 
 For fast frame-aware exploratory UI verification, start an isolated Freelens
-CDP session containing only `kind-kind`:
+CDP session containing only the lab cluster:
 
 ```sh
 corepack pnpm mcp:app
@@ -408,8 +461,8 @@ nvm install
 mise install
 # or
 winget install CoreyButler.NVMforWindows
-nvm install 24.15.0
-nvm use 24.15.0
+nvm install 24.22.0
+nvm use 24.22.0
 ```
 
 Install pnpm:

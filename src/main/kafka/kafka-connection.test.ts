@@ -35,6 +35,29 @@ describe("KafkaConnection read cluster lifecycle", () => {
   });
 });
 
+describe("KafkaConnection.onDisconnect", () => {
+  it("runs its listeners once on disconnect, and at once when already disconnected", async () => {
+    const connection = await KafkaConnection.connect({ bootstrap: "127.0.0.1:1" });
+    const calls: string[] = [];
+
+    connection.onDisconnect(() => {
+      calls.push("sync");
+    });
+    connection.onDisconnect(async () => {
+      calls.push("async");
+      throw new Error("a failing listener does not stop the others");
+    });
+    await connection.disconnect();
+    await connection.disconnect();
+    expect(calls).toEqual(["sync", "async"]);
+
+    connection.onDisconnect(() => {
+      calls.push("late");
+    });
+    await vi.waitFor(() => expect(calls).toEqual(["sync", "async", "late"]));
+  });
+});
+
 describe("KafkaConnection.deleteTopic", () => {
   it("deletes exactly the named topic through a connected admin client", async () => {
     const connection = await KafkaConnection.connect({ bootstrap: "127.0.0.1:1" });
