@@ -3,6 +3,7 @@ import { kafkaPhasePercent } from "../common/kafka-phase-progress";
 
 import type {
   ClusterOverviewHealthDto,
+  ConsumerGroupDetailDto,
   DiscoveredKafkaInfo,
   KafkaMessageBytesDto,
   KafkaProgressEvent,
@@ -216,4 +217,24 @@ export function topicPartitionHealth(partition: TopicPartitionDto): "Healthy" | 
   if (partition.unavailable) return "Unavailable";
   if (partition.underReplicated) return "Under-replicated";
   return "Healthy";
+}
+
+type GroupTopicOffsets = ConsumerGroupDetailDto["topicOffsets"][number];
+
+export interface ResetOffsetsTarget {
+  topic: GroupTopicOffsets;
+  partition: GroupTopicOffsets["partitions"][number];
+}
+
+/**
+ * What an offset reset of a group applies to: the first partition of its first topic with committed offsets, once
+ * the group's detail is loaded; nothing before, and nothing for a group without offsets.
+ */
+export function resetOffsetsTarget(
+  detail: Pick<ConsumerGroupDetailDto, "topicOffsets"> | undefined,
+): ResetOffsetsTarget | undefined {
+  const topic = detail?.topicOffsets[0];
+  const partition = topic?.partitions[0];
+
+  return topic && partition ? { topic, partition } : undefined;
 }

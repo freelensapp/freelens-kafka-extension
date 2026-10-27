@@ -276,6 +276,10 @@ confirming, **then** the compose view closes and no message is produced.
   a mirror of the switch that the renderer sent over `kafka:write-mode` during the session; it reads
   the persisted write mode from its own copy of the extension store at every write call. The guard
   now holds before any cluster frame has started and whatever the frames did; the IPC channel goes.
+- **2026-10-27** — The offset reset applies to the first partition of the group's loaded detail; until the detail is
+  loaded (or for a group without committed offsets) the confirmed reset stays disabled and the drawer says why. It
+  could be confirmed and pressed while the detail loaded, and then did nothing, without a word (found in the
+  Freelens 2 port, SPEC-019).
 
 ## Verification Evidence
 

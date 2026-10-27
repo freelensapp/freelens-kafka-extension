@@ -12,7 +12,7 @@ import {
   useKafkaPageParam,
   useKafkaResourcePage,
 } from "./kafka-resource-pages";
-import { createOperationId, kafkaDecimalSortKey } from "./kafka-view-model";
+import { createOperationId, kafkaDecimalSortKey, resetOffsetsTarget } from "./kafka-view-model";
 import { canSubmitWriteAction, getWriteConfirmationLabel } from "./kafka-write-policy";
 import { useKafkaWriteMode } from "./kafka-write-settings";
 
@@ -97,6 +97,8 @@ export function KafkaGroupsPage({
     error?: string;
     progress?: KafkaProgressEvent;
   }>({ loading: false });
+  // The reset applies to the first partition of the loaded detail: nothing to reset before it is loaded.
+  const resetTarget = detailState.loading ? undefined : resetOffsetsTarget(detailState.data);
 
   const groupsOperationId = useRef<string | undefined>(undefined);
   const detailOperationId = useRef<string | undefined>(undefined);
@@ -308,6 +310,13 @@ export function KafkaGroupsPage({
                     </div>
                   )}
                   {resetError && <div role="alert">{resetError}</div>}
+                  {!resetTarget && (
+                    <div className={`${styles.kafkaPageState} loading`} data-testid="kafka-reset-offsets-waiting">
+                      {detailState.loading
+                        ? "Loading the group's offsets: the reset applies to its first partition."
+                        : "This group has no committed offsets to reset."}
+                    </div>
+                  )}
                   <Renderer.Component.Select
                     options={[
                       { value: "earliest", label: "Earliest" },
@@ -364,6 +373,7 @@ export function KafkaGroupsPage({
                     <Renderer.Component.Button
                       primary
                       disabled={
+                        !resetTarget ||
                         !canSubmitWriteAction({
                           confirmationAccepted: resetConfirmed,
                           requiredResourceName: groupId,
@@ -380,9 +390,8 @@ export function KafkaGroupsPage({
                         ) {
                           return;
                         }
-                        const firstTopic = detailState.data?.topicOffsets[0];
-                        const firstPartition = firstTopic?.partitions[0];
-                        if (!state.selectedCluster || !firstTopic || !firstPartition) return;
+                        if (!state.selectedCluster || !resetTarget) return;
+                        const { topic: firstTopic, partition: firstPartition } = resetTarget;
                         setResetError(undefined);
                         void resetOffsets({
                           targetId: state.selectedCluster.targetId,
