@@ -94,7 +94,7 @@ cell or the keyboard.
 - **Freelens >= 2.0.0.** The manifest declares `engines.freelens` as
   `^2.0.0`; Freelens 1.x lists the package as incompatible. Until Freelens
   2.0.0 is released the integration tests run against Freelens dev built
-  from `main` of freelensapp/freelens (verified at `14a491f1`). Versions 1.x
+  from `main` of freelensapp/freelens (verified at `113abe5d`). Versions 1.x
   of the extension are for Freelens 1.x and need Freelens >= 1.8.0.
 - **Kubernetes access** through the kubeconfig context Freelens uses for the
   cluster. Discovery reads Strimzi custom resources, Services, Pods, Secrets

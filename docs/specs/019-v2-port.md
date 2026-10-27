@@ -116,7 +116,9 @@ of one cluster's Kafka reaches the frames of the other clusters.
   maintainer first.
 - **2026-10-26** — The port compiles against `@freelensapp/extensions@2.0.0-0-nightly-2026-10-25`
   and reads the Freelens docs at freelensapp/freelens@7801fb10, the commit that nightly was built
-  from; the pin moves with the nightly.
+  from; the pin moves with the nightly. On 2026-10-27 it moved with the template to
+  `2.0.0-0-nightly-2026-10-26`, built from freelensapp/freelens@14a491f1: the API differs by the
+  return type of a terminal callback the extension does not use, and the docs by formatting.
 - **2026-10-26** — Kafka's own TCP stays on kafkajs over `node:net` and `node:tls`.
 - **2026-10-26** — SPEC-019 accepted by the maintainer, with the store-based write guard of
   REQ-233 proposed during the analysis: the renderer's mirror of the write mode over IPC goes.
