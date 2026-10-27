@@ -124,7 +124,7 @@
     "avsc": "^5.7.9",
     "kafkajs": "^2.2.4",
     "lz4-asm": "0.4.2",
-    "protobufjs": "^7.6.6"
+    "protobufjs": "^8.8.1"
   },
   "devDependencies": {
     "@freelensapp/extensions": "2.0.0-0-nightly-2026-10-26",
