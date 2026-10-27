@@ -63,18 +63,7 @@
     "@types/react",
     "mobx",
     "mobx-react",
-    "react",
-    // the libraries of the main process, bundled into dist/main.js: Freelens
-    // installs no dependencies of an extension, so they are devDependencies
-    "@aws-crypto/sha256-js",
-    "@aws-sdk/credential-provider-node",
-    "@aws-sdk/util-format-url",
-    "@kubernetes/client-node",
-    "@smithy/signature-v4",
-    "avsc",
-    "kafkajs",
-    "lz4-asm",
-    "protobufjs"
+    "react"
   ],
 
   "typescript": {

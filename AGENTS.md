@@ -21,8 +21,10 @@ exactly to the nightly the port is checked against.
 | `pnpm test:unit`                                         | unit tests                                                                                                                        |
 | `pnpm lint:check`, `pnpm knip:check`, `pnpm trunk:check` | Biome, Knip, Trunk                                                                                                                |
 
-The libraries of the main process (kafkajs, the AWS SDK, client-node, avsc, protobufjs, lz4-asm) are bundled into
-the main entry, so every dependency is a `devDependency` and the published package has no runtime `dependencies`.
+The libraries of the main process (kafkajs, the AWS SDK credential providers and signer, avsc, protobufjs, lz4-asm)
+are bundled into the main entry and listed in `dependencies`, as the template does; Freelens installs no dependency of
+an extension, so the package runs from its bundles alone. The host-provided modules and the tooling are
+`devDependencies`.
 
 ## Build
 
@@ -124,8 +126,8 @@ that starts letting one through fails the type check with an unused directive.
 - **Trunk** (`.trunk/trunk.yaml`) runs Biome, shellcheck, shfmt (which follows `.editorconfig`), yamllint, actionlint,
   taplo and the git checks, on the changed files in the pre-commit and pre-push hooks and in CI.
 - **Knip** (`knip.jsonc`, `pnpm knip:check`, after `pnpm build`) reports unused files, exports and dependencies, once
-  for development and once for production. The libraries the main entry bundles are `devDependencies` by design and
-  listed in `ignoreDependencies`, as are the host-provided modules. The itests are entries: the package scripts, the
+  for development and once for production. In the production pass only `dependencies` count, so the libraries the main
+  entry bundles are there; the host-provided modules, `devDependencies` for their types, are in `ignoreDependencies`. The itests are entries: the package scripts, the
   setup shell scripts and one another run them with `tsx`.
 - **Renovate** (`.renovaterc.json`): every library that Freelens also has takes the version of the Freelens catalog
   on `main`; the libraries only this extension has (kafkajs, the AWS SDK, avsc, protobufjs, lz4-asm, tsx) are listed

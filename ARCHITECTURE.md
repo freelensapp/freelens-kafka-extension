@@ -43,9 +43,9 @@ does not replace Tiers 0, 2 or 3. Every accepted MCP finding is promoted to dete
 evidence or recorded as blocked. Runbook: [`docs/playwright-mcp-testing.md`](./docs/playwright-mcp-testing.md).
 
 **Local gates every step:** `type:check`, `lint:check`, `knip:check`, `test:unit` (+ `build`). All green through SPEC-014 Slice 16.
-Every library the extension uses at runtime is bundled into `out/` by electron-vite and shipped inside the
-package, so they are declared as `devDependencies`; the published manifest intentionally has no runtime
-`dependencies`.
+Every library the extension uses at runtime is bundled into `dist/` by Vite and shipped inside the package.
+They are declared as `dependencies`, as the template does, although Freelens installs no dependency of an
+extension; the host-provided modules are `devDependencies`, for their types alone.
 
 ---
 
