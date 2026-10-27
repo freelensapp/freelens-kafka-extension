@@ -53,15 +53,45 @@ export class KafkaPersistentStateStore extends Common.Store.ExtensionStore<Kafka
     return migrated;
   }
 
-  fromStore(model: Partial<KafkaPersistentStateModel>): void {
-    const values = model.values;
-    if (!values || typeof values !== "object" || Array.isArray(values)) {
-      this.values = {};
-      return;
+  /**
+   * Keys only this process writes. The host syncs the whole store between main and the frames, each side replacing
+   * its copy with the other's: a frame that saves anything else would send a copy without what this process has just
+   * written, and that copy would replace it, on disk too. For these keys this process keeps its own values when a
+   * model arrives; the load from disk still takes them all.
+   */
+  private ownKeys?: (key: string) => boolean;
+  private loading = false;
+
+  keepOwnKeys(ownKeys: (key: string) => boolean): void {
+    this.ownKeys = ownKeys;
+  }
+
+  override loadExtension(
+    ...args: Parameters<Common.Store.ExtensionStore<KafkaPersistentStateModel>["loadExtension"]>
+  ): void {
+    this.loading = true;
+    try {
+      super.loadExtension(...args);
+    } finally {
+      this.loading = false;
     }
-    this.values = Object.fromEntries(
-      Object.entries(values).filter((entry): entry is [string, string] => typeof entry[1] === "string"),
-    );
+  }
+
+  fromStore(model: Partial<KafkaPersistentStateModel>): void {
+    const incoming = model.values;
+    const values: Record<string, string> =
+      !incoming || typeof incoming !== "object" || Array.isArray(incoming)
+        ? {}
+        : Object.fromEntries(
+            Object.entries(incoming).filter((entry): entry is [string, string] => typeof entry[1] === "string"),
+          );
+    const ownKeys = this.ownKeys;
+
+    if (ownKeys && !this.loading) {
+      for (const key of Object.keys(values)) if (ownKeys(key)) delete values[key];
+      for (const [key, value] of Object.entries(this.values)) if (ownKeys(key)) values[key] = value;
+    }
+    this.values = values;
   }
 
   toJSON(): KafkaPersistentStateModel {

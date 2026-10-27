@@ -1,6 +1,5 @@
 import { Renderer } from "@freelensapp/extensions";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { aggregateHealthSnapshotKey } from "../common/aggregate-health-snapshot";
 import { kafkaPersistentStateStore } from "../common/kafka-persistent-state-store";
 import { formatKafkaEta } from "../common/kafka-phase-progress";
 import { createKafkaTargetId } from "../common/kafka-target";
@@ -1228,7 +1227,7 @@ export function KafkaOverviewPage({
     const contextId = kubernetesClusterId ?? "active";
     resourceCache.invalidateDiscovery(contextId);
     resourceCache.invalidateTarget(contextId, kafka.targetId);
-    persistentState.removeItem(aggregateHealthSnapshotKey(contextId, kafka.targetId));
+    // Main removes the persisted health of the target: the snapshots are main's.
     void invalidateHealth(kafka.targetId, { closeSessions: true, removePersisted: true });
     setManualKafkas((current) => current.filter((entry) => entry.targetId !== kafka.targetId));
     connectionSettings.removeTarget(contextId, kafka.targetId);
