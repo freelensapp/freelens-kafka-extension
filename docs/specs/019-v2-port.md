@@ -1,11 +1,11 @@
 # SPEC-019 - Port to the Freelens v2 Extension API
 
-| Field  | Value                                                                                                                                                                                                                          |
-| ------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| Status | Implementing                                                                                                                                                                                                                   |
-| Date   | 2026-10-26                                                                                                                                                                                                                     |
-| Source | Freelens 2.0 replaces the extension API of 1.x; the plan is the migration issue of this repository and its feature issues A-F, opened from the `port-freelens-extension-to-v2` skill of freelensapp/freelens-example-extension |
-| Safety | Writes only on the labs the repository's scripts create; real clusters and real Kafka only read-only, on targets the maintainer names; governed by `TESTING-SAFETY.md`                                                         |
+| Field  | Value                                                                                                                                                                                                                                         |
+| ------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Status | Implementing                                                                                                                                                                                                                                  |
+| Date   | 2026-10-26                                                                                                                                                                                                                                    |
+| Source | Freelens 2.0 replaces the extension API of 1.x; the plan is the migration issue #98 of this repository and its feature issues #99-#104 (A-F), opened from the `port-freelens-extension-to-v2` skill of freelensapp/freelens-example-extension |
+| Safety | Writes only on the labs the repository's scripts create; real clusters and real Kafka only read-only, on targets the maintainer names; governed by `TESTING-SAFETY.md`                                                                        |
 
 ## Problem
 
@@ -111,7 +111,7 @@ of one cluster's Kafka reaches the frames of the other clusters.
 ## Decision Log
 
 - **2026-10-26** — Version 2.0.0-0 after the port (`pnpm version premajor`); 2.0.0 is released
-  after Freelens 2.0.0. One PR, squash-merged, with the migration issue and feature issues A-F.
+  after Freelens 2.0.0. One PR, squash-merged, with the migration issue #98 and feature issues #99-#104 (A-F).
   Scope: parity with 1.4.3 plus the improvements the agent proposes, each approved by the
   maintainer first.
 - **2026-10-26** — The port compiles against `@freelensapp/extensions@2.0.0-0-nightly-2026-10-25`
