@@ -39,7 +39,7 @@ export const KAFKA_IPC = {
   reachability: "kafka:reachability",
   /** Broadcast: a {@link KafkaProgressSignal}, the id of an operation with a new progress event and nothing else. */
   progress: "kafka:progress",
-  /** Invoke: the latest {@link KafkaProgressEvent} of an operation, for the frame that started it only. */
+  /** Invoke: the {@link KafkaProgressEvents} of an operation since a cursor, for the frame that started it only. */
   progressEvent: "kafka:progress-event",
 } as const;
 
@@ -159,6 +159,14 @@ export interface KafkaProgressSignal {
 
 export interface KafkaProgressEventRequest {
   operationId: string;
+  /** The cursor of the previous answer: only the events after it are returned. */
+  after?: number;
+}
+
+/** The events of an operation after the request's cursor, in order, and the cursor to ask from next time. */
+export interface KafkaProgressEvents {
+  events: KafkaProgressEvent[];
+  cursor: number;
 }
 
 export interface KafkaProgressEvent {

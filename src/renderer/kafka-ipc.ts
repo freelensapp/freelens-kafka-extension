@@ -27,6 +27,7 @@ import {
   type KafkaConnectDetailRequest,
   type KafkaConnectRequest,
   type KafkaProgressEvent,
+  type KafkaProgressEvents,
   type MessageBrowseDto,
   type MessageBrowseRequest,
   type OverviewRequest,
@@ -61,7 +62,8 @@ export class KafkaIpcRenderer extends Renderer.Ipc {
   private readonly dedupe = createIpcRequestDeduper();
   private readonly progress = new KafkaProgressPull({
     listen: (listener) => this.listen(KAFKA_IPC.progress, (_event, signal: unknown) => listener(signal)),
-    pull: (operationId) => this.invoke(KAFKA_IPC.progressEvent, { operationId }) as Promise<KafkaProgressEvent | null>,
+    pull: (operationId, after) =>
+      this.invoke(KAFKA_IPC.progressEvent, { operationId, after }) as Promise<KafkaProgressEvents | null>,
   });
 
   /** Every call to main: an error comes back with the message main gave, without Electron's wording. */
@@ -76,11 +78,14 @@ export class KafkaIpcRenderer extends Renderer.Ipc {
   // The operation id of a request this frame sends is this frame's while it runs: its progress is fetched.
   private read<T>(channel: string, request: IpcRequest): Promise<T> {
     return this.dedupe(channel, request, async () => {
-      const release = this.progress.own((request as { operationId?: unknown } | undefined)?.operationId);
+      const operationId = (request as { operationId?: unknown } | undefined)?.operationId;
+      const release = this.progress.own(operationId);
 
       try {
         return (await this.invoke(channel, request)) as T;
       } finally {
+        // The progress of the operation reaches the page before its answer or its error.
+        await this.progress.flush(operationId);
         release();
       }
     });

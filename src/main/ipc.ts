@@ -73,6 +73,7 @@ import type {
   ExtensionVersionDto,
   KafkaProgressEvent,
   KafkaProgressEventRequest,
+  KafkaProgressEvents,
   KafkaProgressSignal,
   KafkaSecurityHint,
   KafkaSecuritySummary,
@@ -349,11 +350,11 @@ export class KafkaIpcMain extends Main.Ipc {
     // The version of the code that is actually running here, not the one of the manifest (SPEC-016).
     this.handle(KAFKA_IPC.version, async (): Promise<ExtensionVersionDto> => ({ version: EXTENSION_VERSION }));
 
-    // The progress event of an operation, for the frame that started it only (REQ-227).
+    // The progress events of an operation since a cursor, for the frame that started it only (REQ-227).
     this.handle(
       KAFKA_IPC.progressEvent,
-      async (event, request: KafkaProgressEventRequest): Promise<KafkaProgressEvent | null> =>
-        this.progress.get(senderKey(event), request?.operationId) ?? null,
+      async (event, request: KafkaProgressEventRequest): Promise<KafkaProgressEvents | null> =>
+        this.progress.get(senderKey(event), request?.operationId, request?.after) ?? null,
     );
 
     this.handle(KAFKA_IPC.discover, async (event, request: DiscoverRequest) => {

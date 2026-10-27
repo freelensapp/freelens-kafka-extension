@@ -2,6 +2,7 @@
 // frame that started its operation only (SC-137 at unit level).
 
 import { afterEach, describe, expect, it, vi } from "vitest";
+import { KafkaProgressStore } from "../main/progress-store";
 import { KafkaProgressPull, OWNED_GRACE_MS, type ProgressTransport } from "./kafka-progress-pull";
 
 import type { KafkaProgressEvent } from "../common/ipc";
@@ -10,9 +11,9 @@ function event(operationId: string, label: string): KafkaProgressEvent {
   return { operationId, operation: "topic", value: 10, phase: "metadata", label } as KafkaProgressEvent;
 }
 
-// The main process: the latest event per operation and its frame; a broadcast of the id to every frame.
+// The main process: the real store of the events, bound to their frame; a broadcast of the id to every frame.
 function bus() {
-  const latest = new Map<string, { frame: string; event: KafkaProgressEvent }>();
+  const store = new KafkaProgressStore();
   const listeners = new Map<string, Set<(signal: unknown) => void>>();
   const pulls: Array<{ frame: string; operationId: string }> = [];
   const gates: Array<() => void> = [];
@@ -25,15 +26,14 @@ function bus() {
       listeners.set(frame, set);
       return () => set.delete(listener);
     },
-    async pull(operationId) {
+    async pull(operationId, after) {
       pulls.push({ frame, operationId });
       if (gated) await new Promise<void>((resolve) => gates.push(resolve));
-      const entry = latest.get(operationId);
-      return entry?.frame === frame ? entry.event : null;
+      return store.get(frame, operationId, after) ?? null;
     },
   });
   const emit = (frame: string, progress: KafkaProgressEvent) => {
-    latest.set(progress.operationId, { frame, event: progress });
+    store.put(frame, progress);
     for (const set of listeners.values()) for (const listener of set) listener({ operationId: progress.operationId });
   };
   return {
@@ -81,7 +81,7 @@ describe("KafkaProgressPull", () => {
     ]);
   });
 
-  it("folds the signals that come during a fetch into one more fetch of the latest event", async () => {
+  it("folds the signals that come during a fetch into one more fetch, which brings every event since the first", async () => {
     const main = bus();
     const pull = new KafkaProgressPull(main.transport("a"));
     const seen: string[] = [];
@@ -90,14 +90,42 @@ describe("KafkaProgressPull", () => {
     pull.own("op-a");
     main.gate();
     main.emit("a", event("op-a", "1"));
+    await vi.waitFor(() => expect(main.pulls).toHaveLength(1));
     main.emit("a", event("op-a", "2"));
     main.emit("a", event("op-a", "3"));
     main.emit("a", event("op-a", "4"));
-    await vi.waitFor(() => expect(main.pulls).toHaveLength(1));
     main.open();
-    await vi.waitFor(() => expect(seen).toEqual(["4", "4"]));
+    await vi.waitFor(() => expect(seen).toEqual(["1", "2", "3", "4"]));
 
     expect(main.pulls).toHaveLength(2);
+  });
+
+  it("flushes the events not delivered yet before its caller goes on, in order", async () => {
+    const main = bus();
+    const pull = new KafkaProgressPull(main.transport("a"));
+    const seen: string[] = [];
+
+    pull.subscribe((progress) => seen.push(progress.label));
+    pull.own("op-a");
+    main.gate();
+    main.emit("a", event("op-a", "1"));
+    await vi.waitFor(() => expect(main.pulls).toHaveLength(1));
+    main.emit("a", event("op-a", "2"));
+    const flushed = pull.flush("op-a").then(() => seen.push("answer"));
+    main.open();
+    await flushed;
+
+    expect(seen).toEqual(["1", "2", "answer"]);
+  });
+
+  it("flushes nothing for an id it does not own", async () => {
+    const main = bus();
+    const pull = new KafkaProgressPull(main.transport("a"));
+
+    pull.subscribe(() => undefined);
+    await pull.flush("op-x");
+    await pull.flush(undefined);
+    expect(main.pulls).toEqual([]);
   });
 
   it("keeps an id for a grace period after its request, then lets it go", async () => {
@@ -129,7 +157,7 @@ describe("KafkaProgressPull", () => {
       },
       pull: async (operationId) => {
         pulls.push(operationId);
-        return event("op-other", "not mine");
+        return { events: [event("op-other", "not mine")], cursor: 1 };
       },
     });
     const seen: string[] = [];

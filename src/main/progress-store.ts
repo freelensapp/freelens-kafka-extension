@@ -1,10 +1,12 @@
-// The progress of the operations of the frames, kept in the main process: the latest event of each operation, bound
-// to the frame that started it. Every frame is told only that an operation has a new event; the event itself is
-// handed to the frame that started the operation, when it asks (SPEC-019, REQ-227).
+// The progress of the operations of the frames, kept in the main process: the recent events of each operation, in
+// order, bound to the frame that started it. Every frame is told only that an operation has a new event; the events
+// themselves are handed to the frame that started the operation, when it asks, from the cursor of its last answer
+// (SPEC-019, REQ-227). Every event reaches that frame, so a burst (a fast scan reporting each workload) is not folded
+// into its last event.
 
 import type { IpcMainInvokeEvent } from "electron";
 
-import type { KafkaProgressEvent } from "../common/ipc";
+import type { KafkaProgressEvent, KafkaProgressEvents } from "../common/ipc";
 
 /**
  * What the store reads of the event of a handler: the identifiers of the sending frame's process and of the frame,
@@ -23,11 +25,16 @@ export const PROGRESS_BOUNDS = {
   idleMs: 60_000,
   /** At most this many operations are kept; the least recently updated go first. */
   operations: 500,
+  /** At most this many events are kept for an operation; the oldest go first. */
+  eventsPerOperation: 64,
 } as const;
 
 interface Entry {
   owner: string;
-  event: KafkaProgressEvent;
+  /** The events kept, in order; the cursor of the first one is `next - events.length + 1`. */
+  events: KafkaProgressEvent[];
+  /** The cursor of the last event put. */
+  next: number;
   at: number;
 }
 
@@ -41,8 +48,8 @@ export class KafkaProgressStore {
   }
 
   /**
-   * Keeps `event` as the latest of its operation for `owner`. False, and nothing kept, when the operation is another
-   * frame's: an id is the frame's own, and one frame may not take over the progress of another.
+   * Keeps `event` as the next event of its operation for `owner`. False, and nothing kept, when the operation is
+   * another frame's: an id is the frame's own, and one frame may not take over the progress of another.
    */
   put(owner: string, event: KafkaProgressEvent): boolean {
     const at = this.now();
@@ -51,8 +58,14 @@ export class KafkaProgressStore {
     const known = this.entries.get(event.operationId);
 
     if (known && known.owner !== owner) return false;
+    const entry = known ?? { owner, events: [], next: 0, at };
+
+    entry.events.push(event);
+    if (entry.events.length > PROGRESS_BOUNDS.eventsPerOperation) entry.events.shift();
+    entry.next += 1;
+    entry.at = at;
     this.entries.delete(event.operationId);
-    this.entries.set(event.operationId, { owner, event, at });
+    this.entries.set(event.operationId, entry);
     while (this.entries.size > PROGRESS_BOUNDS.operations) {
       const oldest = this.entries.keys().next().value;
 
@@ -62,13 +75,20 @@ export class KafkaProgressStore {
     return true;
   }
 
-  /** The latest event of the operation, for the frame that started it; nothing for any other frame. */
-  get(owner: string | undefined, operationId: unknown): KafkaProgressEvent | undefined {
+  /**
+   * The events of the operation after `after` (all those kept without it), for the frame that started it; nothing
+   * for any other frame.
+   */
+  get(owner: string | undefined, operationId: unknown, after?: unknown): KafkaProgressEvents | undefined {
     if (owner === undefined || typeof operationId !== "string") return undefined;
     this.prune(this.now());
     const entry = this.entries.get(operationId);
 
-    return entry?.owner === owner ? entry.event : undefined;
+    if (entry?.owner !== owner) return undefined;
+    const first = entry.next - entry.events.length + 1;
+    const from = typeof after === "number" && Number.isInteger(after) ? Math.max(after + 1, first) : first;
+
+    return { events: entry.events.slice(from - first), cursor: entry.next };
   }
 
   clear(): void {

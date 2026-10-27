@@ -1,15 +1,16 @@
 // The progress of this frame's operations: every frame is told the id of an operation with a new event; this frame
-// fetches the event only for the ids it sent, one fetch at a time per operation, with the signals that come during a
-// fetch folded into one more (SPEC-019, REQ-227). The main process hands an event to the frame that started its
-// operation only; the ids this frame owns spare the fetches it would be refused.
+// fetches the events only for the ids it sent, every event since its last fetch of the operation (a cursor), one
+// fetch at a time per operation, with the signals that come during a fetch folded into one more (SPEC-019, REQ-227).
+// The main process hands the events to the frame that started their operation only; the ids this frame owns spare
+// the fetches it would be refused.
 
-import type { KafkaProgressEvent } from "../common/ipc";
+import type { KafkaProgressEvent, KafkaProgressEvents } from "../common/ipc";
 
 export interface ProgressTransport {
   /** Listens for the signals of the main process; what it returns stops listening. */
   listen(listener: (signal: unknown) => void): () => void;
-  /** The latest event of the operation, or nothing. */
-  pull(operationId: string): Promise<KafkaProgressEvent | null | undefined>;
+  /** The events of the operation after the cursor `after`, with the cursor to ask from next time, or nothing. */
+  pull(operationId: string, after: number | undefined): Promise<KafkaProgressEvents | null | undefined>;
 }
 
 /** How long an id stays this frame's after its request settled, for the signals that arrive after the answer. */
@@ -20,10 +21,13 @@ function operationIdOf(signal: unknown): string | undefined {
   return typeof operationId === "string" && operationId.length > 0 ? operationId : undefined;
 }
 
+const nextTask = () => new Promise<void>((resolve) => setTimeout(resolve, 0));
+
 export class KafkaProgressPull {
   private readonly owned = new Map<string, number>();
   private readonly releases = new Map<string, ReturnType<typeof setTimeout>>();
-  private readonly fetching = new Map<string, { again: boolean }>();
+  private readonly fetching = new Map<string, { again: boolean; done: Promise<void> }>();
+  private readonly cursors = new Map<string, number>();
   private readonly listeners = new Set<(event: KafkaProgressEvent) => void>();
   private stopListening?: () => void;
   private disposed = false;
@@ -54,10 +58,30 @@ export class KafkaProgressPull {
       const timer = setTimeout(() => {
         this.releases.delete(operationId);
         this.owned.delete(operationId);
+        this.cursors.delete(operationId);
       }, OWNED_GRACE_MS);
 
       this.releases.set(operationId, timer);
     };
+  }
+
+  /**
+   * Delivers the events of the operation not delivered yet, and resolves once they are: called when its request has
+   * answered, so that its progress reaches the page before its result, as when every event was a message on the
+   * channel of the answer.
+   */
+  async flush(operationId: unknown): Promise<void> {
+    if (this.disposed || typeof operationId !== "string" || !this.owned.has(operationId) || this.listeners.size === 0) {
+      return;
+    }
+    const running = this.fetching.get(operationId);
+
+    if (running) {
+      running.again = true;
+      await running.done;
+      return;
+    }
+    await this.fetch(operationId);
   }
 
   /** Told the progress events of this frame's operations; what it returns unsubscribes. */
@@ -79,6 +103,7 @@ export class KafkaProgressPull {
     for (const timer of this.releases.values()) clearTimeout(timer);
     this.releases.clear();
     this.owned.clear();
+    this.cursors.clear();
   }
 
   private stop(): void {
@@ -99,18 +124,35 @@ export class KafkaProgressPull {
     void this.fetch(operationId);
   }
 
-  private async fetch(operationId: string): Promise<void> {
-    const state = { again: false };
+  private fetch(operationId: string): Promise<void> {
+    const state = { again: false, done: Promise.resolve() };
 
+    state.done = this.pullAll(operationId, state);
     this.fetching.set(operationId, state);
+    return state.done;
+  }
+
+  private async pullAll(operationId: string, state: { again: boolean }): Promise<void> {
+    // The fetch is registered by the caller first, in the same task.
+    await Promise.resolve();
     try {
       do {
         state.again = false;
-        const event = await this.transport.pull(operationId).catch(() => undefined);
+        const answer = await this.transport.pull(operationId, this.cursors.get(operationId)).catch(() => undefined);
 
         if (this.disposed) return;
-        if (event && event.operationId === operationId) {
-          for (const listener of [...this.listeners]) listener(event);
+        if (answer && Array.isArray(answer.events) && Number.isInteger(answer.cursor)) {
+          this.cursors.set(operationId, answer.cursor);
+          let first = true;
+          for (const event of answer.events) {
+            if (event?.operationId !== operationId) continue;
+            // One task per event, as when every event was a message of its own: the page renders each step of a
+            // burst instead of batching them into the last one.
+            if (!first) await nextTask();
+            first = false;
+            if (this.disposed) return;
+            for (const listener of [...this.listeners]) listener(event);
+          }
         }
       } while (state.again && this.owned.has(operationId));
     } finally {

@@ -32,7 +32,7 @@ vi.mock("./kafka/discovery", async (original) => ({
   }),
 }));
 
-import { KAFKA_IPC, type KafkaProgressEvent } from "../common/ipc";
+import { KAFKA_IPC, type KafkaProgressEvents } from "../common/ipc";
 import { KafkaIpcMain } from "./ipc";
 
 import type { TunnelHost } from "./kafka/kubectl-tunnels";
@@ -57,11 +57,17 @@ describe("KafkaIpcMain progress", () => {
     expect(JSON.stringify(host.broadcasts)).not.toContain("secret-orders");
 
     const pull = handler(KAFKA_IPC.progressEvent);
-    const mine = (await pull(FRAME_A, { operationId: "op-a" })) as KafkaProgressEvent;
-    expect(mine).toMatchObject({
-      operationId: "op-a",
-      operation: "discovery",
-      label: expect.stringContaining("secret"),
+    const mine = (await pull(FRAME_A, { operationId: "op-a" })) as KafkaProgressEvents;
+    expect(mine.events).toEqual([
+      expect.objectContaining({
+        operationId: "op-a",
+        operation: "discovery",
+        label: expect.stringContaining("secret"),
+      }),
+    ]);
+    expect(await pull(FRAME_A, { operationId: "op-a", after: mine.cursor })).toEqual({
+      events: [],
+      cursor: mine.cursor,
     });
     expect(await pull(FRAME_B, { operationId: "op-a" })).toBeNull();
     expect(await pull({}, { operationId: "op-a" })).toBeNull();

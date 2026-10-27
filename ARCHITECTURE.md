@@ -212,14 +212,17 @@ metadata with lazy body fetch; main owns consumer lifecycle and applies backpres
 
 **Freelens v2 (SPEC-019, decided).** In v2 `Ipc.broadcast` reaches every frame of every window, so data must not
 travel on it (REQ-227): the progress events name topics, groups and the authentication mode. Request/response stays
-on `invoke`/`handle`, bound to the frame that asked. For progress, main keeps the latest event of each operation and
-broadcasts only its operation id, a random value; the frame that started the operation fetches the event over
+on `invoke`/`handle`, bound to the frame that asked. For progress, main keeps the recent events of each operation and
+broadcasts only its operation id, a random value; the frame that started the operation fetches the events over
 `invoke`. `broadcast` carries no data: the pattern of freelensapp/freelens-velero-extension. The local server stays
 rejected: there is no long stream to carry. Built: main keeps the events in
 [`progress-store.ts`](./src/main/progress-store.ts), bound to the sending frame (`processId:frameId` of the invoke
-event, as Velero's `senderOf`), and answers `kafka:progress-event` for that frame only; the renderer
-([`kafka-progress-pull.ts`](./src/renderer/kafka-progress-pull.ts)) listens once, owns the ids of the requests it
-sends (random UUIDs) and fetches one event at a time per operation, folding the signals that arrive meanwhile. One
+event, as Velero's `senderOf`), and answers `kafka:progress-event` for that frame only, with every event after the cursor of its previous answer
+(64 per operation at most); the renderer ([`kafka-progress-pull.ts`](./src/renderer/kafka-progress-pull.ts)) listens
+once, owns the ids of the requests it sends (random UUIDs), runs one fetch at a time per operation, folding the signals
+that arrive meanwhile, and hands the events of an answer to the page one task apart. Before the answer of a request
+reaches the page, its remaining events are fetched and delivered: on 1.x every event was a message on the channel of
+the answer, so all of them arrived before it, and a fast scan still shows each counted step. One
 `KafkaIpcRenderer` per activation, made in `onActivate` and reset in `onDeactivate`.
 
 ### 6.2 Port-forward — DECIDED: client-side, kubectl through the host on Freelens 2 (client-node on 1.x)
