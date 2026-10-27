@@ -1,5 +1,25 @@
 # Changelog
 
+## v2.0.0-0 - Unreleased
+
+### Changed
+
+- The extension runs on Freelens 2 and needs it: the manifest declares `engines.freelens: ^2.0.0`, and Freelens 1.x lists the package as incompatible. Freelens 1.x users stay on 1.4.3. Every feature of 1.4.3 is kept (SPEC-019).
+- Kubernetes is reached through Freelens: the discovery reads and the per-broker port-forwards go through the cluster's connection in Freelens, so a kubeconfig with an `exec` credential plugin and the cluster's proxy setting apply as they do for Freelens itself. Port-forwards start only for a connected cluster and close when it disconnects.
+- Schema Registry, Kafka Connect and the AWS credential providers that accept it send HTTP through Freelens, so the proxy and CA settings of Freelens apply.
+- The progress and the results of an operation reach only the cluster frame that started it; with several clusters open, a frame no longer receives the progress of another cluster's Kafka.
+- The write mode holds across cluster frames: turning it on or off in one frame applies to the others at once, and the main process decides every write from the persisted write mode instead of from what a page told it.
+- The tests and the scripts run on a kind cluster of their own, `freelens-kafka-lab`, with its own kubeconfig, and refuse any other context or a non-local API server; until 1.4.3 they used the context `kind-kind`.
+
+### Fixed
+
+- The operation filter of the ACL page lists `ALL` once and can show the rules whose operation is `ALL` alone; `Any` keeps every rule. It used `ALL` for "any" as well.
+- Errors from the main process read as the error itself, without Electron's `Error invoking remote method` wording.
+- The consumer group pages keep their layout at every window width.
+- Reset offsets stays disabled, and the drawer says why, until the group's offsets are loaded: before, it could be confirmed while they loaded and then did nothing, without a word.
+- The health snapshot that Overview paints at start-up is no longer lost when a cluster frame saves its own settings at the same time.
+- A page restored after a reload no longer pulls the user back to it after they navigate elsewhere.
+
 ## v1.4.3 - 2026-10-20
 
 ### Fixed

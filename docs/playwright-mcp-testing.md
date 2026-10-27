@@ -42,7 +42,7 @@ This does not relax [`TESTING-SAFETY.md`](../TESTING-SAFETY.md). Never use a gen
 select the exact approved context.
 
 Environment overrides:
-- `FREELENS_APP_BINARY` — packaged Freelens executable.
+- `FREELENS_APP_BINARY` — packaged Freelens 2 executable (the extension needs Freelens >= 2.0.0).
 - `MCP_KUBECONFIG` — the kubeconfig to copy the context from: the lab's (default) or the demo's; any other
   only with `ALLOW_REAL_READ_ONLY=1`.
 - `PLAYWRIGHT_MCP_CDP_PORT` — CDP port (default `9223`).

@@ -41,6 +41,14 @@ them.
 
 ### Status
 
+> **Version 2 runs on Freelens 2.**
+> [SPEC-019](./docs/specs/019-v2-port.md) ports every feature of 1.4.3 to the
+> Freelens 2 extension API: the main process keeps the Kafka connections,
+> port-forwards and credentials, and answers each cluster frame with that
+> frame's own requests and progress alone. Tests and scripts run on a lab of
+> their own, and the 15 integration scenarios of 1.4.3 run against Freelens 2
+> dev. Versions 1.x are for Freelens 1.x.
+
 > **SPEC-001–014 verified; v1.0.0 implementation sign-off complete.** The
 > extension discovers Strimzi, generic in-cluster and workload-referenced
 > external/managed Kafka (including MSK), probes PC reachability, connects via
@@ -83,8 +91,11 @@ cell or the keyboard.
 
 ## Requirements
 
-- **Freelens >= 1.8.0.** Verified on Freelens 1.10.3, the version the
-  integration tests run against.
+- **Freelens >= 2.0.0.** The manifest declares `engines.freelens` as
+  `^2.0.0`; Freelens 1.x lists the package as incompatible. Until Freelens
+  2.0.0 is released the integration tests run against Freelens dev built
+  from `main` of freelensapp/freelens (verified at `14a491f1`). Versions 1.x
+  of the extension are for Freelens 1.x and need Freelens >= 1.8.0.
 - **Kubernetes access** through the kubeconfig context Freelens uses for the
   cluster. Discovery reads Strimzi custom resources, Services, Pods, Secrets
   and ConfigMaps; port-forwards use the same credentials.
@@ -94,8 +105,9 @@ cell or the keyboard.
   AWS IAM for direct Amazon MSK connections. OAUTHBEARER is not supported yet.
 - **Node.js** is required only when building the extension from source; it
   is not needed to run it. The package is a self-contained bundle: its
-  runtime libraries (`kafkajs`, `@kubernetes/client-node`) are compiled into
-  `out/`, so Freelens loads it without installing anything extra (Freelens
+  runtime libraries (`kafkajs` and the AWS SDK credential providers) are
+  compiled into `dist/`, so Freelens loads it without installing anything
+  extra (Freelens
   does not npm-install an extension's dependencies).
 
 ## Supported sources
@@ -293,6 +305,40 @@ corepack pnpm test:unit
 Engine integration tests run against Docker / KinD, see
 [test/e2e](./test/e2e) and the `kafka:*` / `kind:*` / `itest*` scripts in
 [package.json](./package.json).
+
+### Integration tests
+
+The integration tests drive Freelens dev, started from a
+[freelensapp/freelens](https://github.com/freelensapp/freelens) checkout next
+to this repository, against the repository's lab (see
+[Local fixtures](#local-fixtures-kind-and-docker)) and two Docker brokers:
+
+```sh
+corepack pnpm lab:up
+bash scripts/lab.sh compose direct up   # the broker the scenarios browse
+bash scripts/lab.sh compose acl up      # the broker with ACLs
+corepack pnpm lab:freelens              # Freelens dev on a fresh profile
+```
+
+`lab:freelens` writes a profile under `/tmp/freelens-kafka-integration` whose
+preferences sync `.lab/kubeconfig` alone, and runs `pnpm dev` of the Freelens
+checkout (`FREELENS_DIR` names another one) with its CDP endpoint on port
+9223. Then, in this repository:
+
+```sh
+corepack pnpm build
+FREELENS_INTEGRATION_TESTING_DIR=/tmp/freelens-kafka-integration \
+  corepack pnpm test:integration
+```
+
+The tests install this checkout in place, replacing any other installation
+of the extension in Freelens dev, apply their workload fixture to the lab
+cluster, seed the direct broker and read the extension store of the profile.
+Each run needs a fresh profile: restart `lab:freelens` before running them
+again. Without Freelens dev or the lab the tests are skipped. The CI workflow
+[integration-tests.yaml](./.github/workflows/integration-tests.yaml) runs
+the same steps. `FREELENS_CDP_URL` changes the CDP endpoint and
+`FREELENS_MAIN_LOG` names a log of the main process to check for errors.
 
 ### Demo environment (Docker + kind)
 
