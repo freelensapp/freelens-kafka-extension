@@ -51,9 +51,7 @@
   // from mise (see mise.toml); kubectl, kind and docker, which the lab and itest
   // scripts call, and openssl, which the security itest's fixture generates its
   // certificates with, from the system.
-  // electron-rebuild is called by the v1 integration workflow, which the test
-  // suites feature issue replaces.
-  "ignoreBinaries": ["docker", "electron-rebuild", "kind", "kubectl", "openssl", "yq"],
+  "ignoreBinaries": ["docker", "kind", "kubectl", "openssl", "yq"],
 
   "ignoreDependencies": [
     // host-provided modules. The bundle maps them onto

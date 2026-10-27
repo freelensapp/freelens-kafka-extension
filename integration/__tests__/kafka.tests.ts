@@ -151,7 +151,14 @@ clusterDescribe("Kafka cluster page", () => {
       }
       await new Promise((resolve) => setTimeout(resolve, 100));
     }
-    throw new Error("Durable aggregate health snapshot was not written");
+    // What the store holds instead: its aggregate health snapshots are sanitized (no endpoint, credential or name).
+    const snapshots = Object.fromEntries(
+      Object.entries(kafkaStoreValues()).filter(([key]) => key.startsWith("freelens-kafka.aggregate-health.v1:")),
+    );
+    throw new Error(
+      `Durable aggregate health snapshot was not written for ${targetId} by ${new Date().toISOString()}; ` +
+        `the store holds ${JSON.stringify(snapshots)}`,
+    );
   };
   const produceDirectTopicPartition0Messages = (lines: string[], topic = DIRECT_TOPIC) => {
     if (lines.length === 0) {
@@ -1455,12 +1462,17 @@ clusterDescribe("Kafka cluster page", () => {
       expect(frame.url()).not.toMatch(/order-json|created|ready.for.pickup|base64/i);
 
       await messagesBrowser.getByRole("button", { name: "Next window" }).click();
+      // The rows of the next window, not those of the first one still on the page.
       await frame.waitForFunction(
-        () =>
-          Boolean(
-            document.querySelector(`:is(.KafkaMessageTable, [class*="_KafkaMessageTable_"]) .TableRow[data-offset]`),
-          ),
-        undefined,
+        (previous) => {
+          const offsets = [
+            ...document.querySelectorAll(
+              `:is(.KafkaMessageTable, [class*="_KafkaMessageTable_"]) .TableRow[data-offset]`,
+            ),
+          ].map((row) => row.getAttribute("data-offset"));
+          return offsets.length > 0 && offsets.every((offset) => !previous.includes(offset ?? ""));
+        },
+        firstWindowOffsets,
         { timeout: 120_000 },
       );
       expect(await messagesBrowser.getAttribute("data-browse-requests")).toBe("2");
