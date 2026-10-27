@@ -108,4 +108,30 @@ describe("KafkaWriteSettingsStore reload", () => {
     expect(store.get("cluster-a")).toBe(true);
     expect(store.enabledTargets()).toEqual(["cluster-a"]);
   });
+
+  it("tells its listeners of a change another frame made to the shared storage, and only of a change", () => {
+    const values: Record<string, string> = {};
+    const storage = {
+      getItem: (key: string) => values[key] ?? null,
+      setItem: (key: string, value: string) => void (values[key] = value),
+    };
+    const store = new KafkaWriteSettingsStore(storage);
+    let calls = 0;
+    store.subscribe(() => {
+      calls += 1;
+    });
+
+    values[KAFKA_WRITE_MODE_KEY] = JSON.stringify(["kafka-1"]);
+    store.refresh();
+    expect(calls).toBe(1);
+    expect(store.get("kafka-1")).toBe(true);
+
+    store.refresh();
+    expect(calls).toBe(1);
+
+    values[KAFKA_WRITE_MODE_KEY] = JSON.stringify([]);
+    store.refresh();
+    expect(calls).toBe(2);
+    expect(store.get("kafka-1")).toBe(false);
+  });
 });

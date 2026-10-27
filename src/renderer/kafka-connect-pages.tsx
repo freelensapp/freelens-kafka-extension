@@ -4,6 +4,7 @@ import styles from "./kafka.module.scss";
 import { KafkaPageShell } from "./kafka-page-shell";
 import { type KafkaResourcePageDependencies, useKafkaPageParam, useKafkaResourcePage } from "./kafka-resource-pages";
 import { canSubmitWriteAction } from "./kafka-write-policy";
+import { useKafkaWriteMode } from "./kafka-write-settings";
 
 import type { HTMLAttributes } from "react";
 
@@ -85,7 +86,7 @@ export function KafkaConnectPage({
   }, [connectDetail, connector, settings]);
 
   const filtered = items.filter((item) => item.name.toLowerCase().includes(query.toLowerCase()));
-  const canWrite = Boolean(state.selectedCluster && dependencies.writeSettings.get(state.selectedCluster.targetId));
+  const canWrite = useKafkaWriteMode(dependencies.writeSettings, state.selectedCluster?.targetId);
   const [confirmed, setConfirmed] = useState(false);
   const [deleteText, setDeleteText] = useState("");
   const [status, setStatus] = useState<string>();

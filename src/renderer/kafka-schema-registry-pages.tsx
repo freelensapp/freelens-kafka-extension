@@ -4,6 +4,7 @@ import styles from "./kafka.module.scss";
 import { KafkaPageShell } from "./kafka-page-shell";
 import { type KafkaResourcePageDependencies, useKafkaPageParam, useKafkaResourcePage } from "./kafka-resource-pages";
 import { canSubmitWriteAction } from "./kafka-write-policy";
+import { useKafkaWriteMode } from "./kafka-write-settings";
 
 import type { HTMLAttributes } from "react";
 
@@ -75,7 +76,7 @@ export function KafkaSchemaRegistryPage({
   const [detail, setDetail] = useState<SchemaSubjectDetail>();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string>();
-  const canWrite = Boolean(state.selectedCluster && dependencies.writeSettings.get(state.selectedCluster.targetId));
+  const canWrite = useKafkaWriteMode(dependencies.writeSettings, state.selectedCluster?.targetId);
   const [newSchema, setNewSchema] = useState("");
   const [registerConfirmed, setRegisterConfirmed] = useState(false);
   const [deleteText, setDeleteText] = useState("");

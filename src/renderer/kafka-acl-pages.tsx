@@ -5,6 +5,7 @@ import { ANY_ACL_FILTER, filterKafkaAcls } from "./kafka-acl-filter";
 import { KafkaPageShell } from "./kafka-page-shell";
 import { KafkaResourceActions, type KafkaResourcePageDependencies, useKafkaResourcePage } from "./kafka-resource-pages";
 import { canSubmitWriteAction } from "./kafka-write-policy";
+import { useKafkaWriteMode } from "./kafka-write-settings";
 
 import type { HTMLAttributes } from "react";
 
@@ -118,7 +119,7 @@ export function KafkaAclPage({ params, acls, aclCreate, aclDelete, ...dependenci
     [operationFilter, principalFilter, resourceTypeFilter, result],
   );
 
-  const canWrite = Boolean(cluster && dependencies.writeSettings.get(cluster.targetId));
+  const canWrite = useKafkaWriteMode(dependencies.writeSettings, cluster?.targetId);
   const draft: KafkaAclDto = { resourceType, resourceName, patternType, principal, host, operation, permissionType };
   const draftComplete = resourceName.trim().length > 0 && principal.trim().length > 0 && host.trim().length > 0;
 

@@ -1,5 +1,5 @@
 import { Common, Renderer } from "@freelensapp/extensions";
-import { computed } from "mobx";
+import { computed, reaction } from "mobx";
 import { EXTENSION_VERSION } from "../common/extension-version";
 import { kafkaPersistentStateStore } from "../common/kafka-persistent-state-store";
 import { KafkaIcon } from "./icon";
@@ -107,11 +107,19 @@ export default class KafkaExtensionRenderer extends Renderer.LensExtension {
     this.schemaRegistrySettings.reload();
     this.connectSettings.reload();
     this.writeSettings.reload();
+    // A write mode switched in another frame reaches this frame's copy of the store: the pages follow it (REQ-231).
+    this.stopWriteModeWatch?.();
+    this.stopWriteModeWatch = reaction(
+      () => stateStore.getItem(KAFKA_WRITE_MODE_KEY),
+      () => this.writeSettings.refresh(),
+    );
     // After an in-place update Freelens keeps the previous main side until it restarts (SPEC-016).
     void kafkaVersionSkewStore.check(EXTENSION_VERSION, () => this.client.mainVersion());
   }
 
   protected async onDeactivate(): Promise<void> {
+    this.stopWriteModeWatch?.();
+    this.stopWriteModeWatch = undefined;
     this.ipc?.dispose();
     this.ipc = undefined;
     KafkaIpcRenderer.resetInstance();
@@ -120,6 +128,7 @@ export default class KafkaExtensionRenderer extends Renderer.LensExtension {
   // The way to the main process of this activation: made in onActivate, let go in onDeactivate, so that an enable
   // after a disable, or a reload of the development loop, never reaches main through a previous activation's.
   private ipc?: KafkaIpcRenderer;
+  private stopWriteModeWatch?: () => void;
 
   private get client(): KafkaIpcRenderer {
     if (!this.ipc) throw new Error("The Kafka extension is not active");
