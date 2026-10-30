@@ -92,10 +92,9 @@ cell or the keyboard.
 ## Requirements
 
 - **Freelens >= 2.0.0.** The manifest declares `engines.freelens` as
-  `^2.0.0`; Freelens 1.x lists the package as incompatible. Until Freelens
-  2.0.0 is released the integration tests run against Freelens dev built
-  from `main` of freelensapp/freelens (verified at `113abe5d`). Versions 1.x
-  of the extension are for Freelens 1.x and need Freelens >= 1.8.0.
+  `^2.0.0`; Freelens 1.x lists the package as incompatible. The integration
+  tests run against Freelens 2.0.0, built from its tag. Versions 1.x of the
+  extension are for Freelens 1.x and need Freelens >= 1.8.0.
 - **Kubernetes access** through the kubeconfig context Freelens uses for the
   cluster. Discovery reads Strimzi custom resources, Services, Pods, Secrets
   and ConfigMaps; port-forwards use the same credentials.
@@ -291,7 +290,7 @@ The repository is developed spec-first, with the specs in the repository:
 
 ### Local gates
 
-Node 24.22.0 (`.nvmrc` / `mise.toml`) + `corepack pnpm`. Run the local gates
+Node 24.22.1 (`.nvmrc` / `mise.toml`) + `corepack pnpm`. Run the local gates
 after every change:
 
 ```sh
@@ -461,8 +460,8 @@ nvm install
 mise install
 # or
 winget install CoreyButler.NVMforWindows
-nvm install 24.22.0
-nvm use 24.22.0
+nvm install 24.22.1
+nvm use 24.22.1
 ```
 
 Install pnpm:

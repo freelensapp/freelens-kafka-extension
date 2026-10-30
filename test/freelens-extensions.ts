@@ -18,6 +18,9 @@ class Ipc {
   constructor(_extension: unknown) {}
 }
 
-export const Common = { Store: { ExtensionStore } };
+// The host's logger writes to its log; the stub drops the message. A test that checks a message spies on it.
+const logger = { error: (..._args: unknown[]) => {} };
+
+export const Common = { Store: { ExtensionStore }, logger };
 export const Main = { Ipc };
 export const Renderer = { Ipc };

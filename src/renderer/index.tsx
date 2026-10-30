@@ -2,6 +2,7 @@ import { Common, Renderer } from "@freelensapp/extensions";
 import { computed, reaction } from "mobx";
 import { EXTENSION_VERSION } from "../common/extension-version";
 import { kafkaPersistentStateStore } from "../common/kafka-persistent-state-store";
+import { ErrorBoundary, withPageErrorBoundary } from "./components/error-boundary";
 import { KafkaIcon } from "./icon";
 import { KafkaAclAvailabilityStore } from "./kafka-acl-availability";
 import { KafkaAclPage, type KafkaAclPageProps } from "./kafka-acl-pages";
@@ -225,12 +226,18 @@ export default class KafkaExtensionRenderer extends Renderer.LensExtension {
   clusterFrameComponents = [
     {
       id: "kafka-reload-route-restorer",
-      Component: () => <KafkaReloadRouteRestorer onRestoreRoute={this.restoreReloadRoute} />,
+      // It renders in every cluster frame, and an error that reaches the host's boundary around the frame would
+      // replace the whole cluster view; this boundary keeps such an error here and renders nothing in its place.
+      Component: () => (
+        <ErrorBoundary extension={this} fallback="nothing">
+          <KafkaReloadRouteRestorer onRestoreRoute={this.restoreReloadRoute} />
+        </ErrorBoundary>
+      ),
       shouldRender: this.alwaysVisible,
     },
   ];
 
-  clusterPages = [
+  clusterPages: Renderer.LensExtension["clusterPages"] = [
     {
       ...KAFKA_CLUSTER_PAGE_MANIFEST[0],
       components: {
@@ -423,7 +430,7 @@ export default class KafkaExtensionRenderer extends Renderer.LensExtension {
         ),
       },
     },
-  ];
+  ].map((registration) => withPageErrorBoundary(this, registration));
 
   clusterPageMenus = [
     ...KAFKA_ROUTE_OWNER_MENU_MANIFEST.map(({ pageId, ...menu }) => ({
