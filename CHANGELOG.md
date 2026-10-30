@@ -10,6 +10,7 @@
 - The progress and the results of an operation reach only the cluster frame that started it; with several clusters open, a frame no longer receives the progress of another cluster's Kafka.
 - The write mode holds across cluster frames: turning it on or off in one frame applies to the others at once, and the main process decides every write from the persisted write mode instead of from what a page told it.
 - The tests and the scripts run on a kind cluster of their own, `freelens-kafka-lab`, with its own kubeconfig, and refuse any other context or a non-local API server; until 1.4.3 they used the context `kind-kind`.
+- An error in a Kafka page stays in that page: the page shows the error and Freelens logs it with the extension's name, and the rest of Freelens keeps working. The component that restores a page after a reload, which runs in every cluster frame, keeps its errors to itself in the same way.
 
 ### Fixed
 
