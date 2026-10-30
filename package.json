@@ -120,7 +120,7 @@
     "@aws-crypto/sha256-js": "^5.2.0",
     "@aws-sdk/credential-provider-node": "^3.972.84",
     "@aws-sdk/util-format-url": "^3.972.48",
-    "@smithy/signature-v4": "^5.7.4",
+    "@smithy/signature-v4": "^5.7.5",
     "avsc": "^5.7.9",
     "kafkajs": "^2.2.4",
     "lz4-asm": "0.4.2",
